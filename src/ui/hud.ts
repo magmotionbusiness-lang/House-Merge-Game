@@ -1,5 +1,6 @@
 import type { AimMode } from '../core/config';
 import { MAX_TIER, tier } from '../core/tiers';
+import { ICONS } from './icons';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag);
@@ -41,7 +42,7 @@ export class Hud {
   private overlay = el('div', 'overlay hidden');
   private toast = el('div', 'toast');
   private modeBtn = el('button', 'pill', 'Aim: Slide');
-  private soundBtn = el('button', 'pill', '🔊');
+  private soundBtn = el('button', 'pill icon-btn');
   private flashEl = el('div', 'screen-flash');
   private debugEl = el('div', 'debug');
   private chips: HTMLElement[] = [];
@@ -57,11 +58,11 @@ export class Hud {
     col.append(this.score, this.best);
     scoreBox.append(coin, col);
     const btns = el('div', 'btn-row');
-    const restart = el('button', 'pill', '↻ Restart');
+    const restart = el('button', 'pill');
+    restart.innerHTML = `${ICONS.restart}<span>Restart</span>`;
     restart.onclick = () => h.onRestart();
     this.modeBtn.onclick = () => h.onToggleMode();
     this.soundBtn.onclick = () => h.onToggleSound();
-    this.soundBtn.setAttribute('aria-label', 'Sound');
     btns.append(restart, this.modeBtn, this.soundBtn);
     const left = el('div', 'top-left');
     left.append(scoreBox, btns);
@@ -89,7 +90,9 @@ export class Hud {
   }
 
   setSound(on: boolean) {
-    this.soundBtn.textContent = on ? '🔊' : '🔇';
+    this.soundBtn.innerHTML = on ? ICONS.soundOn : ICONS.soundOff;
+    this.soundBtn.setAttribute('aria-label', on ? 'Sound on' : 'Sound off');
+    this.soundBtn.classList.toggle('off', !on);
   }
 
   /** White flash for big moments (tier 13+, Wonders). */
@@ -201,7 +204,7 @@ export class Hud {
     const card = el('div', 'over-card');
     card.append(
       el('div', 'over-title', 'Site Overflow!'),
-      el('div', 'over-sub', 'The pile crossed the site boundary.'),
+      el('div', 'over-sub', 'The pile crossed the site boundary'),
       el('div', 'over-score', score.toLocaleString('en-US')),
       el('div', 'over-best', score >= best && score > 0 ? 'NEW BEST!' : `Best ${best.toLocaleString('en-US')}`),
     );

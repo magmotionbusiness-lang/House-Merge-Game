@@ -62,10 +62,10 @@ export function blueprintTexture(): THREE.Texture {
   ctx.lineWidth = 2;
   ctx.strokeRect(px - 150, H - 70, 140, 58);
   ctx.fillStyle = 'rgba(255,255,255,0.22)';
-  ctx.font = 'bold 15px system-ui, sans-serif';
-  ctx.fillText('BLUEPRINT MERGE', px - 142, H - 48);
-  ctx.font = '12px system-ui, sans-serif';
-  ctx.fillText('SHEET 01 · SCALE 1:100', px - 142, H - 26);
+  ctx.font = '900 19px "Big Shoulders Display", system-ui, sans-serif';
+  ctx.fillText('BLUEPRINT MERGE', px - 142, H - 47);
+  ctx.font = '13px "Architects Daughter", system-ui, sans-serif';
+  ctx.fillText('Sheet 01 · Scale 1:100', px - 142, H - 25);
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -128,10 +128,10 @@ export function capTexture(tierId: number, color: string): THREE.Texture {
   ctx.fill();
   const light = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }).l > 0.6;
   ctx.fillStyle = light ? '#1b2333' : '#ffffff';
-  ctx.font = 'bold 64px system-ui, sans-serif';
+  ctx.font = '900 76px "Big Shoulders Display", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(String(tierId), 64, 68);
+  ctx.fillText(String(tierId), 64, 70);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.center.set(0.5, 0.5);

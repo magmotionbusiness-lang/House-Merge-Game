@@ -8,7 +8,12 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --ui: 'Avenir Next', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Typography: condensed signage for numbers and titles (Big Shoulders Display,
+     drawn from Chicago's architectural lettering), a technical condensed face for
+     UI labels, and draftsman's hand lettering for blueprint annotations. */
+  --display: 'Big Shoulders Display', 'Barlow Condensed', system-ui, sans-serif;
+  --ui: 'Barlow Condensed', 'Avenir Next Condensed', system-ui, -apple-system, sans-serif;
+  --hand: 'Architects Daughter', 'Marker Felt', cursive;
 }
 
 * {
@@ -529,4 +534,104 @@ body {
   color: #9f9;
   padding: 3px 6px;
   border-radius: 6px;
+}
+
+/* ---------- typography ---------- */
+.score-value,
+.next-label,
+.combo,
+.float,
+.toast-title,
+.over-title,
+.over-score,
+.big-btn,
+.chip {
+  font-family: var(--display);
+}
+.score-value {
+  font-size: 27px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+.best {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+.next-label {
+  font-size: 16px;
+  letter-spacing: 0.16em;
+  padding-left: 0.16em;
+}
+.pill {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+}
+.icon-btn {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.icon-btn.off {
+  color: #8a5a3c;
+  background: rgba(255, 248, 234, 0.6);
+}
+.chip-sm {
+  font-size: calc(var(--chip, 20px) * 0.56);
+}
+.chip-lg {
+  font-size: 24px;
+}
+.combo {
+  font-size: 20px;
+  letter-spacing: 0.08em;
+}
+.float {
+  font-size: 22px;
+  letter-spacing: 0.02em;
+}
+.float.big {
+  font-size: 32px;
+}
+.toast-title {
+  font-size: 26px;
+  white-space: nowrap;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.toast-sub,
+.over-sub,
+.over-tier {
+  font-family: var(--hand);
+  font-weight: 400;
+}
+.toast-sub {
+  font-size: 18px;
+  color: #1d4e89;
+}
+.over-title {
+  font-size: 36px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.over-sub {
+  font-size: 15px;
+  opacity: 0.8;
+}
+.over-score {
+  font-size: 58px;
+}
+.over-best {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.big-btn {
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }

@@ -1,11 +1,23 @@
+import '@fontsource/big-shoulders-display/800';
+import '@fontsource/big-shoulders-display/900';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/architects-daughter/latin-400.css';
 import './style.css';
 import { initPhysics } from './physics/world';
 import { SceneView } from './render/scene';
 import { Hud } from './ui/hud';
 import { Game } from './game/Game';
 
+/** Canvas textures draw with these fonts, so wait for them (but never block boot for long). */
+function loadFonts() {
+  const fonts = ['900 64px "Big Shoulders Display"', '400 16px "Architects Daughter"', '700 16px "Barlow Condensed"'];
+  const all = Promise.all(fonts.map((f) => document.fonts.load(f))).catch(() => undefined);
+  return Promise.race([all, new Promise((r) => setTimeout(r, 2500))]);
+}
+
 async function boot() {
-  await initPhysics();
+  await Promise.all([initPhysics(), loadFonts()]);
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const hudRoot = document.getElementById('hud') as HTMLElement;
   const view = new SceneView(canvas);
