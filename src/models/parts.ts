@@ -15,10 +15,9 @@ export interface HouseOpts {
   windows?: number; // per floor on the front
   door?: boolean;
   trim?: string;
-  wallMat?: 'matte' | 'brick' | 'wood';
+  wallMat?: 'siding' | 'plaster' | 'brick' | 'wood';
 }
 
-const GLASS = '#a9d8f5';
 
 /**
  * A readable house block: floors separated by white trim bands (so they can be
@@ -32,7 +31,9 @@ export function house(b: Builder, o: HouseOpts) {
   const h = o.floors * fh;
   const trim = o.trim ?? '#ffffff';
   const n = o.windows ?? 2;
-  b.box(o.w, h, o.d, o.wallMat ?? 'matte', o.wall, { y: o.y, x, z }, o.wallMat ? 0 : 0.01);
+  b.box(o.w, h, o.d, o.wallMat ?? 'siding', o.wall, { y: o.y, x, z });
+  // Corner boards.
+  for (const sx of [-1, 1]) b.box(0.025, h, 0.025, 'matte', trim, { y: o.y, x: x + sx * (o.w / 2), z: z + o.d / 2 });
   for (let f = 1; f < o.floors; f++) b.box(o.w + 0.02, 0.016, o.d + 0.02, 'matte', trim, { y: o.y + f * fh - 0.008, x, z });
   const front = z + o.d / 2 + 0.006;
   const ww = Math.min(0.11, (o.w / n) * 0.5);
@@ -41,14 +42,19 @@ export function house(b: Builder, o: HouseOpts) {
       const wx = x - o.w / 2 + (o.w / n) * (i + 0.5);
       const isDoor = o.door !== false && f === 0 && i === Math.floor((n - 1) / 2);
       if (isDoor) {
-        b.box(ww * 1.05, fh * 0.72, 0.016, 'wood', shade(o.roof, 0.7), { y: o.y, x: wx, z: front });
+        b.box(ww * 1.1, fh * 0.74, 0.016, 'door', shade(o.roof, 0.85), { y: o.y, x: wx, z: front });
+        b.box(ww * 1.4, 0.02, 0.05, 'matte', trim, { y: o.y + fh * 0.74, x: wx, z: front + 0.015 });
       } else {
-        b.box(ww + 0.025, fh * 0.5 + 0.025, 0.012, 'matte', trim, { y: o.y + f * fh + fh * 0.25 - 0.0125, x: wx, z: front - 0.002 });
-        b.box(ww, fh * 0.5, 0.016, 'gloss', GLASS, { y: o.y + f * fh + fh * 0.25, x: wx, z: front });
+        b.box(ww, fh * 0.52, 0.016, 'pane', '#ffffff', { y: o.y + f * fh + fh * 0.24, x: wx, z: front });
+        b.box(ww * 1.25, 0.018, 0.035, 'matte', trim, { y: o.y + f * fh + fh * 0.22, x: wx, z: front + 0.008 });
+        // Shutters on the lower floors give houses character.
+        if (o.floors <= 3 && ww < 0.1)
+          for (const sx of [-1, 1])
+            b.box(ww * 0.32, fh * 0.52, 0.012, 'wood', shade(o.roof, 0.9), { y: o.y + f * fh + fh * 0.24, x: wx + sx * ww * 0.68, z: front });
       }
     }
     // One window per floor on the right side, for depth.
-    b.box(0.016, fh * 0.5, ww, 'gloss', GLASS, { y: o.y + f * fh + fh * 0.25, x: x + o.w / 2 + 0.006, z });
+    b.box(0.016, fh * 0.52, ww, 'pane', '#ffffff', { y: o.y + f * fh + fh * 0.24, x: x + o.w / 2 + 0.006, z });
   }
   const top = o.y + h;
   const rh = o.roofH ?? 0.2;

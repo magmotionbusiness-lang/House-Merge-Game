@@ -6,6 +6,8 @@ import { nextSpawn } from '../core/spawn';
 import { MAX_TIER, tier } from '../core/tiers';
 import { TableWorld, type Body } from '../physics/world';
 import { SceneView, pieceRadius, type PieceView } from '../render/scene';
+import { Lighting } from '../render/lighting';
+import { modelSize } from '../models';
 import { Hud } from '../ui/hud';
 import { store } from './storage';
 
@@ -62,6 +64,7 @@ export class Game {
   private aimX = 0;
   private lastPower = 0.75;
   private slowmo = 0; // real seconds of slow motion left
+  private hitstop = 0; // real seconds the physics stays frozen on a merge impact
   private lastDust = 0;
   private wasDanger = false;
   readonly sfx = new Sfx(store.str('bm.sound', 'on') === 'off');
@@ -131,7 +134,13 @@ export class Game {
       dt *= 0.3;
     }
     if (this.paused) dt = 0;
-    this.acc += dt;
+    // Hit-stop: freeze the simulation for a beat on merge impacts (visuals keep playing).
+    let simDt = dt;
+    if (this.hitstop > 0) {
+      this.hitstop -= realDt;
+      simDt = 0;
+    }
+    this.acc += simDt;
     while (this.acc >= DT) {
       this.fixedStep();
       this.acc -= DT;
@@ -262,22 +271,26 @@ export class Game {
     const my = (pa.y + pb.y) / 2;
     this.destroy(a, true);
     this.destroy(b, true);
-    this.view.converge(a.view, b.view, mx, my);
 
     const combo = this.combo.hit(this.time);
     const res = mergeResult(a.tier, combo);
     this.addScore(res.points);
-    const sp = this.view.toScreen(mx, my, 0.1);
+    const label = `+${res.points.toLocaleString('en-US')}`;
 
     if (res.newTier === null) {
-      this.hud.floatText(sp.x, sp.y, `+${res.points.toLocaleString('en-US')}`, true);
-      this.hud.showToast('Wonder Complete!', 'The skyline salutes you.', MAX_TIER);
-      this.hud.flash();
-      this.view.ring(mx, my, 0.4, '#ffffff');
-      this.view.fx.merge(mx, my, 4, '#ffe27a', 3);
-      this.view.shake(10);
-      this.slowmo = 0.3;
-      this.sfx.wonder();
+      this.view.converge(a.view, b.view, mx, my, () => {
+        const sp = this.view.toScreen(mx, my, 0.1);
+        this.hud.floatText(sp.x, sp.y, label, true);
+        this.hud.showToast('Wonder Complete!', 'The skyline salutes you.', MAX_TIER);
+        this.hud.flash();
+        this.hud.bumpScore();
+        this.view.ring(mx, my, 0.4, '#ffffff');
+        this.view.fx.merge(mx, my, 4, '#ffe27a', 3);
+        this.view.fx.impact(mx, my, 0.3, '#ffe27a', 3);
+        this.view.shake(10);
+        this.slowmo = 0.3;
+        this.sfx.wonder();
+      });
       return true;
     }
 
@@ -286,16 +299,24 @@ export class Game {
     const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
     n.view.build = 0;
     const power = Math.min(3, nt / 6 + (combo - 1) * 0.3);
-    this.view.ring(mx, my, n.radius * 1.1, '#ffffff');
-    this.view.fx.merge(mx, my, t.era, t.color, power);
-    if (nt >= 10) this.view.shake(2 + Math.min(4, nt - 10));
-    if (nt >= 13) {
-      this.slowmo = 0.15;
-      this.hud.flash();
-    }
-    this.hud.floatText(sp.x, sp.y, `+${res.points.toLocaleString('en-US')}`, nt >= 10 || combo >= 3);
-    this.hud.showCombo(combo);
-    this.sfx.merge(t.pitch, combo);
+    // The twins slam together first; the payoff lands on impact.
+    this.view.converge(a.view, b.view, mx, my, () => {
+      const at = n.dead ? { x: mx, y: my } : this.world.pos(n.b);
+      const sp = this.view.toScreen(at.x, at.y, 0.1);
+      this.view.ring(at.x, at.y, n.radius * 1.1, '#ffffff');
+      this.view.fx.merge(at.x, at.y, t.era, t.color, power);
+      this.view.fx.impact(at.x, at.y, n.radius, t.color, power);
+      this.view.shake(1.5 + Math.min(6, nt * 0.35) + (combo - 1));
+      this.hitstop = 0.05 + Math.min(0.05, nt * 0.004);
+      if (nt >= 13) {
+        this.slowmo = 0.15;
+        this.hud.flash();
+      }
+      this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3);
+      this.hud.showCombo(combo);
+      this.hud.bumpScore();
+      this.sfx.merge(t.pitch, combo);
+    });
 
     // Radial shove so merges cause little chain reactions.
     for (const o of this.pieces.values()) {
@@ -363,6 +384,12 @@ export class Game {
   private refreshHud() {
     this.hud.setScore(this.score, this.best);
     this.hud.setProgress(Math.max(5, this.highestEver), this.highestRun);
+    // The scene reacts to progress: the day moves on, the background building
+    // grows, and the camera eases back when tall towers stand on the table.
+    this.view.setTimeOfDay(Lighting.forTier(this.highestRun));
+    this.view.setSiteFloors(2 + Math.floor(this.highestRun / 2));
+    const top = this.highestOnTable();
+    this.view.setTallest(top ? modelSize(top).height : 0);
   }
 
   private gameOver() {
@@ -499,6 +526,7 @@ export class Game {
   /** Test hook: drop a piece of a given tier at a table position. */
   debugPlace(tierId: number, x: number, y: number) {
     this.addPiece(tierId, x, y, 0, 0);
+    this.refreshHud();
   }
 
   debugState() {

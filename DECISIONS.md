@@ -60,3 +60,31 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 ## App icon
 
 - The icon is the owner-provided builder illustration (`art/icon-source.png`), a stand-in until the final artwork arrives. iOS gets the full image (its own corner mask hides the source's black corners); the web manifest and favicon use a crop without the corners.
+
+## Phase 3.2: Cartoon look, performance and merge feel (playtest feedback)
+
+- **Cel-shaded cartoon style with ink outlines.** Buildings now use toon shading (3 light steps) and dark outlines along every crease, and their surfaces are textured: clapboard siding, plaster, outlined shingles and bricks, framed windows with curtains, panelled doors, shutters and corner boards.
+- **Higher FPS:**
+  - **One texture atlas:** every building texture sits in one 512 px atlas, tiled by a small shader patch, so a house is 1 draw call plus 1 for its outline (was up to 7).
+  - **Cheaper materials:** physically based materials and the reflection map are gone. Buildings use toon shading, the blueprint sheet is unlit (its shading is painted in), and the props use simple Lambert lighting.
+  - **Faster auto-quality:** resolution steps down after 1 s below 54 fps (was 1.5 s below 50).
+- **Leak fixed:** effects started when a merge landed were being dropped from the update list and stayed on screen forever, piling up draw calls over a session. This was a real cause of slowdown.
+- **Juicier merge.** The twins accelerate into each other and swell while flashing white. On impact:
+  - a spinning starburst, a coloured glow pooling on the blueprint and twinkling sparkles, plus the ring and era particles
+  - a short camera kick for every merge, growing with tier and combo
+  - a 50-90 ms hit-stop that freezes the physics for a beat while the effects play
+  - a bounce on the score counter
+
+  The new building then draws in as a blueprint, fills, hops and lands with a squash and a dust ring.
+
+## Phase 4: Scene
+
+- **Construction site** around the table, built with the same modelling kit (so it matches the cartoon style and costs a few draw calls):
+  - **Table and static props:** steel I-beam rails with rivets, brick pallets, rebar bundles, traffic cones, scaffolding, a site office with a coffee mug, floodlight poles.
+  - **Ambient motion, all slow and subtle:** a tower crane sweeping with a swaying hook, a cement mixer turning, an excavator arm moving now and then, a fluttering flag, drifting dust motes, and welding sparks every 6-10 s on the half-built building in the back.
+- **The table is framed at 90% of the screen width** (was 96%) so the site shows at the sides. Depth of field was skipped (a blur pass is too costly on phones); fog and placement keep the site calm instead.
+- **Lighting moves through the day as you progress:** morning (tiers 1-5), noon (6-9), golden hour (10-12), dusk (13-15) and night (16+). Colours ease over 2.5 s. Windows light up from dusk, and the floodlights glow at night. In the campaign each district will pick its own time of day instead.
+- **The half-built building grows a floor every two tiers** reached in the run. The campaign will tie it to completed districts.
+- **Camera eases back for tall towers** (tallest building over ~0.35 table-widths): at most 10% further away, as the brief says, re-framed to keep the back rail and spires in view.
+- **Blueprint sheet:** faint technical drawings (house elevations, a floor plan, dimension arrows, a compass circle), paper grain, a scissors mark on the dashed launch line, and a fuller title block.
+- **Reduced motion:** with the system's "Reduce Motion" setting on, the site's ambient animations stop. The "Calm background" toggle arrives with the Settings screen in Phase 5.

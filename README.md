@@ -15,7 +15,7 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 3 of 10: **Models** done. All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
+Phase 4 of 10: **Scene** done (construction site, time-of-day lighting, camera ease-back). Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 
@@ -41,7 +41,7 @@ To install on iPhone: open the site in Safari → Share → **Add to Home Screen
 |---|---|
 | `src/core` | Pure rules: tier ladder (`tiers.ts`), spawn RNG, scoring, combo, tuning config. Runs headless. |
 | `src/physics` | Rapier 2D table world (the game is simulated on the table plane and drawn in 3D). |
-| `src/render` | Three.js scene, camera fit, procedural textures, merge effects. |
+| `src/render` | Three.js scene, camera fit, procedural textures, merge effects, the construction site (`site.ts`) and time-of-day lighting (`lighting.ts`). |
 | `src/models` | One file per tier (`tier01.ts` … `tier18.ts`) building the model in code, plus the modelling kit and shared materials. |
 | `src/audio` | Procedural Web Audio sound effects. |
 | `scripts/bake.mjs` | Bakes thumbnails (`public/thumbs`), `.glb` exports (`art/models`) and the lineup sheet. |

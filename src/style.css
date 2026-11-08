@@ -691,3 +691,12 @@ body {
   right: -6px;
   bottom: -6px;
 }
+
+.score-box.bump {
+  animation: bump 0.28s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes bump {
+  40% {
+    transform: scale(1.08);
+  }
+}

@@ -50,7 +50,7 @@ function renderThumb(renderer: THREE.WebGLRenderer, tierId: number, tiltDeg = 42
   const size = box.getSize(new THREE.Vector3());
   const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 100);
   const tilt = THREE.MathUtils.degToRad(tiltDeg);
-  const radius = Math.max(size.x, size.z) * 0.62 + size.y * 0.42;
+  const radius = Math.max(size.x, size.z) * 0.5 + size.y * 0.3;
   const dist = radius / Math.tan(THREE.MathUtils.degToRad(15));
   cam.position.set(center.x + dist * 0.18, center.y + Math.sin(tilt) * dist, center.z + Math.cos(tilt) * dist);
   cam.lookAt(center);

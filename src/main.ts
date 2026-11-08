@@ -68,7 +68,8 @@ async function boot() {
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
-  (window as unknown as { __game: Game }).__game = game;
+  (window as unknown as { __game: Game; __view: SceneView }).__game = game;
+  (window as unknown as { __view: SceneView }).__view = view;
 }
 
 boot().catch((e) => {

@@ -1,16 +1,15 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { ERA_RING, tier } from '../core/tiers';
-import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, groundTexture, hazardTexture } from './textures';
+import { Lighting, type TimeOfDay } from './lighting';
+import { buildSite, RAIL_H, RAIL_W, type SiteRefs } from './site';
 import { animateMaterials } from '../models/materials';
 import { createModel, modelSize, tickAnims, wireframe, type ModelAnims } from '../models';
 import { ParticleFx, type Effect } from './fx';
 
 const W = CONFIG.tableWidth;
 const L = CONFIG.tableLength;
-const RAIL_W = 0.045;
-const RAIL_H = 0.05;
 
 /** Table coords (x across, y away from player) -> world (x, up, -y). */
 const toWorld = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
@@ -31,10 +30,12 @@ export interface PieceView {
 
 // Merge build-in timeline (seconds): twins converge, blueprint wireframe draws in,
 // then the solid fills from the bottom up with a squash-and-stretch pop.
-const BUILD_CONVERGE = 0.06;
-const BUILD_WIRE = 0.21;
-const BUILD_FILL = 0.41;
-const BUILD_END = 0.55;
+// After filling, the new building hops up and lands with a squash.
+const BUILD_CONVERGE = 0.08;
+const BUILD_WIRE = 0.17;
+const BUILD_FILL = 0.29;
+const BUILD_HOP = 0.46;
+const BUILD_END = 0.6;
 
 const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
 const easeOut = (u: number) => 1 - Math.pow(1 - u, 3);
@@ -74,6 +75,14 @@ export class SceneView {
   private blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   readonly fx: ParticleFx;
   private badgeMats = new Map<number, THREE.SpriteMaterial>();
+  private sheetMat = new THREE.MeshBasicMaterial({ map: blueprintTexture() });
+  private site!: SiteRefs;
+  private lighting!: Lighting;
+  // Camera ease-back for tall buildings: fitted camera for normal and tall tables.
+  private fitNormal = { dist: 3, z: -L / 2 };
+  private fitTall = { dist: 3, z: -L / 2 };
+  private tallK = 0;
+  private tallTarget = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     // On Retina screens the pixel density hides jaggies, so skip costly MSAA there.
@@ -84,22 +93,10 @@ export class SceneView {
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 0.95;
 
-    this.scene.background = new THREE.Color('#e7cf9f');
-    this.scene.fog = new THREE.Fog('#e7cf9f', 4, 10);
-
-    const hemi = new THREE.HemisphereLight('#fff6e6', '#8a6f4a', 1.4);
-    this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight('#fff1d6', 2.2);
-    sun.position.set(-1.2, 3, 0.6);
-    sun.target.position.set(0, 0, -L / 2);
-    this.scene.add(sun, sun.target);
-
-    // Soft studio reflections so glass, steel and gold read as glossy toys.
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.55;
-    pmrem.dispose();
+    this.scene.fog = new THREE.Fog('#e7cf9f', 3.5, 7);
     this.buildTable();
+    this.site = buildSite(this.scene);
+    this.lighting = new Lighting(this.scene, this.sheetMat, (k) => this.site.setNight(k));
     this.fx = new ParticleFx(this.scene, (e) => this.effects.push(e));
 
     // Aim line: dotted strip, scaled along its length every frame.
@@ -125,39 +122,29 @@ export class SceneView {
   }
 
   private buildTable() {
+    // Cheap materials: the sheet is unlit (its shading is painted into the texture).
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(14, 14).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: '#c79a5c', roughness: 0.9 }),
+      new THREE.PlaneGeometry(16, 16).rotateX(-Math.PI / 2),
+      new THREE.MeshLambertMaterial({ map: groundTexture() }),
     );
+    (ground.material as THREE.MeshLambertMaterial).map!.repeat.set(8, 8);
     ground.position.set(0, -0.06, -L / 2);
     this.scene.add(ground);
 
     const base = new THREE.Mesh(
       new THREE.BoxGeometry(W + RAIL_W * 2 + 0.06, 0.06, L + RAIL_W * 2 + 0.06),
-      new THREE.MeshStandardMaterial({ color: '#7a5634', roughness: 0.7 }),
+      new THREE.MeshLambertMaterial({ color: '#7a5634' }),
     );
     base.position.set(0, -0.031, -L / 2);
     this.scene.add(base);
 
-    const sheet = new THREE.Mesh(
-      new THREE.PlaneGeometry(W, L).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ map: blueprintTexture(), roughness: 0.85 }),
-    );
+    const sheet = new THREE.Mesh(new THREE.PlaneGeometry(W, L).rotateX(-Math.PI / 2), this.sheetMat);
     sheet.position.set(0, 0, -L / 2);
     this.scene.add(sheet);
 
-    const steel = new THREE.MeshStandardMaterial({ color: '#8d99a8', roughness: 0.35, metalness: 0.6 });
-    const railGeo = (lx: number, lz: number) => new THREE.BoxGeometry(lx, RAIL_H, lz);
-    const addRail = (geo: THREE.BufferGeometry, x: number, z: number, mat: THREE.Material = steel) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, RAIL_H / 2, z);
-      this.scene.add(m);
-    };
-    addRail(railGeo(RAIL_W, L + RAIL_W * 2), -W / 2 - RAIL_W / 2, -L / 2);
-    addRail(railGeo(RAIL_W, L + RAIL_W * 2), W / 2 + RAIL_W / 2, -L / 2);
-    addRail(railGeo(W, RAIL_W), 0, RAIL_W / 2);
-    const hazard = new THREE.MeshStandardMaterial({ map: hazardTexture(), roughness: 0.5 });
-    const yellow = new THREE.MeshStandardMaterial({ color: '#f5c400', roughness: 0.5 });
+    // Heavier back beam with hazard tape facing the player.
+    const hazard = new THREE.MeshLambertMaterial({ map: hazardTexture() });
+    const yellow = new THREE.MeshLambertMaterial({ color: '#f5c400' });
     const back = new THREE.Mesh(new THREE.BoxGeometry(W + RAIL_W * 2, RAIL_H * 1.6, RAIL_W * 1.4), [
       yellow, yellow, yellow, yellow, hazard, yellow,
     ]);
@@ -169,7 +156,7 @@ export class SceneView {
     const g = new THREE.Group();
     const c = new THREE.Mesh(
       new THREE.ConeGeometry(0.016, 0.045, 12),
-      new THREE.MeshStandardMaterial({ color: '#ff7a1a', roughness: 0.5 }),
+      new THREE.MeshLambertMaterial({ color: '#ff7a1a' }),
     );
     c.position.y = 0.0225;
     g.add(c);
@@ -192,15 +179,20 @@ export class SceneView {
     this.fit();
   }
 
-  private fit() {
+  /**
+   * Fit the table into the band between the HUDs, leaving a little scenery at
+   * the sides. `headroom` is how much height above the back rail must stay in
+   * view (more when tall towers stand on the table).
+   */
+  private fitFor(headroom: number) {
     const top = 1 - (2 * this.hudTop) / this.height;
     const bottom = -1 + (2 * this.hudBottom) / this.height;
-    const xr = 0.96;
+    const xr = 0.9;
     const pts = [
       toWorld(-W / 2 - RAIL_W, -RAIL_W),
       toWorld(W / 2 + RAIL_W, -RAIL_W),
-      toWorld(-W / 2 - RAIL_W, L + RAIL_W, 0.12),
-      toWorld(W / 2 + RAIL_W, L + RAIL_W, 0.12),
+      toWorld(-W / 2 - RAIL_W, L + RAIL_W, headroom),
+      toWorld(W / 2 + RAIL_W, L + RAIL_W, headroom),
     ];
     const v = new THREE.Vector3();
     for (let i = 0; i < 60; i++) {
@@ -221,7 +213,35 @@ export class SceneView {
       const off = (maxY + minY) / 2 - (top + bottom) / 2;
       this.target.z -= off * 0.35 * this.dist;
     }
+    return { dist: this.dist, z: this.target.z };
+  }
+
+  private fit() {
+    this.fitTall = this.fitFor(0.55);
+    this.fitNormal = this.fitFor(0.12);
+    // The brief caps the ease-back at 10%.
+    this.fitTall.dist = Math.min(this.fitTall.dist, this.fitNormal.dist * 1.1);
+    this.applyFit();
+  }
+
+  private applyFit() {
+    const k = this.tallK;
+    this.dist = this.fitNormal.dist + (this.fitTall.dist - this.fitNormal.dist) * k;
+    this.target.z = this.fitNormal.z + (this.fitTall.z - this.fitNormal.z) * k;
     this.placeCamera();
+  }
+
+  /** Height (world) of the tallest building on the table; the camera eases back for 13+. */
+  setTallest(h: number) {
+    this.tallTarget = Math.min(1, Math.max(0, (h - 0.35) / 0.3));
+  }
+
+  setTimeOfDay(t: TimeOfDay) {
+    this.lighting.set(t);
+  }
+
+  setSiteFloors(n: number) {
+    this.site.setFloors(n);
   }
 
   private placeCamera() {
@@ -337,26 +357,29 @@ export class SceneView {
   }
 
   /** The two merging pieces slide into their midpoint and vanish. */
-  converge(a: PieceView, b: PieceView, x: number, y: number) {
+  converge(a: PieceView, b: PieceView, x: number, y: number, onImpact?: () => void) {
     const starts = [a, b].map((v) => v.group.position.clone());
     const target = toWorld(x, y);
-    this.startFlash(a, BUILD_CONVERGE + 0.02);
-    this.startFlash(b, BUILD_CONVERGE + 0.02);
+    this.startFlash(a, BUILD_CONVERGE + 0.03);
+    this.startFlash(b, BUILD_CONVERGE + 0.03);
     let t = 0;
     this.effects.push({
       update: (dt) => {
         t += dt;
         const u = clamp01(t / BUILD_CONVERGE);
-        const e = u * u;
+        const e = u * u * u; // accelerate into each other
         [a, b].forEach((v, i) => {
           v.group.position.lerpVectors(starts[i], target, e);
-          v.group.scale.setScalar(1 - 0.25 * e);
+          // Swell slightly as they collide, then get swallowed by the flash.
+          const sw = 1 + 0.18 * Math.sin(u * Math.PI * 0.5);
+          v.group.scale.set(sw, sw * (1 - 0.15 * e), sw);
         });
         return u < 1;
       },
       dispose: () => {
         this.removePiece(a);
         this.removePiece(b);
+        onImpact?.();
       },
     });
   }
@@ -410,6 +433,13 @@ export class SceneView {
     tickAnims(p.anims, this.time);
   }
 
+  /** Squash on landing: wide and short, springing back. */
+  private landScale(t: number) {
+    const u = clamp01(t / (BUILD_END - BUILD_HOP));
+    const k = Math.sin(u * Math.PI) * (1 - u) * 1.6;
+    return { xz: 1 + 0.14 * k, y: 1 - 0.2 * k };
+  }
+
   private animateBuild(p: PieceView, dt: number) {
     const before = p.build;
     p.build += dt;
@@ -439,6 +469,15 @@ export class SceneView {
     for (const c of p.body.children) if (c !== p.wire) c.visible = fillU > 0;
     const pop = this.popScale(t - BUILD_CONVERGE);
     p.group.scale.set(pop, 1, pop);
+    // Hop: up and back down between fill and landing.
+    if (t > BUILD_FILL && t < BUILD_HOP) {
+      const u = (t - BUILD_FILL) / (BUILD_HOP - BUILD_FILL);
+      p.group.position.y += Math.sin(u * Math.PI) * (p.radius * 0.45 + 0.01);
+    } else if (t >= BUILD_HOP) {
+      const l = this.landScale(t - BUILD_HOP);
+      p.group.scale.set(l.xz, l.y, l.xz);
+      if (before < BUILD_HOP) this.fx.dust(p.group.position.x, -p.group.position.z, p.radius * 1.4, '#ffffff', 4);
+    }
     if (before < BUILD_WIRE && t >= BUILD_WIRE) this.startFlash(p, 0.16);
     (p.wire.material as THREE.LineBasicMaterial).opacity = 1 - clamp01((t - BUILD_FILL) / (BUILD_END - BUILD_FILL));
     if (t >= BUILD_END) {
@@ -517,9 +556,9 @@ export class SceneView {
     if (dt <= 0 || dt > 0.25) return;
     this.frameAvg += (dt - this.frameAvg) * 0.05;
     this.frameClock += dt;
-    if (this.frameClock < 1.5) return;
+    if (this.frameClock < 1) return;
     this.frameClock = 0;
-    if (this.frameAvg > 1 / 50 && this.dpr > 1) {
+    if (this.frameAvg > 1 / 54 && this.dpr > 1) {
       this.dpr = Math.max(1, this.dpr - 0.25);
       this.renderer.setPixelRatio(this.dpr);
       this.renderer.setSize(this.width, this.height, false);
@@ -530,11 +569,22 @@ export class SceneView {
     this.adaptQuality(dt);
     this.time += dt;
     animateMaterials(this.time);
-    this.effects = this.effects.filter((e) => {
-      const alive = e.update(dt);
-      if (!alive) e.dispose();
-      return alive;
+    this.lighting.update(dt);
+    this.site.update(dt, this.time);
+    if (Math.abs(this.tallK - this.tallTarget) > 0.001) {
+      this.tallK += (this.tallTarget - this.tallK) * Math.min(1, dt * 1.5);
+      this.applyFit();
+    }
+    // Effects may spawn new effects when they finish (a merge's impact), so
+    // swap in a fresh list first and keep anything added meanwhile.
+    const running = this.effects;
+    this.effects = [];
+    const alive = running.filter((e) => {
+      const ok = e.update(dt);
+      if (!ok) e.dispose();
+      return ok;
     });
+    this.effects = alive.concat(this.effects);
     this.placeCamera();
     if (this.camShake > 0) {
       const px = this.camShake * 0.0025;

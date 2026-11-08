@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Era } from '../core/tiers';
-import { puffTexture } from './textures';
+import { puffTexture, sparkleTexture, starTexture } from './textures';
 
 export interface Effect {
   update(dt: number): boolean; // false when finished
@@ -37,6 +37,20 @@ export class ParticleFx {
   };
   private mats = new Map<string, THREE.Material>();
   private puff = puffTexture();
+  private starMat = new THREE.SpriteMaterial({
+    map: starTexture(),
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+    transparent: true,
+  });
+  private sparkleMat = new THREE.SpriteMaterial({
+    map: sparkleTexture(),
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    transparent: true,
+  });
+  private glowGeo = new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2);
 
   constructor(
     private scene: THREE.Scene,
@@ -242,6 +256,72 @@ export class ParticleFx {
           this.scene.remove(r.m);
           r.mat.dispose();
         }
+      },
+    });
+  }
+
+  /** Merge impact: a spinning starburst, a glow pooling on the blueprint and twinkling sparkles. */
+  impact(x: number, y: number, radius: number, color: string, power: number) {
+    const star = new THREE.Sprite(this.starMat.clone());
+    star.position.set(x, 0.05 + radius * 0.4, -y);
+    star.renderOrder = 8;
+    this.scene.add(star);
+
+    const glowMat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const glow = new THREE.Mesh(this.glowGeo, glowMat);
+    glow.position.set(x, 0.003, -y);
+    glow.renderOrder = 2;
+    this.scene.add(glow);
+
+    const n = Math.round(6 + power * 5);
+    const sparks: { s: THREE.Sprite; v: THREE.Vector3; size: number; delay: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const s = new THREE.Sprite(this.sparkleMat);
+      const a = (i / n) * Math.PI * 2 + rand(-0.3, 0.3);
+      const sp = rand(0.35, 0.8) * (0.8 + power * 0.25);
+      s.position.set(x, 0.04, -y);
+      s.renderOrder = 8;
+      sparks.push({ s, v: new THREE.Vector3(Math.cos(a) * sp, rand(0.5, 1.1), Math.sin(a) * sp), size: rand(0.03, 0.055) * (1 + power * 0.15), delay: rand(0, 0.06) });
+      s.scale.setScalar(0);
+      this.scene.add(s);
+    }
+
+    let t = 0;
+    const big = radius * (2.4 + power * 0.5);
+    this.add({
+      update: (dt) => {
+        t += dt;
+        const u = Math.min(1, t / 0.32);
+        const e = 1 - Math.pow(1 - u, 3);
+        star.scale.setScalar(big * (0.3 + e) * (1 - u * 0.3));
+        star.material.rotation = t * 2.5;
+        star.material.opacity = 1 - u;
+        const g = Math.min(1, t / 0.55);
+        glow.scale.setScalar(radius * (1.2 + g * 1.4));
+        glowMat.opacity = 0.75 * (1 - g);
+        for (const p of sparks) {
+          const lt = t - p.delay;
+          if (lt < 0) continue;
+          p.v.y -= 2.2 * dt;
+          p.v.multiplyScalar(1 - 2.2 * dt);
+          p.s.position.addScaledVector(p.v, dt);
+          const k = Math.max(0, 1 - lt / 0.6);
+          const tw = 0.7 + 0.3 * Math.sin(lt * 40);
+          p.s.scale.setScalar(p.size * k * tw);
+        }
+        return t < 0.66;
+      },
+      dispose: () => {
+        this.scene.remove(star, glow);
+        star.material.dispose();
+        glowMat.dispose();
+        for (const p of sparks) this.scene.remove(p.s);
       },
     });
   }

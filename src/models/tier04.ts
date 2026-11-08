@@ -16,8 +16,8 @@ export function build(_H: number, color: string) {
   }
   b.box(w - 0.02, logs * lr * 2, d - 0.04, 'wood', shade(color, 0.9), { y });
   b.gable(w, 0.24, d, 'roof', shade(color, 0.62), { y: y + logs * lr * 2 }, 0.07);
-  b.box(0.14, 0.24, 0.02, 'wood', shade(color, 0.55), { y, z: d / 2 + 0.005 });
-  b.box(0.12, 0.1, 0.02, 'gloss', '#ffd98a', { y: y + 0.13, x: 0.2, z: d / 2 + 0.005 });
+  b.box(0.14, 0.24, 0.02, 'door', shade(color, 1.1), { y, z: d / 2 + 0.005 });
+  b.box(0.13, 0.12, 0.02, 'pane', '#fff2cc', { y: y + 0.12, x: 0.2, z: d / 2 + 0.005 });
   b.box(0.22, 0.03, 0.08, 'matte', '#9e9e9e', { y, z: d / 2 + 0.05 });
   chimney(b, -0.22, -0.08, y + 0.3, 0.2);
   return b.finish();

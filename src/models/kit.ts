@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { materials, UV_DENSITY, type MatKey } from './materials';
+import { atlasRect, bucketOf, FACE_UV, inkMaterial, materials, UV_DENSITY, type Bucket, type MatKey } from './materials';
 
 /**
  * Procedural modelling kit. Models are built in "model units": the footprint is
@@ -68,8 +68,10 @@ function boxUV(geo: THREE.BufferGeometry, density: number) {
   geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
 }
 
+const NO_INK = new Set<Bucket>(['glow', 'pulse', 'beam', 'water', 'smoke']);
+
 export class Builder {
-  private parts = new Map<MatKey, THREE.BufferGeometry[]>();
+  private parts = new Map<Bucket, THREE.BufferGeometry[]>();
   private extras: THREE.Object3D[] = [];
 
   /** Adds a geometry (consumed) with a colour and transform to a material bucket. */
@@ -80,7 +82,20 @@ export class Builder {
     for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal' && name !== 'uv') g.deleteAttribute(name);
     if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.getAttribute('position').count * 2), 2));
     const density = UV_DENSITY[mat];
-    if (density && mat !== 'beam' && mat !== 'water') boxUV(g, density);
+    if (density && !FACE_UV.has(mat)) boxUV(g, density);
+    else if (FACE_UV.has(mat)) {
+      // Keep faces just inside 0-1 so tiling never wraps onto the opposite edge.
+      const uv = g.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, 0.002 + uv.getX(i) * 0.996, 0.002 + uv.getY(i) * 0.996);
+    }
+    const bucket = bucketOf(mat);
+    const rect = atlasRect(mat);
+    if (rect) {
+      const n = g.getAttribute('position').count;
+      const a = new Float32Array(n * 4);
+      for (let i = 0; i < n; i++) a.set(rect, i * 4);
+      g.setAttribute('atlas', new THREE.BufferAttribute(a, 4));
+    }
     const c = new THREE.Color(color);
     const n = g.getAttribute('position').count;
     const col = new Float32Array(n * 3);
@@ -90,9 +105,9 @@ export class Builder {
       col[i * 3 + 2] = c.b;
     }
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const list = this.parts.get(mat) ?? [];
+    const list = this.parts.get(bucket) ?? [];
     list.push(g);
-    this.parts.set(mat, list);
+    this.parts.set(bucket, list);
     return this;
   }
 
@@ -172,6 +187,7 @@ export class Builder {
   finish(): THREE.Group {
     const group = new THREE.Group();
     const mats = materials();
+    const inked: THREE.BufferGeometry[] = [];
     for (const [key, list] of this.parts) {
       const geo = list.length === 1 ? list[0] : mergeGeometries(list, false);
       if (!geo) throw new Error(`merge failed for ${key}`);
@@ -181,6 +197,16 @@ export class Builder {
       if (key === 'beam' || key === 'water' || key === 'smoke') mesh.renderOrder = 4;
       group.add(mesh);
       list.forEach((g) => g !== geo && g.dispose());
+      if (!NO_INK.has(key)) inked.push(new THREE.EdgesGeometry(geo, 50));
+    }
+    // Cartoon "ink" outlines along every crease: one extra draw call per building.
+    if (inked.length) {
+      const lines = inked.length === 1 ? inked[0] : mergeGeometries(inked, false);
+      if (lines) {
+        const ink = new THREE.LineSegments(lines, inkMaterial());
+        ink.name = 'ink';
+        group.add(ink);
+      }
     }
     for (const e of this.extras) group.add(e);
     return group;

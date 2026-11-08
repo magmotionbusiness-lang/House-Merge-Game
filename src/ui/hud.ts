@@ -146,6 +146,15 @@ export class Hud {
     }, 1300);
   }
 
+  /** Little bounce on the score counter when points land. */
+  bumpScore() {
+    const box = this.score.closest('.score-box') as HTMLElement | null;
+    if (!box) return;
+    box.classList.remove('bump');
+    void box.offsetWidth;
+    box.classList.add('bump');
+  }
+
   setMode(m: AimMode) {
     this.modeBtn.textContent = m === 'slide' ? 'Aim: Slide' : 'Aim: Sling';
   }
