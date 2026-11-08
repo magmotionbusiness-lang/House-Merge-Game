@@ -121,7 +121,9 @@ export class Screens {
   levels() {
     const card = el('div', 'panel levels-panel');
     const head = el('div', 'panel-head');
-    head.append(button('', 'icon round', () => this.title(), ICONS.home), el('h2', '', 'Campaign'));
+    const back = button('Back', 'back-btn', () => this.title(), ICONS.back);
+    back.setAttribute('aria-label', 'Back to the title screen');
+    head.append(back, el('h2', '', 'Campaign'));
     card.append(head);
     const got = progress.stars();
     let unlocked = true;

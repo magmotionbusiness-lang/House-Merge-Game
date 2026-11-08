@@ -101,7 +101,7 @@ export function smokeTransition(onCover?: () => void): Promise<void> {
   // Smoke is soft, so a modest resolution looks identical and keeps phones at 60 fps.
   const dpr = Math.min(window.devicePixelRatio || 1, 1.25);
   const W = window.innerWidth;
-  const H = Math.max(window.innerHeight, document.documentElement.clientHeight);
+  const H = Math.max(window.innerHeight, document.documentElement.clientHeight, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-h')) || 0);
   canvas.width = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   document.body.append(canvas);

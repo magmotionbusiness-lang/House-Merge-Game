@@ -171,3 +171,11 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - **Instant:** fonts are preloaded, so it renders right away, and the bar creeps forward while the game code downloads.
   - **Builder slot:** a spot is ready for a builder illustration (`public/art/loading-builder.webp`).
 - **Dust-cloud transition** after loading and when starting a round: a wall of billowing grey and tan smoke rises from the bottom carrying tumbling brick, concrete and wood chunks and glinting dust, covers the screen while the scene changes behind it, then lifts off the top and clears. It plays with a low rumble and whoosh, runs on its own 2D canvas at a soft resolution so phones keep 60 fps, and falls back to a simple fade with Reduce Motion.
+
+## Phase 6.2: Bottom strip, loading pacing, campaign navigation (playtest feedback)
+
+- **Bottom strip, root cause:** on iPhone home-screen apps with a translucent status bar, iOS draws the page under the status bar but reports a viewport that is shorter than the screen by the status-bar height (about 60 pt). CSS units (`%`, `vh`, `dvh`, `lvh`) all follow the short viewport, so a strip of page background was left at the bottom.
+- **The fix:** a tiny script in `index.html` runs before anything paints. In a portrait home-screen app, it compares the viewport with `screen.height`; if the viewport is short by less than 140 pt, it takes the real screen height. The result sets a `--app-h` variable that the page, the game area, the painted backdrop, the loading screen and the dust transition all use, and the 3D view sizes itself to the game area. It re-runs on resize and rotation. Verified by simulating the bug: every layer now fills the full screen height.
+- **Fallback:** the page background is also a darker earth tone, in case another browser variant ever leaves a gap.
+- **Loading screen:** the progress bar and phrases moved to the middle of the screen, and the phrases change every 2.3 s (was 1.1 s) with a softer fade.
+- **Campaign:** a clear blue "Back" button with an arrow at the top left, instead of the small home icon.

@@ -135,6 +135,7 @@ async function boot() {
   // Size everything to the game area itself (full screen on phones, letterboxed on iPad).
   const app = document.getElementById('app') as HTMLElement;
   const resize = () => {
+    (window as unknown as { __fitApp?: () => void }).__fitApp?.();
     const box = app.getBoundingClientRect();
     const w = Math.round(box.width);
     const h = Math.round(box.height);
