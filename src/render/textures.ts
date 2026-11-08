@@ -137,3 +137,44 @@ export function puffTexture(): THREE.Texture {
   ctx.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
 }
+
+/**
+ * Rank badge: the tier number on its colour, inside a ring that shows the era
+ * (bronze, silver, gold, diamond), so value reads at a glance.
+ */
+export function badgeTexture(tierId: number, color: string, ring: string, diamond: boolean): THREE.Texture {
+  const { c, ctx } = canvas(128, 128);
+  const g = ctx.createLinearGradient(0, 0, 128, 128);
+  if (diamond) {
+    g.addColorStop(0, '#b9fbff');
+    g.addColorStop(0.5, '#7ff3ff');
+    g.addColorStop(1, '#c8a8ff');
+  } else {
+    g.addColorStop(0, new THREE.Color(ring).lerp(new THREE.Color('#ffffff'), 0.45).getStyle());
+    g.addColorStop(1, new THREE.Color(ring).multiplyScalar(0.75).getStyle());
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.arc(64, 68, 60, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(64, 64, 60, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(64, 64, 45, 0, Math.PI * 2);
+  ctx.fill();
+  const light = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }).l > 0.72;
+  ctx.font = '900 66px "Big Shoulders Display", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = light ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.35)';
+  ctx.strokeText(String(tierId), 64, 68);
+  ctx.fillStyle = light ? '#1b2333' : '#ffffff';
+  ctx.fillText(String(tierId), 64, 68);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}

@@ -1,14 +1,15 @@
-import { Builder, base, shade } from './kit';
+import { Builder, base } from './kit';
 
-/** Wall: a short stone-block wall section with a cap and end piers. */
+/** Garden Shed: plank walls, a green roof, a door and a little window. */
 export function build(_H: number, color: string) {
   const b = new Builder();
   const y = base(b, color);
-  b.box(0.7, 0.3, 0.2, 'brick', shade(color, 1.12), { y });
-  b.box(0.82, 0.05, 0.27, 'matte', shade(color, 1.45), { y: y + 0.3 }, 0.015);
-  for (const x of [-0.39, 0.39]) {
-    b.box(0.13, 0.4, 0.26, 'brick', shade(color, 0.92), { y, x });
-    b.box(0.16, 0.04, 0.29, 'matte', shade(color, 1.45), { y: y + 0.4, x }, 0.012);
-  }
+  b.box(0.6, 0.34, 0.48, 'wood', '#d2ab76', { y });
+  b.gable(0.6, 0.2, 0.48, 'roof', color, { y: y + 0.34 }, 0.06);
+  b.box(0.16, 0.26, 0.02, 'wood', '#8a5d36', { y, x: -0.13, z: 0.245 });
+  b.box(0.15, 0.12, 0.02, 'gloss', '#a9d8f5', { y: y + 0.14, x: 0.14, z: 0.245 });
+  b.box(0.19, 0.025, 0.02, 'matte', '#ffffff', { y: y + 0.26, x: 0.14, z: 0.25 });
+  b.cyl(0.05, 0.04, 0.07, 'matte', '#c96a3c', { y, x: 0.3, z: 0.32 }, 10);
+  b.sphere(0.045, 'matte', '#3f9a4a', { y: y + 0.09, x: 0.3, z: 0.32 }, 8);
   return b.finish();
 }

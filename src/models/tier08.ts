@@ -1,30 +1,19 @@
 import { Builder, base } from './kit';
+import { bush, house } from './parts';
 
-/** Cozy Cottage: L-shaped, blue slate roofs, blue door, flower boxes and chimney smoke. */
+/** Mansion: three symmetric floors, two wings, a columned entrance and a pink hip roof. */
 export function build(_H: number, color: string) {
   const b = new Builder();
   const y = base(b, color);
-  const wall = '#f7f2e8';
-  b.box(0.62, 0.27, 0.34, 'matte', wall, { y, z: -0.1 }, 0.012);
-  b.box(0.3, 0.27, 0.3, 'matte', wall, { y, x: 0.16, z: 0.16 }, 0.012);
-  b.gable(0.62, 0.22, 0.34, 'roof', color, { y: y + 0.27, z: -0.1 }, 0.05);
-  b.gable(0.3, 0.2, 0.3, 'roof', color, { y: y + 0.27, x: 0.16, z: 0.16, ry: Math.PI / 2 }, 0.04);
-  b.box(0.12, 0.18, 0.02, 'wood', color, { y, x: -0.14, z: 0.075 });
-  for (const x of [-0.24, 0.16]) {
-    const z = x < 0 ? 0.075 : 0.31;
-    b.box(0.1, 0.09, 0.015, 'gloss', '#cfe8f5', { y: y + 0.12, x: x === -0.24 ? -0.27 : x, z });
-    b.box(0.12, 0.035, 0.04, 'wood', '#8a5a3a', { y: y + 0.085, x: x === -0.24 ? -0.27 : x, z: z + 0.015 });
-    b.sphere(0.022, 'matte', '#ff6f91', { y: y + 0.125, x: (x === -0.24 ? -0.27 : x) - 0.03, z: z + 0.02 }, 6);
-    b.sphere(0.022, 'matte', '#ffd166', { y: y + 0.125, x: (x === -0.24 ? -0.27 : x) + 0.03, z: z + 0.02 }, 6);
-  }
-  b.box(0.08, 0.2, 0.08, 'brick', '#9c5a48', { y: y + 0.36, x: -0.2, z: -0.16 });
-  b.animated(
-    (s) => {
-      s.sphere(0.04, 'smoke', '#f4f4f4', { y: 0 }, 8);
-      s.sphere(0.03, 'smoke', '#f4f4f4', { y: 0.06, x: 0.02 }, 8);
-    },
-    { type: 'puff', speed: 0.6, rise: 0.12 },
-    { x: -0.2, y: y + 0.6, z: -0.16 },
-  );
+  const wall = '#fffdf7';
+  house(b, { y, w: 0.46, d: 0.46, floors: 3, fh: 0.17, wall, roof: color, roofType: 'hip', roofH: 0.2, windows: 3 });
+  for (const sx of [-1, 1])
+    house(b, { y, x: sx * 0.33, z: -0.02, w: 0.2, d: 0.4, floors: 2, fh: 0.17, wall, roof: color, roofType: 'hip', roofH: 0.14, windows: 1, door: false });
+  // Columned porch.
+  b.box(0.3, 0.025, 0.12, 'matte', '#ffffff', { y: y + 0.24, z: 0.3 });
+  for (const cx of [-0.12, -0.04, 0.04, 0.12]) b.cyl(0.016, 0.016, 0.24, 'matte', '#ffffff', { y, x: cx, z: 0.34 }, 8);
+  b.box(0.34, 0.03, 0.14, 'matte', '#d9d9d9', { y, z: 0.3 });
+  bush(b, -0.34, 0.32, y, 0.05);
+  bush(b, 0.34, 0.32, y, 0.05);
   return b.finish();
 }

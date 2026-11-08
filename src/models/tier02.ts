@@ -1,21 +1,15 @@
-import { Builder, base } from './kit';
+import { Builder, base, shade } from './kit';
 
-/** Brick Stack: three bricks criss-crossed with mortar lines, so it reads apart from a lone brick. */
+/** Doghouse: a tiny wooden kennel with a yellow roof, an arched door and a food bowl. */
 export function build(_H: number, color: string) {
   const b = new Builder();
-  let y = base(b, color);
-  const layers: [number, number][] = [
-    [0.2, 0.12],
-    [0.2 + Math.PI / 2, -0.04],
-    [0.2, 0.0],
-  ];
-  layers.forEach(([ry, x], i) => {
-    b.box(0.62, 0.13, 0.26, 'matte', color, { y, ry, x }, 0.03);
-    y += 0.13;
-    if (i < 2) {
-      b.cyl(0.17, 0.17, 0.018, 'matte', '#ece4d4', { y }, 10);
-      y += 0.018;
-    }
-  });
+  const y = base(b, color);
+  b.box(0.5, 0.3, 0.46, 'wood', '#e6c38f', { y, z: -0.03 });
+  b.gable(0.5, 0.22, 0.46, 'roof', color, { y: y + 0.3, z: -0.03, ry: Math.PI / 2 }, 0.06);
+  // Arched door opening.
+  b.box(0.18, 0.13, 0.02, 'matte', '#3a2a1e', { y, z: 0.205 });
+  b.cyl(0.09, 0.09, 0.02, 'matte', '#3a2a1e', { y: y + 0.13, z: 0.205, rx: Math.PI / 2 }, 14);
+  b.cyl(0.07, 0.06, 0.04, 'gloss', '#e53935', { y, x: 0.27, z: 0.3 }, 12);
+  b.box(0.12, 0.04, 0.02, 'matte', shade(color, 0.6), { y: y + 0.32, z: 0.215 });
   return b.finish();
 }

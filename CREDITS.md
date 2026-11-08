@@ -1,6 +1,6 @@
 # Credits
 
-All 3D geometry, textures, icons and sound effects are generated in code for this project (sounds are synthesised live with the Web Audio API). No third-party art or audio assets are used yet.
+All 3D geometry, textures, UI icons and sound effects are generated in code for this project (sounds are synthesised live with the Web Audio API). No third-party art or audio assets are used yet.
 
 ## Libraries
 
@@ -13,3 +13,7 @@ All 3D geometry, textures, icons and sound effects are generated in code for thi
 - **Big Shoulders Display** by Patric King: condensed lettering drawn from Chicago's architectural signage. Used for scores, titles and tier numbers.
 - **Barlow Condensed** by Jeremy Tribby: technical condensed sans. Used for UI labels and buttons.
 - **Architects Daughter** by Kimberly Geswein: draftsman's hand lettering. Used for blueprint annotations and building names.
+
+## App icon
+
+- Builder illustration supplied by the project owner (`art/icon-source.png`).

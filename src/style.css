@@ -663,3 +663,31 @@ body {
 .next-slot {
   height: 54px;
 }
+
+/* ---------- rank number on chips ---------- */
+.chip .num {
+  position: absolute;
+  right: -3px;
+  bottom: -4px;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border-radius: 7px;
+  background: var(--c);
+  border: 1.5px solid var(--ring);
+  color: #fff;
+  font: 900 9px/10px var(--display);
+  text-align: center;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+.chip-lg .num {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  border-width: 2px;
+  font-size: 14px;
+  line-height: 16px;
+  right: -6px;
+  bottom: -6px;
+}

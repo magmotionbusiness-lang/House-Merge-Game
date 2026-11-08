@@ -2,7 +2,7 @@
 
 *From a single brick to a city in the clouds.*
 
-A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blueprint table; two identical pieces that touch merge into the next tier, from **Brick** (1) all the way up to the **Orbital Elevator** (18).
+A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blueprint table; two identical pieces that touch merge into the next tier, from a **Brick** (1) through houses and apartments up to the **Space Elevator** (18). Every piece shows its rank number; the badge ring is bronze, silver, gold or diamond by era.
 
 ## How to play
 
@@ -15,7 +15,7 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 3 of 10: **Models** done. All 18 tiers are procedural 3D buildings, from Brick to Orbital Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
+Phase 3 of 10: **Models** done. All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 

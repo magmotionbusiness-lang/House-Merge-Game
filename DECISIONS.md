@@ -45,3 +45,18 @@ Choices made where the brief was ambiguous or a number felt wrong in play.
 - **Thumbnails are baked, not rendered at start-up**, so the game opens faster. `.glb` exports go to `art/models/` (not shipped with the game, to keep the download small).
 - **Instancing deferred.** With 3-4 draw calls per building and typically under 30 pieces on the table, a full table stays near 100 draw calls. Instancing would add complexity to the per-piece build-in and flash effects, so it waits for the polish pass, and only if real devices need it.
 - **Tall late tiers** (13+) can reach above the back rail. The camera ease-back for them is part of Phase 4 (Scene).
+
+## Phase 3.1: Readable ladder (playtest feedback)
+
+Playtest feedback: it was hard to tell what the pieces were and which ranked higher (Wall vs Corner Frame vs Foundation Kit means little to most players). The ladder was rebuilt around one rule: **anyone should see at a glance which piece is worth more.**
+
+- **Every tier is a building people already know**, in an obvious order: Brick, Doghouse, Garden Shed, Log Cabin, Cottage, House, Big House, Mansion, Townhouses, Apartments, Apartment Block, Office Tower, Skyscraper, Twisted Tower, Megatower, Hero HQ, Sky Citadel, Space Elevator. The brief's construction-material stages (wall, frame, foundation) were dropped.
+- **Bigger always means better:** footprint, height and mass now strictly grow every tier (enforced by a unit test). Houses show countable floors, separated by white trim bands: 1 floor (Cottage), 2 (House, Big House), 3 (Mansion, Townhouses), 4 (Apartments), 6 (Apartment Block), then towers.
+- **One bold colour per tier** on the roof and the base disc, since the camera mostly sees roofs. Neighbouring tiers never share a hue.
+- **Rank badge on every piece:** the tier number on its colour, in a ring that is bronze (1-5), silver (6-10), gold (11-15) or diamond (16-18), so value is universal and needs no reading. It is drawn over its own building so it is never hidden. The HUD chips (NEXT card, evolution bar, cards) carry the same number and ring.
+- **Buildings always face the player** instead of spinning with physics, so fronts, doors and badges stay readable.
+- The brief's late-tier names were made generic where needed: Skyscraper (Art Deco style), Megatower, Space Elevator.
+
+## App icon
+
+- The icon is the owner-provided builder illustration (`art/icon-source.png`), a stand-in until the final artwork arrives. iOS gets the full image (its own corner mask hides the source's black corners); the web manifest and favicon use a crop without the corners.

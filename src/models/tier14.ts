@@ -1,6 +1,6 @@
 import { Builder, base, shade } from './kit';
 
-/** Twisted Supertall: rotating floor plates stacked into a smooth silver twist. */
+/** Twisted Tower: rotating floor plates stacked into a smooth silver twist. */
 export function build(H: number, color: string) {
   const b = new Builder();
   const y0 = base(b, color);

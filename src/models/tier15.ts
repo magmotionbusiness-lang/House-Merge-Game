@@ -1,6 +1,6 @@
 import { Builder, base, shade } from './kit';
 
-/** Desert Needle: megatall Y-plan tower whose three wings step back in a spiral. */
+/** Megatower: Y-plan tower whose three wings step back in a spiral. */
 export function build(H: number, color: string) {
   const b = new Builder();
   const y0 = base(b, color);

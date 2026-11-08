@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
-import { tier } from '../core/tiers';
-import { blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
+import { ERA_RING, tier } from '../core/tiers';
+import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { animateMaterials } from '../models/materials';
 import { createModel, modelSize, tickAnims, wireframe, type ModelAnims } from '../models';
@@ -73,6 +73,7 @@ export class SceneView {
   });
   private blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
   readonly fx: ParticleFx;
+  private badgeMats = new Map<number, THREE.SpriteMaterial>();
 
   constructor(canvas: HTMLCanvasElement) {
     // On Retina screens the pixel density hides jaggies, so skip costly MSAA there.
@@ -264,9 +265,31 @@ export class SceneView {
     blob.scale.set(bs, 1, bs);
     blob.position.set(r * 0.2 + Math.min(height, 0.3) * 0.2, 0.0015, -Math.min(height, 0.3) * 0.12);
     blob.renderOrder = 1;
-    group.add(blob, body);
+    group.add(blob, body, this.badge(tierId, r));
     this.scene.add(group);
     return { tier: tierId, group, body, anims, radius: r, height, flash: 0, flashObj: null, pop: -1, build: -1, wire: null };
+  }
+
+  /** Rank badge standing at the front edge of the piece, always facing the camera. */
+  private badge(tierId: number, r: number) {
+    let mat = this.badgeMats.get(tierId);
+    if (!mat) {
+      const t = tier(tierId);
+      // Drawn over its own building so the rank is never hidden.
+      mat = new THREE.SpriteMaterial({
+        map: badgeTexture(tierId, t.color, ERA_RING[t.era], t.era === 4),
+        depthWrite: false,
+        depthTest: false,
+      });
+      this.badgeMats.set(tierId, mat);
+    }
+    const s = new THREE.Sprite(mat);
+    const size = Math.max(0.06, r * 0.7);
+    s.scale.set(size, size, 1);
+    s.center.set(0.5, 0.35);
+    s.position.set(0, 0.004, r * 0.95);
+    s.renderOrder = 7;
+    return s;
   }
 
   removePiece(p: PieceView) {

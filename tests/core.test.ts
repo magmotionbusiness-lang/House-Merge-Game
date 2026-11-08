@@ -12,9 +12,10 @@ describe('tiers', () => {
   it('neighbouring tiers never share a colour', () => {
     for (let i = 1; i < TIERS.length; i++) expect(TIERS[i].color).not.toBe(TIERS[i - 1].color);
   });
-  it('mass and footprint never shrink up the ladder', () => {
+  it('every tier is heavier, taller and at least as wide as the one before', () => {
     for (let i = 1; i < TIERS.length; i++) {
       expect(TIERS[i].mass).toBeGreaterThan(TIERS[i - 1].mass);
+      expect(TIERS[i].height).toBeGreaterThan(TIERS[i - 1].height);
       expect(TIERS[i].footprint).toBeGreaterThanOrEqual(TIERS[i - 1].footprint);
     }
   });

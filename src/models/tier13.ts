@@ -1,6 +1,6 @@
 import { Builder, base } from './kit';
 
-/** Art Deco Spire: stepped stone setbacks, gold pilasters, a gold crown and needle mast. */
+/** Skyscraper: Art Deco style, stepped stone setbacks, gold pilasters, a gold crown and needle mast. */
 export function build(H: number, color: string) {
   const b = new Builder();
   const y0 = base(b, color);

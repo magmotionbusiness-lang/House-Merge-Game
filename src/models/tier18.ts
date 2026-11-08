@@ -1,6 +1,6 @@
 import { Builder, base } from './kit';
 
-/** Orbital Elevator: a base station whose cable and light beam rise out of frame to orbit. */
+/** Space Elevator: a base station whose cable and light beam rise out of frame to orbit. */
 export function build(_H: number, color: string) {
   const b = new Builder();
   const y0 = base(b, '#a9c4ff');

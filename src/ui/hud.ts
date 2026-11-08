@@ -1,5 +1,5 @@
 import type { AimMode } from '../core/config';
-import { MAX_TIER, tier } from '../core/tiers';
+import { ERA_RING, MAX_TIER, tier } from '../core/tiers';
 import { ICONS } from './icons';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
@@ -26,6 +26,9 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
     img.alt = t.name;
     img.draggable = false;
     c.append(img);
+    const n = el('span', 'num', String(tierId));
+    n.style.setProperty('--ring', ERA_RING[t.era]);
+    c.append(n);
   }
   return c;
 }

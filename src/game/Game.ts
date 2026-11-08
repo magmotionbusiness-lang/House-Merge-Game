@@ -396,7 +396,7 @@ export class Game {
     let fastest = 0;
     for (const p of this.pieces.values()) {
       const pos = this.world.pos(p.b);
-      this.view.placePiece(p.view, pos.x, pos.y, 0, this.world.angle(p.b));
+      this.view.placePiece(p.view, pos.x, pos.y); // buildings always face the player
       this.view.animatePiece(p.view, dt);
       const v = this.world.vel(p.b);
       fastest = Math.max(fastest, Math.hypot(v.x, v.y));
