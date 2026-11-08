@@ -1,3 +1,4 @@
+import { Sfx } from '../audio/sfx';
 import { CONFIG, type AimMode } from '../core/config';
 import { Rng } from '../core/rng';
 import { Combo, mergeResult } from '../core/scoring';
@@ -34,6 +35,7 @@ interface Aim {
   pointerId: number;
   startY: number;
   power: number;
+  ticks: number;
 }
 
 export class Game {
@@ -58,6 +60,11 @@ export class Game {
   private paused = false;
   private ids = 0;
   private aimX = 0;
+  private lastPower = 0.75;
+  private slowmo = 0; // real seconds of slow motion left
+  private lastDust = 0;
+  private wasDanger = false;
+  readonly sfx = new Sfx(store.str('bm.sound', 'on') === 'off');
 
   constructor(
     private view: SceneView,
@@ -66,13 +73,14 @@ export class Game {
   ) {
     this.bindInput();
     this.hud.setMode(this.mode);
+    this.hud.setSound(store.str('bm.sound', 'on') !== 'off');
     this.reset();
   }
 
   // ------------------------------------------------------------ lifecycle
 
   reset() {
-    for (const p of this.pieces.values()) this.destroy(p);
+    for (const p of [...this.pieces.values()]) this.destroy(p);
     this.pieces.clear();
     if (this.launcher) this.view.removePiece(this.launcher.view);
     this.launcher = null;
@@ -84,37 +92,54 @@ export class Game {
     this.pendingLaunch = false;
     this.aim = null;
     this.launchedCount = 0;
+    this.slowmo = 0;
     this.nextTier = nextSpawn(this.rng, null, 0);
     this.spawnLauncher();
     this.lastLaunch = this.time - 10;
     this.hud.hideOverlay();
-    this.hud.setDanger(false);
+    this.setDanger(false);
     this.refreshHud();
   }
 
   setPaused(p: boolean) {
     this.paused = p;
+    if (p) this.sfx.slide(0);
   }
 
   toggleMode() {
     this.mode = this.mode === 'slide' ? 'sling' : 'slide';
     store.set('bm.mode', this.mode);
     this.hud.setMode(this.mode);
+    this.sfx.tap();
+  }
+
+  toggleSound() {
+    const on = store.str('bm.sound', 'on') === 'off';
+    store.set('bm.sound', on ? 'on' : 'off');
+    this.sfx.unlock();
+    this.sfx.setMuted(!on);
+    this.hud.setSound(on);
+    this.sfx.tap();
   }
 
   /** Called every animation frame with real elapsed seconds. */
-  frame(dt: number) {
-    dt = Math.min(dt, 0.1);
-    if (!this.paused) {
-      this.acc += dt;
-      while (this.acc >= DT) {
-        this.fixedStep();
-        this.acc -= DT;
-      }
+  frame(realDt: number) {
+    realDt = Math.min(realDt, 0.1);
+    let dt = realDt;
+    if (this.slowmo > 0) {
+      this.slowmo -= realDt;
+      dt *= 0.3;
     }
-    this.syncViews(this.paused ? 0 : dt);
-    this.view.update(this.paused ? 0 : dt);
+    if (this.paused) dt = 0;
+    this.acc += dt;
+    while (this.acc >= DT) {
+      this.fixedStep();
+      this.acc -= DT;
+    }
+    this.syncViews(dt);
+    this.view.update(dt);
     this.view.render();
+    this.sfx.update();
   }
 
   // ------------------------------------------------------------ simulation
@@ -128,7 +153,9 @@ export class Game {
     }
 
     const started = this.world.step();
-    for (const [a, b] of started) this.tryMerge(a, b);
+    for (const [a, b] of started) {
+      if (!this.tryMerge(a, b)) this.impact(a, b);
+    }
 
     // Settling and the fail rule.
     let danger = false;
@@ -145,8 +172,7 @@ export class Game {
       if (crossing && settled) danger = true;
       worst = Math.max(worst, p.over);
     }
-    this.view.setDanger(danger ? 1 : 0);
-    this.hud.setDanger(danger);
+    this.setDanger(danger);
     if (worst >= CONFIG.failHoldTime) {
       this.gameOver();
       return;
@@ -163,8 +189,12 @@ export class Game {
     }
   }
 
-  private canLaunchNow() {
-    return this.launcher !== null;
+  private setDanger(on: boolean) {
+    this.view.setDanger(on ? 1 : 0);
+    if (on === this.wasDanger) return;
+    this.wasDanger = on;
+    this.hud.setDanger(on);
+    this.sfx.setDanger(on);
   }
 
   private spawnLauncher() {
@@ -177,22 +207,25 @@ export class Game {
     this.hud.setNext(this.nextTier);
   }
 
+  private launchSpeed(power: number) {
+    return this.mode === 'slide'
+      ? CONFIG.slideSpeed
+      : CONFIG.slideSpeed * (CONFIG.slingMin + (CONFIG.slingMax - CONFIG.slingMin) * power);
+  }
+
   private launch() {
     const l = this.launcher;
     if (!l || this.over) return;
-    const speed =
-      this.mode === 'slide'
-        ? CONFIG.slideSpeed
-        : CONFIG.slideSpeed * (CONFIG.slingMin + (CONFIG.slingMax - CONFIG.slingMin) * (this.aim?.power ?? this.lastPower));
+    const power = this.aim?.power ?? this.lastPower;
+    const speed = this.launchSpeed(power);
     this.view.removePiece(l.view);
-    const p = this.addPiece(l.tier, l.x, CONFIG.launchY, 0, speed);
-    p.view.pop = -1;
+    this.addPiece(l.tier, l.x, CONFIG.launchY, 0, speed);
     this.launcher = null;
     this.lastLaunch = this.time;
     this.launchedCount++;
     this.hud.setNext(null);
+    this.sfx.launch(this.mode === 'slide' ? 0.7 : power);
   }
-  private lastPower = 0.75;
 
   private addPiece(tierId: number, x: number, y: number, vx: number, vy: number): Piece {
     const r = pieceRadius(tierId);
@@ -201,23 +234,25 @@ export class Game {
     const b = this.world.addPiece(x, y, r, tier(tierId).mass);
     this.world.setVel(b, vx, vy);
     const view = this.view.createPiece(tierId);
+    this.view.placePiece(view, x, y);
     const p: Piece = { id: ++this.ids, tier: tierId, b, view, radius: r, born: this.time, still: 0, over: 0, dead: false };
     this.pieces.set(b.collider.handle, p);
     if (tierId > this.highestRun) this.highestRun = tierId;
     return p;
   }
 
-  private destroy(p: Piece) {
+  /** Removes a piece from physics; its view is removed too unless handed to an effect. */
+  private destroy(p: Piece, keepView = false) {
     p.dead = true;
     this.pieces.delete(p.b.collider.handle);
     this.world.remove(p.b);
-    this.view.removePiece(p.view);
+    if (!keepView) this.view.removePiece(p.view);
   }
 
-  private tryMerge(ha: number, hb: number) {
+  private tryMerge(ha: number, hb: number): boolean {
     const a = this.pieces.get(ha);
     const b = this.pieces.get(hb);
-    if (!a || !b || a.dead || b.dead || a.tier !== b.tier) return;
+    if (!a || !b || a.dead || b.dead || a.tier !== b.tier) return false;
 
     const pa = this.world.pos(a.b);
     const pb = this.world.pos(b.b);
@@ -225,8 +260,9 @@ export class Game {
     const vb = this.world.vel(b.b);
     const mx = (pa.x + pb.x) / 2;
     const my = (pa.y + pb.y) / 2;
-    this.destroy(a);
-    this.destroy(b);
+    this.destroy(a, true);
+    this.destroy(b, true);
+    this.view.converge(a.view, b.view, mx, my);
 
     const combo = this.combo.hit(this.time);
     const res = mergeResult(a.tier, combo);
@@ -236,22 +272,30 @@ export class Game {
     if (res.newTier === null) {
       this.hud.floatText(sp.x, sp.y, `+${res.points.toLocaleString('en-US')}`, true);
       this.hud.showToast('Wonder Complete!', 'The skyline salutes you.', MAX_TIER);
+      this.hud.flash();
       this.view.ring(mx, my, 0.4, '#ffffff');
-      this.view.burst(mx, my, '#ffe27a', 40, 1.4);
+      this.view.fx.merge(mx, my, 4, '#ffe27a', 3);
       this.view.shake(10);
-      return;
+      this.slowmo = 0.3;
+      this.sfx.wonder();
+      return true;
     }
 
     const nt = res.newTier;
-    const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
-    n.view.pop = 0;
-    n.view.flash = 0.16;
     const t = tier(nt);
+    const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
+    n.view.build = 0;
+    const power = Math.min(3, nt / 6 + (combo - 1) * 0.3);
     this.view.ring(mx, my, n.radius * 1.1, '#ffffff');
-    this.view.burst(mx, my, tier(a.tier).color, 8 + Math.min(nt, 12), 0.5 + nt * 0.03);
+    this.view.fx.merge(mx, my, t.era, t.color, power);
     if (nt >= 10) this.view.shake(2 + Math.min(4, nt - 10));
-    this.hud.floatText(sp.x, sp.y, `+${res.points.toLocaleString('en-US')}`, nt >= 10);
+    if (nt >= 13) {
+      this.slowmo = 0.15;
+      this.hud.flash();
+    }
+    this.hud.floatText(sp.x, sp.y, `+${res.points.toLocaleString('en-US')}`, nt >= 10 || combo >= 3);
     this.hud.showCombo(combo);
+    this.sfx.merge(t.pitch, combo);
 
     // Radial shove so merges cause little chain reactions.
     for (const o of this.pieces.values()) {
@@ -262,7 +306,7 @@ export class Game {
       const d = Math.hypot(dx, dy);
       const reach = n.radius + o.radius + 0.06;
       if (d > 1e-4 && d < reach) {
-        const k = (CONFIG.mergeImpulse * (1 - d / reach) * Math.min(1, tier(nt).mass / tier(o.tier).mass)) / d;
+        const k = (CONFIG.mergeImpulse * (1 - d / reach) * Math.min(1, t.mass / tier(o.tier).mass)) / d;
         this.world.kick(o.b, dx * k, dy * k);
       }
     }
@@ -270,9 +314,41 @@ export class Game {
     if (nt > this.highestEver) {
       this.highestEver = nt;
       store.set('bm.highest', nt);
-      if (nt > 5) this.hud.showToast('New Building!', t.name, nt);
+      if (nt > 5) {
+        this.hud.showNewBuilding(nt);
+        this.sfx.fanfare();
+      }
     }
     this.refreshHud();
+    return true;
+  }
+
+  /** Non-merging contact: dust puff and a material "thunk" scaled by impact speed. */
+  private impact(ha: number, hb: number) {
+    const a = this.pieces.get(ha);
+    const b = this.pieces.get(hb);
+    const p = a ?? b;
+    if (!p) return;
+    const v = this.world.vel(p.b);
+    let speed = Math.hypot(v.x, v.y);
+    if (a && b) {
+      const vb = this.world.vel(b.b);
+      speed = Math.hypot(v.x - vb.x, v.y - vb.y);
+    }
+    if (speed < 0.5) return;
+    if (a && b) {
+      const heavy = a.tier >= b.tier ? a : b;
+      this.sfx.impact(tier(heavy.tier).era, speed);
+      if (this.time - this.lastDust > 0.08) {
+        this.lastDust = this.time;
+        const pa = this.world.pos(a.b);
+        const pb = this.world.pos(b.b);
+        const w = a.radius / (a.radius + b.radius);
+        this.view.fx.dust(pa.x + (pb.x - pa.x) * w, pa.y + (pb.y - pa.y) * w, 0.04 + Math.min(0.06, speed * 0.01));
+      }
+    } else {
+      this.sfx.rail(speed);
+    }
   }
 
   private addScore(p: number) {
@@ -293,9 +369,15 @@ export class Game {
     this.over = true;
     this.aim = null;
     this.pendingLaunch = false;
+    this.setDanger(false);
     this.view.setAim(0, 0, null);
     this.view.shake(6);
-    this.hud.showGameOver(this.score, this.best, this.highestRun, () => this.reset());
+    this.sfx.gameOver();
+    this.sfx.slide(0);
+    this.hud.showGameOver(this.score, this.best, this.highestRun, () => {
+      this.sfx.tap();
+      this.reset();
+    });
   }
 
   private highestOnTable() {
@@ -311,11 +393,15 @@ export class Game {
   // ------------------------------------------------------------ rendering sync
 
   private syncViews(dt: number) {
+    let fastest = 0;
     for (const p of this.pieces.values()) {
       const pos = this.world.pos(p.b);
       this.view.placePiece(p.view, pos.x, pos.y);
       this.view.animatePiece(p.view, dt);
+      const v = this.world.vel(p.b);
+      fastest = Math.max(fastest, Math.hypot(v.x, v.y));
     }
+    this.sfx.slide(this.paused || this.over ? 0 : fastest);
     const l = this.launcher;
     if (l) {
       const wobble = this.aim ? Math.sin(this.time * 18) * 0.06 : 0;
@@ -334,8 +420,7 @@ export class Game {
     let end = L - r;
     if (this.mode === 'sling') {
       if (!this.aim) return null;
-      const v = CONFIG.slideSpeed * (CONFIG.slingMin + (CONFIG.slingMax - CONFIG.slingMin) * this.aim.power);
-      end = Math.min(end, CONFIG.launchY + v / CONFIG.linearDamping);
+      end = Math.min(end, CONFIG.launchY + this.launchSpeed(this.aim.power) / CONFIG.linearDamping);
     }
     for (const p of this.pieces.values()) {
       const pos = this.world.pos(p.b);
@@ -359,9 +444,10 @@ export class Game {
   private bindInput() {
     const c = this.canvas;
     c.addEventListener('pointerdown', (e) => {
+      this.sfx.unlock();
       if (this.over || this.aim) return;
       c.setPointerCapture(e.pointerId);
-      this.aim = { pointerId: e.pointerId, startY: e.clientY, power: 0 };
+      this.aim = { pointerId: e.pointerId, startY: e.clientY, power: 0, ticks: 0 };
       this.updateAim(e);
     });
     c.addEventListener('pointermove', (e) => {
@@ -371,10 +457,13 @@ export class Game {
       if (this.aim?.pointerId !== e.pointerId) return;
       this.updateAim(e);
       this.lastPower = this.aim.power;
-      this.aim = null;
-      if (cancel || this.over) return;
-      if (this.canLaunchNow()) this.launch();
+      if (cancel || this.over) {
+        this.aim = null;
+        return;
+      }
+      if (this.launcher) this.launch();
       else this.pendingLaunch = true;
+      this.aim = null;
     };
     c.addEventListener('pointerup', (e) => end(e, false));
     c.addEventListener('pointercancel', (e) => end(e, true));
@@ -386,19 +475,30 @@ export class Game {
     if (this.launcher) this.launcher.x = this.clampX(this.aimX, this.launcher.view.radius);
     const pull = (e.clientY - this.aim.startY) / (window.innerHeight * CONFIG.slingPullPx);
     this.aim.power = Math.min(1, Math.max(0, pull));
+    if (this.mode === 'sling') {
+      const ticks = Math.floor(this.aim.power * 8);
+      if (ticks > this.aim.ticks) this.sfx.tick(this.aim.power);
+      this.aim.ticks = ticks;
+    }
   }
 
   // ------------------------------------------------------------ test hooks
 
   /** Used by automated browser tests: aim at table x and launch. */
   debugShoot(x: number, power = 0.8) {
-    if (!this.launcher || this.over) return false;
+    if (this.over) return false;
     this.aimX = x;
-    this.launcher.x = this.clampX(x, this.launcher.view.radius);
     this.lastPower = power;
-    if (this.canLaunchNow()) this.launch();
-    else this.pendingLaunch = true;
+    if (this.launcher) {
+      this.launcher.x = this.clampX(x, this.launcher.view.radius);
+      this.launch();
+    } else this.pendingLaunch = true;
     return true;
+  }
+
+  /** Test hook: drop a piece of a given tier at a table position. */
+  debugPlace(tierId: number, x: number, y: number) {
+    this.addPiece(tierId, x, y, 0, 0);
   }
 
   debugState() {

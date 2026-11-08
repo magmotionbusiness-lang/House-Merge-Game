@@ -151,3 +151,15 @@ export function blobTexture(): THREE.Texture {
   ctx.fillRect(0, 0, 64, 64);
   return new THREE.CanvasTexture(c);
 }
+
+/** Soft white puff for dust sprites (tinted by the sprite material). */
+export function puffTexture(): THREE.Texture {
+  const { c, ctx } = canvas(64, 64);
+  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 31);
+  g.addColorStop(0, 'rgba(255,255,255,0.9)');
+  g.addColorStop(0.6, 'rgba(255,255,255,0.35)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}

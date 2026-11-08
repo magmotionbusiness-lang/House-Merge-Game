@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { tier } from '../core/tiers';
 import { blobTexture, blueprintTexture, capTexture, dashTexture, dotTexture, hazardTexture } from './textures';
+import { ParticleFx, type Effect } from './fx';
 
 const W = CONFIG.tableWidth;
 const L = CONFIG.tableLength;
@@ -12,6 +13,7 @@ const RAIL_H = 0.05;
 const toWorld = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
 
 export interface PieceView {
+  tier: number;
   group: THREE.Group;
   body: THREE.Mesh;
   side: THREE.MeshStandardMaterial;
@@ -19,12 +21,19 @@ export interface PieceView {
   height: number;
   flash: number;
   pop: number; // seconds since spawn-pop started; <0 = no pop
+  build: number; // seconds into the merge build-in sequence; <0 = none
+  wire: THREE.LineSegments | null;
 }
 
-interface Effect {
-  update(dt: number): boolean; // false when finished
-  dispose(): void;
-}
+// Merge build-in timeline (seconds): twins converge, blueprint wireframe draws in,
+// then the solid fills from the bottom up with a squash-and-stretch pop.
+const BUILD_CONVERGE = 0.06;
+const BUILD_WIRE = 0.21;
+const BUILD_FILL = 0.41;
+const BUILD_END = 0.55;
+
+const clamp01 = (u: number) => Math.min(1, Math.max(0, u));
+const easeOut = (u: number) => 1 - Math.pow(1 - u, 3);
 
 export function pieceRadius(tierId: number) {
   return (tier(tierId).footprint * CONFIG.footprintScale) / 2;
@@ -59,11 +68,15 @@ export class SceneView {
     opacity: 0.55,
   });
   private blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  private burstGeo = new THREE.BoxGeometry(0.014, 0.014, 0.014);
-  private burstMats = new Map<string, THREE.MeshStandardMaterial>();
+  private pieceGeo = new Map<number, THREE.BufferGeometry>();
+  private wireGeo = new Map<number, THREE.BufferAttribute>();
+  private capMat = new Map<number, THREE.MeshStandardMaterial>();
+  readonly fx: ParticleFx;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    // On Retina screens the pixel density hides jaggies, so skip costly MSAA there.
+    const retina = window.devicePixelRatio >= 2;
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !retina, powerPreference: 'high-performance' });
     this.dpr = Math.min(window.devicePixelRatio, 2);
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = THREE.NeutralToneMapping;
@@ -80,6 +93,7 @@ export class SceneView {
     this.scene.add(sun, sun.target);
 
     this.buildTable();
+    this.fx = new ParticleFx(this.scene, (e) => this.effects.push(e));
 
     // Aim line: dotted strip, scaled along its length every frame.
     const dots = dotTexture();
@@ -233,13 +247,54 @@ export class SceneView {
 
   // ---------------------------------------------------------------- pieces
 
+  private pieceGeometry(tierId: number) {
+    let geo = this.pieceGeo.get(tierId);
+    if (!geo) {
+      const t = tier(tierId);
+      const r = pieceRadius(tierId);
+      const h = Math.max(0.035, t.height * CONFIG.heightScale);
+      const taper = tierId >= 11 ? 0.8 : 1;
+      geo = new THREE.CylinderGeometry(r * taper, r, h, 32);
+      geo.translate(0, h / 2, 0);
+      // The underside is never visible: drop it to save a draw call per piece.
+      geo.groups = geo.groups.filter((g) => g.materialIndex !== 2);
+      this.pieceGeo.set(tierId, geo);
+    }
+    return geo;
+  }
+
+  /** Blueprint wireframe: base ring, uprights, top ring and a cross, in drawing order. */
+  private wireAttribute(tierId: number, r: number, h: number) {
+    let attr = this.wireGeo.get(tierId);
+    if (!attr) {
+      const rt = r * (tierId >= 11 ? 0.8 : 1) * 1.05;
+      const rb = r * 1.05;
+      const pts: number[] = [];
+      const seg = 28;
+      const ring = (rad: number, y: number) => {
+        for (let i = 0; i < seg; i++) {
+          const a0 = (i / seg) * Math.PI * 2;
+          const a1 = ((i + 1) / seg) * Math.PI * 2;
+          pts.push(Math.cos(a0) * rad, y, Math.sin(a0) * rad, Math.cos(a1) * rad, y, Math.sin(a1) * rad);
+        }
+      };
+      ring(rb, 0.002);
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        pts.push(Math.cos(a) * rb, 0.002, Math.sin(a) * rb, Math.cos(a) * rt, h, Math.sin(a) * rt);
+      }
+      ring(rt, h);
+      pts.push(-rt, h, 0, rt, h, 0, 0, h, -rt, 0, h, rt);
+      attr = new THREE.Float32BufferAttribute(pts, 3);
+      this.wireGeo.set(tierId, attr);
+    }
+    return attr;
+  }
+
   createPiece(tierId: number): PieceView {
     const t = tier(tierId);
     const r = pieceRadius(tierId);
     const h = Math.max(0.035, t.height * CONFIG.heightScale);
-    const taper = tierId >= 11 ? 0.8 : 1;
-    const geo = new THREE.CylinderGeometry(r * taper, r, h, 36);
-    geo.translate(0, h / 2, 0);
     const side = new THREE.MeshStandardMaterial({
       color: t.color,
       roughness: 0.45,
@@ -247,9 +302,12 @@ export class SceneView {
       emissive: new THREE.Color(tierId === 18 ? '#bfe9ff' : '#000000'),
       emissiveIntensity: tierId === 18 ? 0.6 : 1,
     });
-    const top = new THREE.MeshStandardMaterial({ map: capTexture(tierId, t.color), roughness: 0.4 });
-    const body = new THREE.Mesh(geo, [side, top, side]);
-    body.userData.tier = tierId;
+    let top = this.capMat.get(tierId);
+    if (!top) {
+      top = new THREE.MeshStandardMaterial({ map: capTexture(tierId, t.color), roughness: 0.4 });
+      this.capMat.set(tierId, top);
+    }
+    const body = new THREE.Mesh(this.pieceGeometry(tierId), [side, top]);
     const group = new THREE.Group();
     // Cheap blob shadow instead of a real-time shadow map (much faster on phones).
     const blob = new THREE.Mesh(this.blobGeo, this.blobMat);
@@ -259,14 +317,46 @@ export class SceneView {
     blob.renderOrder = 1;
     group.add(blob, body);
     this.scene.add(group);
-    return { group, body, side, radius: r, height: h, flash: 0, pop: -1 };
+    return { tier: tierId, group, body, side, radius: r, height: h, flash: 0, pop: -1, build: -1, wire: null };
   }
 
   removePiece(p: PieceView) {
     this.scene.remove(p.group);
-    p.body.geometry.dispose();
     p.side.dispose();
-    (p.body.material as THREE.Material[])[1].dispose();
+    this.dropWire(p);
+  }
+
+  private dropWire(p: PieceView) {
+    if (!p.wire) return;
+    p.group.remove(p.wire);
+    p.wire.geometry.dispose();
+    (p.wire.material as THREE.Material).dispose();
+    p.wire = null;
+  }
+
+  /** The two merging pieces slide into their midpoint and vanish. */
+  converge(a: PieceView, b: PieceView, x: number, y: number) {
+    const starts = [a, b].map((v) => v.group.position.clone());
+    const target = toWorld(x, y);
+    let t = 0;
+    this.effects.push({
+      update: (dt) => {
+        t += dt;
+        const u = clamp01(t / BUILD_CONVERGE);
+        const e = u * u;
+        [a, b].forEach((v, i) => {
+          v.group.position.lerpVectors(starts[i], target, e);
+          v.group.scale.setScalar(1 - 0.25 * e);
+          const k = e;
+          v.side.emissive.setRGB(k, k, k);
+        });
+        return u < 1;
+      },
+      dispose: () => {
+        this.removePiece(a);
+        this.removePiece(b);
+      },
+    });
   }
 
   /** Greybox pieces stay upright so their numbers read; `tilt` is a small aiming wobble. */
@@ -297,6 +387,7 @@ export class SceneView {
   }
 
   animatePiece(p: PieceView, dt: number) {
+    if (p.build >= 0) this.animateBuild(p, dt);
     if (p.pop >= 0) {
       p.pop += dt;
       const s = this.popScale(p.pop);
@@ -310,7 +401,43 @@ export class SceneView {
       p.flash = Math.max(0, p.flash - dt);
       const k = p.flash / 0.16;
       p.side.emissive.setRGB(k, k, k);
-      if (p.flash === 0) p.side.emissive.set(p.body.userData.tier === 18 ? '#bfe9ff' : '#000000');
+      if (p.flash === 0) p.side.emissive.set(p.tier === 18 ? '#bfe9ff' : '#000000');
+    }
+  }
+
+  private animateBuild(p: PieceView, dt: number) {
+    const before = p.build;
+    p.build += dt;
+    const t = p.build;
+    if (t < BUILD_CONVERGE) {
+      p.group.visible = false;
+      return;
+    }
+    p.group.visible = true;
+    if (!p.wire) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', this.wireAttribute(p.tier, p.radius, p.height));
+      const mat = new THREE.LineBasicMaterial({ color: '#e6f6ff', transparent: true, opacity: 1, depthTest: false });
+      p.wire = new THREE.LineSegments(geo, mat);
+      p.wire.renderOrder = 5;
+      p.group.add(p.wire);
+    }
+    const count = this.wireAttribute(p.tier, p.radius, p.height).count;
+    const wireU = clamp01((t - BUILD_CONVERGE) / (BUILD_WIRE - BUILD_CONVERGE));
+    p.wire.geometry.setDrawRange(0, Math.max(2, Math.floor((wireU * count) / 2) * 2));
+    const fillU = clamp01((t - BUILD_WIRE) / (BUILD_FILL - BUILD_WIRE));
+    p.body.scale.y = Math.max(0.001, easeOut(fillU));
+    p.body.visible = fillU > 0;
+    const pop = this.popScale(t - BUILD_CONVERGE);
+    p.group.scale.set(pop, 1, pop);
+    if (before < BUILD_WIRE && t >= BUILD_WIRE) p.flash = 0.16;
+    (p.wire.material as THREE.LineBasicMaterial).opacity = 1 - clamp01((t - BUILD_FILL) / (BUILD_END - BUILD_FILL));
+    if (t >= BUILD_END) {
+      p.build = -1;
+      p.body.scale.y = 1;
+      p.body.visible = true;
+      p.group.scale.set(1, 1, 1);
+      this.dropWire(p);
     }
   }
 
@@ -367,47 +494,12 @@ export class SceneView {
     });
   }
 
-  burst(x: number, y: number, color: string, count: number, power: number) {
-    const geo = this.burstGeo;
-    let mat = this.burstMats.get(color);
-    if (!mat) {
-      mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
-      this.burstMats.set(color, mat);
-    }
-    const parts: { m: THREE.Mesh; v: THREE.Vector3; s: number }[] = [];
-    for (let i = 0; i < count; i++) {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.copy(toWorld(x, y, 0.03));
-      const a = Math.random() * Math.PI * 2;
-      const sp = (0.4 + Math.random() * 0.8) * power;
-      parts.push({ m, v: new THREE.Vector3(Math.cos(a) * sp, 0.6 + Math.random() * 1.0, Math.sin(a) * sp), s: 0.6 + Math.random() });
-      m.scale.setScalar(parts[i].s);
-      this.scene.add(m);
-    }
-    let t = 0;
-    this.effects.push({
-      update: (dt) => {
-        t += dt;
-        for (const p of parts) {
-          p.v.y -= 4.5 * dt;
-          p.m.position.addScaledVector(p.v, dt);
-          if (p.m.position.y < 0.007) {
-            p.m.position.y = 0.007;
-            p.v.multiplyScalar(0.5);
-            p.v.y = Math.abs(p.v.y) * 0.3;
-          }
-          p.m.rotation.x += dt * 8;
-          p.m.rotation.z += dt * 6;
-          p.m.scale.setScalar(p.s * Math.max(0, 1 - t / 0.7));
-        }
-        return t < 0.7;
-      },
-      dispose: () => {
-        for (const p of parts) this.scene.remove(p.m);
-      },
-    });
+  quality() {
+    const info = this.renderer.info.render;
+    return `${this.dpr.toFixed(2)}x · ${info.calls} draws · ${info.triangles} tris`;
   }
 
+  /** Brief screen-space kick for big moments. */
   shake(amount: number) {
     this.camShake = Math.max(this.camShake, amount);
   }

@@ -25,6 +25,7 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
 export interface HudHandlers {
   onRestart(): void;
   onToggleMode(): void;
+  onToggleSound(): void;
 }
 
 export class Hud {
@@ -40,6 +41,9 @@ export class Hud {
   private overlay = el('div', 'overlay hidden');
   private toast = el('div', 'toast');
   private modeBtn = el('button', 'pill', 'Aim: Slide');
+  private soundBtn = el('button', 'pill', '🔊');
+  private flashEl = el('div', 'screen-flash');
+  private debugEl = el('div', 'debug');
   private chips: HTMLElement[] = [];
   private unlocked = 0;
   private highest = 0;
@@ -56,7 +60,9 @@ export class Hud {
     const restart = el('button', 'pill', '↻ Restart');
     restart.onclick = () => h.onRestart();
     this.modeBtn.onclick = () => h.onToggleMode();
-    btns.append(restart, this.modeBtn);
+    this.soundBtn.onclick = () => h.onToggleSound();
+    this.soundBtn.setAttribute('aria-label', 'Sound');
+    btns.append(restart, this.modeBtn, this.soundBtn);
     const left = el('div', 'top-left');
     left.append(scoreBox, btns);
 
@@ -74,12 +80,57 @@ export class Hud {
       this.evo.append(c);
     }
 
-    root.append(this.top, this.combo, this.labels, this.toast, this.bottom, this.overlay);
+    root.append(this.flashEl, this.top, this.combo, this.labels, this.toast, this.bottom, this.overlay, this.debugEl);
   }
 
   setScore(score: number, best: number) {
     this.score.textContent = score.toLocaleString('en-US');
     this.best.textContent = `BEST ${best.toLocaleString('en-US')}`;
+  }
+
+  setSound(on: boolean) {
+    this.soundBtn.textContent = on ? '🔊' : '🔇';
+  }
+
+  /** White flash for big moments (tier 13+, Wonders). */
+  flash() {
+    this.flashEl.classList.remove('go');
+    void this.flashEl.offsetWidth;
+    this.flashEl.classList.add('go');
+  }
+
+  setDebug(text: string | null) {
+    this.debugEl.textContent = text ?? '';
+    this.debugEl.style.display = text ? 'block' : 'none';
+  }
+
+  /** "New Building!" card: the piece spins on a pedestal, then flies into its evolution-bar slot. */
+  showNewBuilding(tierId: number) {
+    this.showToast('New Building!', tier(tierId).name, tierId);
+    const card = this.toast.querySelector('.chip') as HTMLElement | null;
+    card?.classList.add('spin');
+    window.setTimeout(() => {
+      const target = this.chips[tierId - 1];
+      if (!card || !target) return;
+      const from = card.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      const fly = chip(tierId, 'lg');
+      fly.classList.add('flyer');
+      fly.style.left = `${from.left}px`;
+      fly.style.top = `${from.top}px`;
+      document.body.append(fly);
+      card.style.visibility = 'hidden';
+      requestAnimationFrame(() => {
+        const s = to.width / from.width;
+        fly.style.transform = `translate(${to.left - from.left + (to.width - from.width) / 2}px, ${to.top - from.top + (to.height - from.height) / 2}px) scale(${s})`;
+      });
+      window.setTimeout(() => {
+        fly.remove();
+        target.classList.remove('landed');
+        void target.offsetWidth;
+        target.classList.add('landed');
+      }, 560);
+    }, 1300);
   }
 
   setMode(m: AimMode) {

@@ -267,7 +267,7 @@ body {
   white-space: nowrap;
 }
 .float.big {
-  font-size: 26px;
+  font-size: 28px;
   color: #ffe27a;
 }
 @keyframes floatup {
@@ -323,7 +323,7 @@ body {
 
 .toast {
   position: absolute;
-  top: 34%;
+  top: 58%;
   left: 50%;
   transform: translate(-50%, -50%);
   opacity: 0;
@@ -471,4 +471,62 @@ body {
   #hud.danger::after {
     animation: none;
   }
+}
+
+/* ---------- phase 2 juice ---------- */
+.screen-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+}
+.screen-flash.go {
+  animation: flash 0.35s ease-out;
+}
+@keyframes flash {
+  0% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.chip.spin {
+  animation: spin 1.2s ease-in-out;
+}
+@keyframes spin {
+  0% {
+    transform: perspective(200px) rotateY(0) scale(0.5);
+  }
+  30% {
+    transform: perspective(200px) rotateY(360deg) scale(1.25);
+  }
+  100% {
+    transform: perspective(200px) rotateY(720deg) scale(1);
+  }
+}
+.flyer {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  transition: transform 0.5s cubic-bezier(0.5, -0.3, 0.6, 1);
+}
+.chip.landed {
+  animation: landed 0.5s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes landed {
+  0% {
+    transform: scale(1.8);
+  }
+}
+.debug {
+  display: none;
+  position: absolute;
+  left: calc(var(--safe-left) + 8px);
+  bottom: calc(var(--safe-bottom) + 64px);
+  font: 600 11px ui-monospace, Menlo, monospace;
+  background: rgba(0, 0, 0, 0.6);
+  color: #9f9;
+  padding: 3px 6px;
+  border-radius: 6px;
 }

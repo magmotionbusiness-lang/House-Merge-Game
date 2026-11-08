@@ -1,6 +1,6 @@
 # Credits
 
-All 3D geometry, textures and icons are generated in code for this project. No third-party art or audio assets are used yet.
+All 3D geometry, textures, icons and sound effects are generated in code for this project (sounds are synthesised live with the Web Audio API). No third-party art or audio assets are used yet.
 
 ## Libraries
 

@@ -15,7 +15,9 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 1 of 10: **Greybox.** Pieces are numbered, coloured cylinders. The real 3D buildings, sound and the construction site come in later phases (see `DECISIONS.md`).
+Phase 2 of 10: **Juice pass 1** done (merge sequence, era particles, combos, procedural sound). Pieces are still numbered, coloured cylinders; the real 3D buildings arrive in Phase 3 (see `DECISIONS.md`).
+
+Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 
 ## Develop
 

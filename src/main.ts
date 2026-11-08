@@ -11,8 +11,13 @@ async function boot() {
   const view = new SceneView(canvas);
   let game: Game | null = null;
   const hud = new Hud(hudRoot, {
-    onRestart: () => game?.reset(),
+    onRestart: () => {
+      game?.sfx.unlock();
+      game?.sfx.tap();
+      game?.reset();
+    },
     onToggleMode: () => game?.toggleMode(),
+    onToggleSound: () => game?.toggleSound(),
   });
   game = new Game(view, hud, canvas);
 
@@ -29,10 +34,25 @@ async function boot() {
 
   document.addEventListener('visibilitychange', () => game?.setPaused(document.hidden));
 
+  // Add ?debug to the URL to show frame rate and render resolution.
+  const debug = new URLSearchParams(location.search).has('debug');
+  let frames = 0;
+  let fpsClock = 0;
+
   let last = performance.now();
   const loop = (now: number) => {
-    game!.frame((now - last) / 1000);
+    const dt = (now - last) / 1000;
+    game!.frame(dt);
     last = now;
+    if (debug) {
+      frames++;
+      fpsClock += dt;
+      if (fpsClock >= 0.5) {
+        hud.setDebug(`${Math.round(frames / fpsClock)} fps · ${view.quality()}`);
+        frames = 0;
+        fpsClock = 0;
+      }
+    }
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
