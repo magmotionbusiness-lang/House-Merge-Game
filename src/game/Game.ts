@@ -74,8 +74,8 @@ export class Game {
   private pieces = new Map<number, Piece>(); // collider handle -> piece
   private rng = new Rng(Date.now());
   private combo = new Combo();
-  private launcher: Launcher | null = null;
-  private nextTier = 1;
+  launcher: Launcher | null = null;
+  nextTier = 1;
   private aim: Aim | null = null;
   private pendingLaunch = false;
   private lastLaunch = -10;
@@ -108,7 +108,8 @@ export class Game {
   private obstacles: Body[] = [];
   /** Booster being aimed (waiting for a tap on a building), and the piece held by the crane. */
   private targeting: BoosterId | null = null;
-  private craneHeld: Piece | null = null;
+  /** Crane Lift drag state: the lifted building, the finger moving it, and where it would land. */
+  private carry: { piece: Piece; pointer: number | null; ox: number; oy: number; x: number; y: number; ok: boolean; moved: boolean } | null = null;
   private boosterUses: Partial<Record<BoosterId, number>> = {};
   private outOfShotsAt = -1;
 
@@ -651,7 +652,7 @@ export class Game {
       this.sfx.unlock();
       if (this.over || this.aim || !this.running || this.paused) return;
       if (this.targeting) {
-        this.pickTarget(e.clientX, e.clientY);
+        this.pickTarget(e);
         return;
       }
       c.setPointerCapture(e.pointerId);
@@ -660,8 +661,14 @@ export class Game {
     });
     c.addEventListener('pointermove', (e) => {
       if (this.aim?.pointerId === e.pointerId) this.updateAim(e);
+      if (this.carry?.pointer === e.pointerId) this.updateCarry(e.clientX, e.clientY);
     });
     const end = (e: PointerEvent, cancel: boolean) => {
+      if (this.carry?.pointer === e.pointerId) {
+        if (cancel) this.carry.pointer = null;
+        else this.releaseCarry();
+        return;
+      }
       if (this.aim?.pointerId !== e.pointerId) return;
       this.updateAim(e);
       this.lastPower = this.aim.power;
@@ -706,13 +713,17 @@ export class Game {
       if (!this.launcher || this.shotsLeft === 1) return 'blocked';
       this.pay('swap');
       const l = this.launcher;
-      const t = l.tier;
+      const cur = l.tier;
+      // Always change something: when both pieces are the same, swap in a
+      // different building instead (one that matches something on the table if possible).
+      const newCur = this.nextTier !== cur ? this.nextTier : this.differentTier(cur);
+      const newNext = cur !== newCur ? cur : this.differentTier(newCur);
       this.view.removePiece(l.view);
-      l.tier = this.nextTier;
+      l.tier = newCur;
       l.view = this.view.createPiece(l.tier);
       l.view.pop = 0;
       l.x = this.clampX(l.x, l.view.radius);
-      this.nextTier = t;
+      this.nextTier = newNext;
       this.hud.setNext(this.nextTier);
       this.sfx.launch(0.3);
       return 'ok';
@@ -725,8 +736,67 @@ export class Game {
 
   cancelBooster() {
     this.targeting = null;
-    this.craneHeld = null;
+    if (this.carry) this.view.endCarry(this.carry.piece.view, false);
+    this.carry = null;
+    this.view.setDropMarker(null);
     this.hud.setTargeting(null);
+  }
+
+  /** A spawnable tier other than `not`, preferring ones that could merge with something on the table. */
+  private differentTier(not: number) {
+    const cap = Math.min(5, Math.max(1, this.highestOnTable()) + 2);
+    const options: number[] = [];
+    for (let t = 1; t <= Math.max(cap, 2); t++) if (t !== not) options.push(t);
+    const onTable = new Set([...this.pieces.values()].map((p) => p.tier));
+    const useful = options.filter((t) => onTable.has(t));
+    const pool = useful.length ? useful : options;
+    return pool[Math.floor(this.rng.next() * pool.length)];
+  }
+
+  /** Moves the lifted building toward the finger; the drop spot snaps to the nearest free place. */
+  private updateCarry(cx: number, cy: number) {
+    const c = this.carry;
+    if (!c) return;
+    const rect = this.canvas.getBoundingClientRect();
+    // Hold the building a little above the finger so it isn't hidden under it.
+    const at = this.view.toTable(cx - rect.left, cy - rect.top - 46);
+    if (!at) return;
+    if (Math.hypot(at.x - c.ox, at.y - c.oy) > 0.03) c.moved = true;
+    const p = c.piece;
+    const spot = this.freeSpot(at.x, at.y, p.radius, p);
+    c.ok = spot !== null;
+    c.x = spot ? spot.x : this.clampX(at.x, p.radius);
+    c.y = spot ? spot.y : Math.min(Math.max(at.y, p.radius), L - p.radius);
+    this.view.moveCarry(p.view, c.x, c.y);
+    this.view.setDropMarker(c.x, c.y, p.radius, c.ok);
+  }
+
+  /** Finger lifted while carrying: drop if it moved to a free spot, otherwise keep holding. */
+  private releaseCarry() {
+    const c = this.carry;
+    if (!c) return;
+    c.pointer = null;
+    if (!c.moved) {
+      this.hud.setTargeting('Drag it to a new spot, then let go', () => this.cancelBooster());
+      return;
+    }
+    if (!c.ok) {
+      this.hud.setTargeting('No room there. Drag to an open spot', () => this.cancelBooster());
+      return;
+    }
+    const p = c.piece;
+    if (p.dead) return this.cancelBooster();
+    const { x, y } = c;
+    this.pay('crane');
+    this.world.teleport(p.b, x, y);
+    p.x = p.px = x;
+    p.y = p.py = y;
+    p.still = 0;
+    this.view.endCarry(p.view, true);
+    this.carry = null;
+    this.cancelBooster();
+    this.view.fx.dust(x, y, p.radius * 1.4, '#ffffff', 4);
+    this.sfx.rail(3);
   }
 
   private price(id: BoosterId) {
@@ -781,32 +851,16 @@ export class Game {
     return null;
   }
 
-  private pickTarget(cx: number, cy: number) {
+  private pickTarget(e: PointerEvent) {
     const rect = this.canvas.getBoundingClientRect();
-    const at = this.view.toTable(cx - rect.left, cy - rect.top);
+    const at = this.view.toTable(e.clientX - rect.left, e.clientY - rect.top);
     if (!at) return;
     const id = this.targeting!;
-    // Crane step 2: drop the held building where the player tapped.
-    if (id === 'crane' && this.craneHeld) {
-      const p = this.craneHeld;
-      if (p.dead) return this.cancelBooster();
-      const spot = this.freeSpot(at.x, at.y, p.radius, p);
-      if (!spot) {
-        this.hud.setTargeting('No room there. Tap an open spot', () => this.cancelBooster());
-        return;
-      }
-      const { x, y } = spot;
-      this.pay('crane');
-      this.cancelBooster();
-      const from = { x: p.x, y: p.y };
-      this.world.teleport(p.b, x, y);
-      p.x = p.px = x;
-      p.y = p.py = y;
-      p.still = 0;
-      this.view.craneLift(p.view, from, { x, y }, () => {
-        this.view.fx.dust(x, y, p.radius * 1.4, '#ffffff', 4);
-        this.sfx.rail(3);
-      });
+    // Crane: while a building is lifted, touching the table grabs it again and drags it.
+    if (id === 'crane' && this.carry) {
+      this.carry.pointer = e.pointerId;
+      this.canvas.setPointerCapture(e.pointerId);
+      this.updateCarry(e.clientX, e.clientY);
       return;
     }
     // Pick the building under the tap (closest centre within its footprint, with a little slack).
@@ -843,8 +897,13 @@ export class Game {
       this.contractBuilt(t0 + 1);
       this.refreshHud();
     } else if (id === 'crane') {
-      this.craneHeld = hit;
-      this.hud.setTargeting('Now tap where to drop it', () => this.cancelBooster());
+      // Lift it: it follows the finger, with a footprint marker showing where it will land.
+      this.carry = { piece: hit, pointer: e.pointerId, ox: hit.x, oy: hit.y, x: hit.x, y: hit.y, ok: true, moved: false };
+      this.canvas.setPointerCapture(e.pointerId);
+      this.view.startCarry(hit.view, hit.x, hit.y);
+      this.view.setDropMarker(hit.x, hit.y, hit.radius, true);
+      this.hud.setTargeting('Drag it where you want, then let go', () => this.cancelBooster());
+      this.sfx.tick(0.5);
     }
   }
 

@@ -29,6 +29,8 @@ export interface PieceView {
   wire: THREE.LineSegments | null;
   /** Crane Lift in progress: the building arcs from one spot to another. */
   held?: { from: { x: number; y: number }; to: { x: number; y: number }; t: number; done: () => void; cable: THREE.Line };
+  /** Crane Lift drag: the building hovers on a cable at this table position. */
+  carry?: { x: number; y: number; cable: THREE.Line; lift: number };
 }
 
 // Merge build-in timeline (seconds): twins converge, blueprint wireframe draws in,
@@ -437,6 +439,13 @@ export class SceneView {
 
   /** `yaw` is the physics spin on the table; `tilt` is a small aiming wobble. */
   placePiece(p: PieceView, x: number, y: number, tilt = 0, yaw = 0) {
+    if (p.carry) {
+      // Lifted by the crane: hover above the drop spot with a gentle sway.
+      const c = p.carry;
+      p.group.position.set(c.x, c.lift + Math.sin(this.time * 4) * 0.008, -c.y);
+      p.group.rotation.set(Math.sin(this.time * 2.6) * 0.03, 0, Math.sin(this.time * 3.1) * 0.04);
+      return;
+    }
     if (p.held) {
       // Lift, swing over, set down: an arc with ease in and out.
       const u = p.held.t;
@@ -470,6 +479,65 @@ export class SceneView {
       }
     }
     return 1;
+  }
+
+  private cableFor(p: PieceView) {
+    return new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, p.height + 0.01, 0), new THREE.Vector3(0, 4, 0)]),
+      new THREE.LineBasicMaterial({ color: '#37474f' }),
+    );
+  }
+
+  /** Crane Lift drag: lift the building on a cable; move it with `moveCarry`, set it down with `endCarry`. */
+  startCarry(p: PieceView, x: number, y: number) {
+    const cable = this.cableFor(p);
+    p.group.add(cable);
+    p.carry = { x, y, cable, lift: 0.1 + Math.min(0.15, p.height * 0.3) };
+  }
+
+  moveCarry(p: PieceView, x: number, y: number) {
+    if (!p.carry) return;
+    // Ease toward the finger so the swing feels weighty, not glued.
+    p.carry.x += (x - p.carry.x) * 0.55;
+    p.carry.y += (y - p.carry.y) * 0.55;
+  }
+
+  endCarry(p: PieceView, landed: boolean) {
+    if (!p.carry) return;
+    p.group.remove(p.carry.cable);
+    p.carry.cable.geometry.dispose();
+    (p.carry.cable.material as THREE.Material).dispose();
+    p.carry = undefined;
+    if (landed) p.pop = 0.1;
+  }
+
+  private dropMarker: THREE.Mesh | null = null;
+
+  /** Footprint ring where a carried building will land: green if it fits, red if not. */
+  setDropMarker(x: number, y: number, r: number, ok: boolean): void;
+  setDropMarker(hide: null): void;
+  setDropMarker(x: number | null, y = 0, r = 0, ok = true) {
+    if (x === null) {
+      if (this.dropMarker) this.dropMarker.visible = false;
+      return;
+    }
+    if (!this.dropMarker) {
+      const mat = new THREE.MeshBasicMaterial({ color: '#4cff7a', transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 48).rotateX(-Math.PI / 2), mat);
+      const fill = new THREE.Mesh(new THREE.CircleGeometry(0.86, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#4cff7a', transparent: true, opacity: 0.18, depthWrite: false }));
+      ring.add(fill);
+      ring.renderOrder = 3;
+      this.scene.add(ring);
+      this.dropMarker = ring;
+    }
+    const m = this.dropMarker;
+    m.visible = true;
+    m.position.set(x, 0.005, -y);
+    const pulse = 1 + Math.sin(this.time * 8) * 0.04;
+    m.scale.set(r * pulse, 1, r * pulse);
+    const col = ok ? '#4cff7a' : '#ff4d4d';
+    (m.material as THREE.MeshBasicMaterial).color.set(col);
+    ((m.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).color.set(col);
   }
 
   /** Crane Lift: animates the building along an arc on a cable, then calls `done` on landing. */

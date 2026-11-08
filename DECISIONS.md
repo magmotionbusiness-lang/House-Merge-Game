@@ -179,3 +179,12 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 - **Fallback:** the page background is also a darker earth tone, in case another browser variant ever leaves a gap.
 - **Loading screen:** the progress bar moved to the middle of the screen with the construction phrase right above it, and the phrases change every 2.3 s (was 1.1 s) with a softer fade.
 - **Campaign:** a clear blue "Back" button with an arrow at the top left, instead of the small home icon.
+
+## Phase 6.3: Booster fixes (playtest feedback)
+
+- **Swap always changes something.** The spawner deliberately repeats the previous piece fairly often (as Suika does), so swapping two identical pieces did nothing and felt broken. When the current and NEXT pieces match, Swap now deals a different spawnable building, preferring one that matches something already on the table.
+- **Crane Lift is drag-and-drop with a preview:**
+  - **Lift:** press a building and it lifts on a cable and hovers a little above your finger, so the finger doesn't hide it.
+  - **Preview:** a pulsing footprint ring shows exactly where it will land, green when it fits and red when there's no room. The spot snaps to the nearest free place, never overlapping another building or a scaffold.
+  - **Drop:** let go to set it down with a puff of dust. Letting go without moving keeps it lifted, so you can drag again. Cancel puts it back.
+  - **Charge:** coins are only taken on a successful drop.
