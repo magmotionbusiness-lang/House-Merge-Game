@@ -104,7 +104,7 @@ export class Hud {
     const right2 = el('div', 'boosters right');
     BOOSTERS.forEach((b, i) => {
       const btn = el('button', 'booster');
-      btn.innerHTML = `${ICONS[b.id]}<span class="b-price"><span class="mini-coin"></span>${b.cost}</span>`;
+      btn.innerHTML = `${ICONS[b.id]}<span class="b-price"><span class="mini-coin"></span><span>${b.cost}</span></span>`;
       btn.setAttribute('aria-label', `${b.name}, ${b.cost} coins`);
       btn.title = b.name;
       btn.onclick = () => h.onBooster(b.id);
@@ -125,7 +125,7 @@ export class Hud {
   setCoins(total: number) {
     const from = this.shownCoins;
     this.shownCoins = total;
-    for (const b of BOOSTERS) this.boosterBtns.get(b.id)?.classList.toggle('poor', total < b.cost);
+    for (const b of BOOSTERS) this.boosterBtns.get(b.id)?.classList.toggle('poor', total < (this.prices[b.id] ?? b.cost));
     if (total <= from) {
       this.coins.textContent = total.toLocaleString('en-US');
       return;
@@ -219,6 +219,21 @@ export class Hud {
     cancel.setAttribute('aria-label', 'Cancel');
     cancel.onclick = () => onCancel?.();
     this.targetBar.append(el('span', '', prompt), cancel);
+  }
+
+  private prices: Partial<Record<BoosterId, number>> = {};
+
+  /** Current booster prices (they rise with each use in a round). */
+  setBoosterPrices(prices: Record<BoosterId, number>) {
+    this.prices = prices;
+    for (const b of BOOSTERS) {
+      const btn = this.boosterBtns.get(b.id);
+      if (!btn) continue;
+      const label = btn.querySelector('.b-price span:last-child');
+      if (label) label.textContent = prices[b.id].toLocaleString('en-US');
+      btn.setAttribute('aria-label', `${b.name}, ${prices[b.id]} coins`);
+      btn.classList.toggle('poor', this.shownCoins < prices[b.id]);
+    }
   }
 
   /** "Not enough coins" nudge on a booster button. */

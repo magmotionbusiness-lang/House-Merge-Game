@@ -12,40 +12,72 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preload" as="image" href="/bg/site.webp" type="image/webp" />
-    <link rel="preload" as="image" href="/logo.webp" type="image/webp" />
     <title>Blueprint Merge</title>
-    <!-- Splash: inline so it paints instantly, before the game code has downloaded. -->
+    <link rel="preload" as="font" href="/fonts/big-shoulders-900.woff2" type="font/woff2" crossorigin />
+    <link rel="preload" as="font" href="/fonts/barlow-condensed-700.woff2" type="font/woff2" crossorigin />
+    <!-- Loading screen: inline so it paints instantly, before the game code has downloaded. -->
     <style>
-      html, body { margin: 0; height: 100%; background: #2f6fd0; overflow: hidden; }
-      #splash {
-        position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
-        background: #e9b86a url('/bg/site.webp') center 22% / cover no-repeat;
-        transition: opacity 0.55s ease, transform 0.55s ease;
+      @font-face { font-family: 'Big Shoulders Display'; font-weight: 900; font-display: swap; src: url('/fonts/big-shoulders-900.woff2') format('woff2'); }
+      @font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-display: swap; src: url('/fonts/barlow-condensed-700.woff2') format('woff2'); }
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #d9a35c; }
+      /* The painted site fills every pixel of the screen, so no strip ever shows below the game. */
+      body::before {
+        content: ''; position: fixed; left: 0; right: 0; top: 0; height: 100lvh; min-height: 100%;
+        background: #d9a35c url('/bg/site.webp') center 22% / cover no-repeat; z-index: -1;
       }
-      #splash::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20,60,140,0.1), rgba(15,30,60,0.55)); }
-      #splash.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
-      .sp-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
-      .sp-logo {
-        width: 148px; height: 148px; border-radius: 34px; border: 4px solid #fff;
-        box-shadow: 0 6px 0 #3d2614, 0 16px 34px rgba(0,0,0,0.45);
-        animation: sp-in 0.7s cubic-bezier(0.3,1.5,0.5,1) both, sp-float 2.6s ease-in-out 0.7s infinite;
+      #splash {
+        position: fixed; left: 0; right: 0; top: 0; height: 100lvh; min-height: 100%; z-index: 100;
+        background: #d9a35c url('/bg/site.webp') center 22% / cover no-repeat;
+        font-family: 'Barlow Condensed', system-ui, -apple-system, sans-serif; color: #fff;
+      }
+      #splash::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(10,40,100,0.05) 0%, rgba(10,30,60,0) 35%, rgba(15,25,45,0.65) 100%);
+      }
+      .sp-title {
+        position: absolute; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 9vh);
+        text-align: center; font: 900 clamp(60px, 18vw, 92px)/0.86 'Big Shoulders Display', Impact, sans-serif;
+        letter-spacing: 0.03em; color: #fff; -webkit-text-stroke: 2.5px #3d2614;
+        text-shadow: 0 6px 0 #3d2614, 0 14px 30px rgba(0,0,0,0.45);
+        animation: sp-drop 0.8s cubic-bezier(0.25,1.45,0.45,1) both;
+      }
+      .sp-sub {
+        display: block; margin-top: 14px; font: 700 15px/1 'Barlow Condensed', sans-serif; letter-spacing: 0.32em;
+        -webkit-text-stroke: 0; text-shadow: 0 2px 0 #3d2614, 0 0 10px rgba(0,0,0,0.5);
+      }
+      .sp-hero {
+        position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 150px); transform: translateX(-50%);
+        height: 46vh; max-width: 92vw; object-fit: contain; filter: drop-shadow(0 12px 20px rgba(0,0,0,0.4));
+        animation: sp-rise 0.9s 0.15s cubic-bezier(0.25,1.3,0.45,1) both;
+      }
+      .sp-bottom {
+        position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 54px);
+        display: flex; flex-direction: column; align-items: center; gap: 12px; animation: sp-rise 0.7s 0.25s ease both;
       }
       .sp-bar {
-        width: 220px; height: 18px; border-radius: 10px; background: rgba(255,248,234,0.9);
-        border: 3px solid #3d2614; box-shadow: 0 4px 0 #3d2614, 0 8px 18px rgba(0,0,0,0.35); overflow: hidden;
-        animation: sp-in 0.6s 0.15s ease both;
+        position: relative; width: min(78vw, 300px); height: 22px; border-radius: 12px; background: rgba(30,20,10,0.55);
+        border: 3px solid #3d2614; box-shadow: 0 4px 0 #3d2614, 0 10px 24px rgba(0,0,0,0.45); overflow: hidden;
       }
       .sp-fill {
-        height: 100%; width: 4%; border-radius: 6px;
-        background: linear-gradient(#ffd34d, #f2a100); transition: width 0.25s ease;
-        background-size: 28px 100%;
+        height: 100%; width: 3%; border-radius: 8px; transition: width 0.3s ease;
+        background: repeating-linear-gradient(-45deg, #ffcc1f 0 12px, #f5a300 12px 24px);
+        background-size: 34px 100%; animation: sp-stripes 0.6s linear infinite;
+        box-shadow: inset 0 3px 0 rgba(255,255,255,0.35);
+      }
+      .sp-pct {
+        position: absolute; inset: 0; display: grid; place-items: center;
+        font: 900 14px/1 'Big Shoulders Display', sans-serif; letter-spacing: 0.08em; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
       }
       .sp-text {
-        font: 600 15px/1 system-ui, -apple-system, sans-serif; letter-spacing: 0.12em; text-transform: uppercase;
-        color: #fff; text-shadow: 0 2px 0 #3d2614, 0 0 10px rgba(0,0,0,0.5); animation: sp-in 0.6s 0.25s ease both;
+        height: 20px; font: 700 17px/20px 'Barlow Condensed', sans-serif; letter-spacing: 0.22em; text-transform: uppercase;
+        text-shadow: 0 2px 0 #3d2614, 0 0 12px rgba(0,0,0,0.6);
       }
-      @keyframes sp-in { from { opacity: 0; transform: translateY(14px) scale(0.92); } }
-      @keyframes sp-float { 50% { transform: translateY(-8px) rotate(-2deg); } }
+      .sp-text.swap { animation: sp-swap 0.35s ease; }
+      @keyframes sp-drop { from { opacity: 0; transform: translateY(-40px) scale(0.9); } }
+      @keyframes sp-rise { from { opacity: 0; transform: translate(var(--tx, 0), 30px); } }
+      .sp-hero { --tx: -50%; }
+      @keyframes sp-stripes { to { background-position: 34px 0; } }
+      @keyframes sp-swap { from { opacity: 0; transform: translateY(8px); } }
     </style>
   </head>
   <body>
@@ -56,12 +88,27 @@
       <div id="hud"></div>
     </div>
     <div id="splash" role="progressbar" aria-label="Loading">
-      <div class="sp-inner">
-        <img class="sp-logo" src="/logo.webp" alt="Blueprint Merge" />
-        <div class="sp-bar"><div class="sp-fill" id="sp-fill"></div></div>
-        <div class="sp-text" id="sp-text">Laying the foundations</div>
+      <div class="sp-title">BLUEPRINT<br />MERGE<span class="sp-sub">FROM A BRICK TO A SKYLINE</span></div>
+      <!-- Builder illustration goes here: <img class="sp-hero" src="/art/loading-builder.webp" alt="" /> -->
+      <div class="sp-bottom">
+        <div class="sp-bar"><div class="sp-fill" id="sp-fill"></div><div class="sp-pct" id="sp-pct">0%</div></div>
+        <div class="sp-text" id="sp-text">Under construction</div>
       </div>
     </div>
+    <script>
+      // Construction phrases cycle under the bar, and the bar creeps forward while the game code downloads.
+      (function () {
+        var phrases = ['Under construction', 'Surveying the site', 'Laying the foundations', 'Pouring the concrete', 'Raising the walls', 'Framing the roof', 'Fitting the windows', 'Painting the facade', 'Topping out the towers', 'Final inspection'];
+        var i = 0, p = 0, text = document.getElementById('sp-text'), fill = document.getElementById('sp-fill'), pct = document.getElementById('sp-pct');
+        function show(k) { text.textContent = phrases[k]; text.classList.remove('swap'); void text.offsetWidth; text.classList.add('swap'); }
+        window.__phrase = setInterval(function () { i = (i + 1) % phrases.length; show(i); }, 1100);
+        window.__loading = function (v, done) {
+          p = Math.max(p, v); fill.style.width = Math.round(3 + p * 97) + '%'; pct.textContent = Math.round(p * 100) + '%';
+          if (done) { clearInterval(window.__phrase); clearInterval(window.__creep); text.textContent = 'Ready to build!'; text.classList.remove('swap'); void text.offsetWidth; text.classList.add('swap'); }
+        };
+        window.__creep = setInterval(function () { if (p < 0.25) window.__loading(p + 0.012); }, 120);
+      })();
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

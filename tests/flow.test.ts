@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { endlessContract, isComplete, makeContract, recordBuild } from '../src/core/contracts';
 import { starsFor, validateDistrict, type District } from '../src/core/levels';
 import { Rng } from '../src/core/rng';
+import { boosterPrice } from '../src/core/boosters';
 import district1 from '../levels/district-01.json';
 import district2 from '../levels/district-02.json';
 import district3 from '../levels/district-03.json';
@@ -51,5 +52,13 @@ describe('levels', () => {
     expect(starsFor(l, 14, 1)).toBe(2);
     expect(starsFor(l, 10, 3)).toBe(3);
     expect(starsFor(l, 10, 2)).toBe(2);
+  });
+});
+
+describe('boosters', () => {
+  it('get more expensive with each use in a round', () => {
+    expect(boosterPrice('swap', 0)).toBe(250);
+    expect(boosterPrice('swap', 1)).toBe(400);
+    expect(boosterPrice('upgrade', 2)).toBeGreaterThan(boosterPrice('upgrade', 1));
   });
 });

@@ -10,6 +10,7 @@ import { Hud } from './ui/hud';
 import { Game } from './game/Game';
 import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
+import { smokeTransition } from './ui/smoke';
 import { onSettings } from './game/settings';
 import { validateDistrict, type District, type LevelDef } from './core/levels';
 import district1 from '../levels/district-01.json';
@@ -26,18 +27,16 @@ function loadFonts() {
 }
 
 const splash = document.getElementById('splash');
-const fill = document.getElementById('sp-fill');
-const spText = document.getElementById('sp-text');
-function loading(p: number, text?: string) {
-  if (fill) fill.style.width = `${Math.round(4 + p * 96)}%`;
-  if (text && spText) spText.textContent = text;
+/** Drives the loading bar in index.html (its phrases cycle on their own). */
+function loading(p: number, done = false) {
+  (window as unknown as { __loading?: (v: number, d?: boolean) => void }).__loading?.(p, done);
 }
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 async function boot() {
-  loading(0.1, 'Laying the foundations');
+  loading(0.28);
   await Promise.all([initPhysics(), loadFonts()]);
-  loading(0.3, 'Pouring the concrete');
+  loading(0.4);
   await nextFrame();
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const hudRoot = document.getElementById('hud') as HTMLElement;
@@ -68,12 +67,21 @@ async function boot() {
   // never stutters later. One tier per frame keeps the loading bar moving.
   for (let t = 1; t <= MAX_TIER; t++) {
     view.prewarm(t);
-    loading(0.3 + (0.6 * t) / MAX_TIER, t < 6 ? 'Laying the foundations' : t < 12 ? 'Raising the walls' : 'Topping out the towers');
+    loading(0.4 + (0.55 * t) / MAX_TIER);
     await nextFrame();
   }
   view.prewarmFx();
-  loading(1, 'Ready!');
+  loading(1, true);
   // Flow: title -> play (endless) or campaign -> level intro -> play -> results.
+  /** Dust cloud rises over the menu; behind it the round starts, then it clears to reveal the table. */
+  const startWithDust = (begin: () => void) => {
+    game!.sfx.dust();
+    void smokeTransition(() => {
+      screens!.hide();
+      setPlaying(true);
+      begin();
+    });
+  };
   const setPlaying = (on: boolean) => {
     hudRoot.classList.toggle('idle', !on);
     view.setShowcase(!on, on ? 1.15 : 1.4);
@@ -93,12 +101,7 @@ async function boot() {
     return null;
   };
   const startLevel = (level: LevelDef, district: District) => {
-    screens!.levelIntro(level, district, () =>
-      screens!.leave(() => {
-        setPlaying(true);
-        game!.start({ kind: 'level', level, time: district.time });
-      }),
-    );
+    screens!.levelIntro(level, district, () => startWithDust(() => game!.start({ kind: 'level', level, time: district.time })));
   };
   game = new Game(view, hud, canvas, {
     onEnd: (r) => {
@@ -112,11 +115,7 @@ async function boot() {
       game!.sfx.unlock();
       game!.sfx.tap();
     },
-    playEndless: () =>
-      screens!.leave(() => {
-        setPlaying(true);
-        game!.start({ kind: 'endless' });
-      }),
+    playEndless: () => startWithDust(() => game!.start({ kind: 'endless' })),
     playLevel: startLevel,
     resume: () => screens!.leave(() => game!.setPaused(false)),
     restart: () =>
@@ -133,11 +132,14 @@ async function boot() {
   });
   hudRoot.classList.add('idle');
 
+  // Size everything to the game area itself (full screen on phones, letterboxed on iPad).
+  const app = document.getElementById('app') as HTMLElement;
   const resize = () => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const top = hud.top.getBoundingClientRect().bottom + 8;
-    const bottom = h - hud.bottom.getBoundingClientRect().top + 8;
+    const box = app.getBoundingClientRect();
+    const w = Math.round(box.width);
+    const h = Math.round(box.height);
+    const top = hud.top.getBoundingClientRect().bottom - box.top + 8;
+    const bottom = box.bottom - hud.bottom.getBoundingClientRect().top + 8;
     view.resize(w, h, top, bottom);
   };
   window.addEventListener('resize', resize);
@@ -175,13 +177,16 @@ async function boot() {
   };
   requestAnimationFrame(loop);
 
-  // Let the first frames render under the splash, then fade it out and bring in the title.
+  // Let the first frames render under the loading screen, then the dust cloud
+  // rises, swaps in the title behind it, and clears.
   await nextFrame();
   await nextFrame();
+  await new Promise((r) => setTimeout(r, 350));
   view.settleQuality(3);
-  splash?.classList.add('out');
-  window.setTimeout(() => splash?.remove(), 700);
-  window.setTimeout(() => screens!.title(), 180);
+  void smokeTransition(() => {
+    splash?.remove();
+    screens!.title();
+  });
   (window as unknown as { __game: Game; __view: SceneView }).__game = game;
   (window as unknown as { __view: SceneView }).__view = view;
 }

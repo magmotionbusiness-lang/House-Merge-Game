@@ -6,7 +6,6 @@ import { nextSpawn } from '../core/spawn';
 import { MAX_TIER, tier } from '../core/tiers';
 import { TableWorld, type Body } from '../physics/world';
 import { SceneView, pieceRadius, type PieceView } from '../render/scene';
-import { Lighting } from '../render/lighting';
 import { modelSize } from '../models';
 import { Hud } from '../ui/hud';
 import { store } from './storage';
@@ -14,7 +13,7 @@ import { endlessContract, isComplete, makeContract, recordBuild, type Contract }
 import { levelCoins, starsFor, type LevelDef } from '../core/levels';
 import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
-import { booster, type BoosterId } from '../core/boosters';
+import { booster, boosterPrice, type BoosterId } from '../core/boosters';
 
 export type PlayMode = { kind: 'endless' } | { kind: 'level'; level: LevelDef; time: TimeOfDay };
 
@@ -110,6 +109,7 @@ export class Game {
   /** Booster being aimed (waiting for a tap on a building), and the piece held by the crane. */
   private targeting: BoosterId | null = null;
   private craneHeld: Piece | null = null;
+  private boosterUses: Partial<Record<BoosterId, number>> = {};
   private outOfShotsAt = -1;
 
   constructor(
@@ -174,6 +174,8 @@ export class Game {
     this.winAt = -1;
     this.outOfShotsAt = -1;
     this.cancelBooster();
+    this.boosterUses = {};
+    this.refreshPrices();
     const lvl = this.playMode.kind === 'level' ? this.playMode.level : null;
     this.shotsLeft = lvl ? lvl.shots : null;
     for (const o of this.obstacles) this.world.remove(o);
@@ -540,7 +542,8 @@ export class Game {
     this.hud.setProgress(Math.max(5, this.highestEver), this.highestRun);
     // The scene reacts to progress: the day moves on, and the camera eases
     // back when tall towers stand on the table.
-    this.view.setTimeOfDay(this.playMode.kind === 'level' ? this.playMode.time : Lighting.forTier(this.highestRun));
+    // Always bright daylight: playtesters found the later dusk and night tints too dark.
+    this.view.setTimeOfDay('noon');
     const top = this.highestOnTable();
     this.view.setTallest(top ? modelSize(top).height : 0);
   }
@@ -693,7 +696,7 @@ export class Game {
   useBooster(id: BoosterId): 'ok' | 'coins' | 'blocked' {
     if (!this.running || this.over || this.paused) return 'blocked';
     const def = booster(id);
-    if (progress.coins() < def.cost) return 'coins';
+    if (progress.coins() < this.price(id)) return 'coins';
     if (this.targeting === id) {
       this.cancelBooster();
       return 'ok';
@@ -701,7 +704,7 @@ export class Game {
     this.cancelBooster();
     if (id === 'swap') {
       if (!this.launcher || this.shotsLeft === 1) return 'blocked';
-      this.pay(def.cost);
+      this.pay('swap');
       const l = this.launcher;
       const t = l.tier;
       this.view.removePiece(l.view);
@@ -726,9 +729,56 @@ export class Game {
     this.hud.setTargeting(null);
   }
 
-  private pay(cost: number) {
-    this.hud.setCoins(progress.addCoins(-cost));
+  private price(id: BoosterId) {
+    return boosterPrice(id, this.boosterUses[id] ?? 0);
+  }
+
+  private refreshPrices() {
+    this.hud.setBoosterPrices({
+      wreck: this.price('wreck'),
+      swap: this.price('swap'),
+      upgrade: this.price('upgrade'),
+      crane: this.price('crane'),
+    });
+  }
+
+  /** Charges the current price and raises the next one. */
+  private pay(id: BoosterId) {
+    this.hud.setCoins(progress.addCoins(-this.price(id)));
+    this.boosterUses[id] = (this.boosterUses[id] ?? 0) + 1;
+    this.refreshPrices();
     this.sfx.contract();
+  }
+
+  /**
+   * Nearest spot to (x, y) where a piece of radius r fits without overlapping
+   * other buildings or scaffolds, so the Crane never drops a building on top of
+   * another (which made the physics fling pieces apart).
+   */
+  private freeSpot(x: number, y: number, r: number, ignore: Piece): { x: number; y: number } | null {
+    const minY = CONFIG.failY + r + 0.06;
+    const obstacles = this.playMode.kind === 'level' ? (this.playMode.level.obstacles ?? []) : [];
+    const fits = (px: number, py: number) => {
+      if (Math.abs(px) > W / 2 - r - 0.004 || py < minY || py > L - r) return false;
+      for (const p of this.pieces.values()) if (p !== ignore && Math.hypot(p.x - px, p.y - py) < p.radius + r + 0.006) return false;
+      for (const [ox, oy, w, h] of obstacles) {
+        const dx = Math.max(Math.abs(px - ox) - w / 2, 0);
+        const dy = Math.max(Math.abs(py - oy) - h / 2, 0);
+        if (Math.hypot(dx, dy) < r + 0.004) return false;
+      }
+      return true;
+    };
+    x = this.clampX(x, r);
+    y = Math.min(Math.max(y, minY), L - r);
+    if (fits(x, y)) return { x, y };
+    for (let d = 0.02; d < 0.9; d += 0.02)
+      for (let k = 0; k < 24; k++) {
+        const a = (k / 24) * Math.PI * 2;
+        const px = x + Math.cos(a) * d;
+        const py = y + Math.sin(a) * d;
+        if (fits(px, py)) return { x: px, y: py };
+      }
+    return null;
   }
 
   private pickTarget(cx: number, cy: number) {
@@ -740,9 +790,13 @@ export class Game {
     if (id === 'crane' && this.craneHeld) {
       const p = this.craneHeld;
       if (p.dead) return this.cancelBooster();
-      const x = this.clampX(at.x, p.radius);
-      const y = Math.min(Math.max(at.y, CONFIG.failY + p.radius + 0.06), L - p.radius);
-      this.pay(booster('crane').cost);
+      const spot = this.freeSpot(at.x, at.y, p.radius, p);
+      if (!spot) {
+        this.hud.setTargeting('No room there. Tap an open spot', () => this.cancelBooster());
+        return;
+      }
+      const { x, y } = spot;
+      this.pay('crane');
       this.cancelBooster();
       const from = { x: p.x, y: p.y };
       this.world.teleport(p.b, x, y);
@@ -767,7 +821,7 @@ export class Game {
     }
     if (!hit) return;
     if (id === 'wreck') {
-      this.pay(booster('wreck').cost);
+      this.pay('wreck');
       this.cancelBooster();
       this.destroy(hit);
       this.view.fx.merge(hit.x, hit.y, 1, tier(hit.tier).color, 2);
@@ -778,7 +832,7 @@ export class Game {
       this.refreshHud();
     } else if (id === 'upgrade') {
       if (hit.tier >= MAX_TIER) return;
-      this.pay(booster('upgrade').cost);
+      this.pay('upgrade');
       this.cancelBooster();
       const { x, y, tier: t0 } = hit;
       this.destroy(hit);

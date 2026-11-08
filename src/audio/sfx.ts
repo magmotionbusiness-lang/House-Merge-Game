@@ -226,6 +226,15 @@ export class Sfx {
     [1047, 1319, 1568, 2093].forEach((f, i) => this.bell(f, 0.2, 0.5 + i * 0.12));
   }
 
+  /** The dust-cloud transition: a deep rumble and a rising whoosh. */
+  dust() {
+    if (!this.ok) return;
+    this.noise(1.2, { gain: 0.22, filter: 'lowpass', freq: 220, freqEnd: 900, q: 0.8 });
+    this.noise(0.9, { gain: 0.1, freq: 600, freqEnd: 2600, q: 0.7, when: 0.15 });
+    this.tone(55, 0.7, { gain: 0.25, freqEnd: 38 });
+    for (let i = 0; i < 6; i++) this.tone((300 + Math.random() * 500) * jitter(), 0.05, { gain: 0.06, type: 'triangle', when: 0.1 + i * 0.09 });
+  }
+
   /** Contract done: a rubber stamp and a cascade of coins. */
   contract() {
     if (!this.ok) return;

@@ -159,3 +159,15 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - Crane Lift (80): pick a building, then tap where to set it. It swings over on a cable and lands with dust.
 
   Aiming shows a banner with a cancel button and a gold frame around the screen. Coins are only taken when the booster lands. Without enough coins the button shakes and a tip explains how to earn more. Rewarded-ad boosters come with the monetization phase.
+
+## Phase 6.1: Feel and first impression (playtest feedback)
+
+- **Boosters were far too strong.** New base prices: Swap 250, Crane Lift 500, Wrecking Ball 700, Upgrade Stamp 1,200. Each extra use in the same round costs 60% more, and the buttons always show the current price. A contract pays about 70 to 1,000 coins depending on tier, so a booster rescues a moment but can't carry a run.
+- **Crane Lift never drops a building onto another one.** Overlapping drops made the physics fling pieces apart, which felt broken. The drop now snaps to the nearest free spot clear of buildings, scaffolds and the site boundary, or asks for another spot.
+- **No more darkening.** The light used to move toward dusk and night as you climbed tiers, which read as the game getting darker. It now stays bright daylight everywhere. The lighting presets remain in code for later events.
+- **Beige strip at the bottom removed.** The page background was beige, and on some iPhone configurations the browser's game area is shorter than the screen. The painted site now covers the full screen height (`100lvh`), the game area uses the dynamic viewport height, and everything is sized to the game area itself (which also fixes iPad letterboxing).
+- **New loading screen:**
+  - **Look:** no logo. A big outlined "BLUEPRINT MERGE" title drops in over the painted site, with a hazard-striped progress bar that animates, a percentage, and construction phrases cycling underneath ("Under construction", "Laying the foundations", "Pouring the concrete", "Raising the walls", "Framing the roof", ..., "Final inspection", "Ready to build!").
+  - **Instant:** fonts are preloaded, so it renders right away, and the bar creeps forward while the game code downloads.
+  - **Builder slot:** a spot is ready for a builder illustration (`public/art/loading-builder.webp`).
+- **Dust-cloud transition** after loading and when starting a round: a wall of billowing grey and tan smoke rises from the bottom carrying tumbling brick, concrete and wood chunks and glinting dust, covers the screen while the scene changes behind it, then lifts off the top and clears. It plays with a low rumble and whoosh, runs on its own 2D canvas at a soft resolution so phones keep 60 fps, and falls back to a simple fade with Reduce Motion.
