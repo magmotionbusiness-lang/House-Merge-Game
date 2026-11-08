@@ -138,3 +138,24 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - **Home:** the camera glides back up.
   - **Reduced motion:** the system's "Reduce Motion" setting turns the HUD entrance and the logo float off.
 - **The painted backdrop is 941 x 1672 px**, a little under an iPhone's 1170 x 2532. A higher-resolution export of the same painting would make it as sharp as the 3D.
+
+## Phase 6: Campaign, balancing bot and boosters
+
+- **Three districts of 15 levels:** Backyard (morning), Suburbs (noon) and Old Town (golden hour). They are generated from a compact design table (`tools/make_levels.py`) into `levels/district-NN.json`, and validated on load and in tests: pieces must fit on the table and must not overlap each other or the scaffolds. Every 5th level is a Big Build, and the level after it is a breather.
+- **District ideas:** Backyard teaches aiming, merging and contracts. Suburbs focuses on shot limits and stars, with chain starts. Old Town adds starting piles and scaffold bumpers.
+- **Scaffold bumpers absorb hits (no bounce).** With a bouncy bumper the bot overflowed in nearly every Old Town run: a blocked shot rebounded and settled over the site boundary, a 2-second loss. Now a blocked shot stops in front of the scaffold, which is fair and readable. The aim line stops at scaffolds too.
+- **Exponential effort shaped the targets.** Building tier N from scratch costs roughly twice tier N-1. In early tests a tier-10 contract needed 140+ shots, so:
+  - **Chain starts:** late levels start with a descending chain (e.g. 9-8-7-6-5), so the job is building the smallest link.
+  - **Richer spawn mixes:** later districts deal more 3s, 4s and 5s, per level as the brief allows.
+  - **Top contract tiers are capped:** Backyard 8, Suburbs 10, Old Town 10. Tier 11 stays an Endless goal; as a contract it pushed levels past 5 minutes.
+- **Headless simulation:** `src/sim/sim.ts` runs the same physics world and rules as the game (spawn table and cap, merges with the merge shove, contracts, the fail rule) without rendering. One level plays in about 30 ms.
+- **Balancing bot:** a greedy player that scans 17 lanes, finds what each shot would hit first, and prefers same-tier hits (merges, especially toward contract tiers), then deep open lanes. It avoids scaffolds and adds slight randomness.
+- **Tuning method:** each level is played many times with unlimited shots, and the number of shots each win took is recorded. The shot limit is then the quantile of that distribution that gives the level's target win rate: 97% for the first levels, sloping to about 60% by the end, with -5% on Big Builds and +12% on breathers. One pass per level sets the limit exactly, instead of trial and error. `npm run balance -- --write` writes the limits into the JSON, and `docs/balance.csv` has the full report (win rate, average, median and p90 shots, overflow rate).
+- **The bot is a stand-in for a casual player.** Skilled players will beat the targets, which suits the 3-star system: 2 and 3 stars need 30% and 50% of the shots left.
+- **Boosters** sit in the bottom corners above the evolution bar, each showing its coin price:
+  - Wrecking Ball (100): demolish a building.
+  - Swap (40): swap the current piece with NEXT.
+  - Upgrade Stamp (150): raise a building one tier. It counts toward contracts, and the new building gets the blueprint build-in.
+  - Crane Lift (80): pick a building, then tap where to set it. It swings over on a cable and lands with dust.
+
+  Aiming shows a banner with a cancel button and a gold frame around the screen. Coins are only taken when the booster lands. Without enough coins the button shakes and a tip explains how to earn more. Rewarded-ad boosters come with the monetization phase.

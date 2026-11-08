@@ -14,6 +14,7 @@ import { endlessContract, isComplete, makeContract, recordBuild, type Contract }
 import { levelCoins, starsFor, type LevelDef } from '../core/levels';
 import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
+import { booster, type BoosterId } from '../core/boosters';
 
 export type PlayMode = { kind: 'endless' } | { kind: 'level'; level: LevelDef; time: TimeOfDay };
 
@@ -33,6 +34,8 @@ export interface GameEvents {
 }
 
 const DT = 1 / 60;
+/** Upgrade Stamp: skip the twins converging and start at the blueprint wireframe. */
+const BUILD_CONVERGE_SKIP = 0.08;
 const W = CONFIG.tableWidth;
 const L = CONFIG.tableLength;
 
@@ -103,6 +106,10 @@ export class Game {
   private bestCombo = 0;
   private coinsEarned = 0;
   private winAt = -1; // time the level-complete celebration ends
+  private obstacles: Body[] = [];
+  /** Booster being aimed (waiting for a tap on a building), and the piece held by the crane. */
+  private targeting: BoosterId | null = null;
+  private craneHeld: Piece | null = null;
   private outOfShotsAt = -1;
 
   constructor(
@@ -166,8 +173,12 @@ export class Game {
     this.coinsEarned = 0;
     this.winAt = -1;
     this.outOfShotsAt = -1;
+    this.cancelBooster();
     const lvl = this.playMode.kind === 'level' ? this.playMode.level : null;
     this.shotsLeft = lvl ? lvl.shots : null;
+    for (const o of this.obstacles) this.world.remove(o);
+    this.obstacles = (lvl?.obstacles ?? []).map(([x, y, w, h]) => this.world.addObstacle(x, y, w / 2, h / 2));
+    this.view.setObstacles(lvl?.obstacles ?? []);
     for (const [t, x, y] of lvl?.start ?? []) this.addPiece(t, x, y, 0, 0);
     if (lvl) this.contracts = lvl.contracts.map((c) => makeContract(c.tier, c.count, c.reward));
     else {
@@ -536,6 +547,7 @@ export class Game {
 
   private endRound(win: boolean, reason: string) {
     this.over = true;
+    this.cancelBooster();
     this.aim = null;
     this.pendingLaunch = false;
     this.setDanger(false);
@@ -614,6 +626,9 @@ export class Game {
       const rr = r + p.radius;
       if (dx < rr && p.y > CONFIG.launchY) end = Math.min(end, p.y - Math.sqrt(rr * rr - dx * dx));
     }
+    if (this.playMode.kind === 'level')
+      for (const [ox, oy, w, h] of this.playMode.level.obstacles ?? [])
+        if (Math.abs(ox - l.x) < w / 2 + r) end = Math.min(end, oy - h / 2 - r);
     return Math.max(CONFIG.launchY + r, end) - r;
   }
 
@@ -632,6 +647,10 @@ export class Game {
     c.addEventListener('pointerdown', (e) => {
       this.sfx.unlock();
       if (this.over || this.aim || !this.running || this.paused) return;
+      if (this.targeting) {
+        this.pickTarget(e.clientX, e.clientY);
+        return;
+      }
       c.setPointerCapture(e.pointerId);
       this.aim = { pointerId: e.pointerId, startY: e.clientY, power: 0, ticks: 0 };
       this.updateAim(e);
@@ -665,6 +684,113 @@ export class Game {
       const ticks = Math.floor(this.aim.power * 8);
       if (ticks > this.aim.ticks) this.sfx.tick(this.aim.power);
       this.aim.ticks = ticks;
+    }
+  }
+
+  // ------------------------------------------------------------ boosters
+
+  /** Starts a booster: Swap applies at once; the others wait for a tap on a building. */
+  useBooster(id: BoosterId): 'ok' | 'coins' | 'blocked' {
+    if (!this.running || this.over || this.paused) return 'blocked';
+    const def = booster(id);
+    if (progress.coins() < def.cost) return 'coins';
+    if (this.targeting === id) {
+      this.cancelBooster();
+      return 'ok';
+    }
+    this.cancelBooster();
+    if (id === 'swap') {
+      if (!this.launcher || this.shotsLeft === 1) return 'blocked';
+      this.pay(def.cost);
+      const l = this.launcher;
+      const t = l.tier;
+      this.view.removePiece(l.view);
+      l.tier = this.nextTier;
+      l.view = this.view.createPiece(l.tier);
+      l.view.pop = 0;
+      l.x = this.clampX(l.x, l.view.radius);
+      this.nextTier = t;
+      this.hud.setNext(this.nextTier);
+      this.sfx.launch(0.3);
+      return 'ok';
+    }
+    if (!this.pieces.size) return 'blocked';
+    this.targeting = id;
+    this.hud.setTargeting(def.prompt, () => this.cancelBooster());
+    return 'ok';
+  }
+
+  cancelBooster() {
+    this.targeting = null;
+    this.craneHeld = null;
+    this.hud.setTargeting(null);
+  }
+
+  private pay(cost: number) {
+    this.hud.setCoins(progress.addCoins(-cost));
+    this.sfx.contract();
+  }
+
+  private pickTarget(cx: number, cy: number) {
+    const rect = this.canvas.getBoundingClientRect();
+    const at = this.view.toTable(cx - rect.left, cy - rect.top);
+    if (!at) return;
+    const id = this.targeting!;
+    // Crane step 2: drop the held building where the player tapped.
+    if (id === 'crane' && this.craneHeld) {
+      const p = this.craneHeld;
+      if (p.dead) return this.cancelBooster();
+      const x = this.clampX(at.x, p.radius);
+      const y = Math.min(Math.max(at.y, CONFIG.failY + p.radius + 0.06), L - p.radius);
+      this.pay(booster('crane').cost);
+      this.cancelBooster();
+      const from = { x: p.x, y: p.y };
+      this.world.teleport(p.b, x, y);
+      p.x = p.px = x;
+      p.y = p.py = y;
+      p.still = 0;
+      this.view.craneLift(p.view, from, { x, y }, () => {
+        this.view.fx.dust(x, y, p.radius * 1.4, '#ffffff', 4);
+        this.sfx.rail(3);
+      });
+      return;
+    }
+    // Pick the building under the tap (closest centre within its footprint, with a little slack).
+    let hit: Piece | null = null;
+    let best = Infinity;
+    for (const p of this.pieces.values()) {
+      const d = Math.hypot(p.x - at.x, p.y - at.y);
+      if (d < p.radius + 0.04 && d < best) {
+        best = d;
+        hit = p;
+      }
+    }
+    if (!hit) return;
+    if (id === 'wreck') {
+      this.pay(booster('wreck').cost);
+      this.cancelBooster();
+      this.destroy(hit);
+      this.view.fx.merge(hit.x, hit.y, 1, tier(hit.tier).color, 2);
+      this.view.fx.dust(hit.x, hit.y, hit.radius * 2, '#e8d9c4', 6);
+      if (!settings.calm) this.view.shake(6);
+      this.sfx.rail(5);
+      this.sfx.impact(1, 5);
+      this.refreshHud();
+    } else if (id === 'upgrade') {
+      if (hit.tier >= MAX_TIER) return;
+      this.pay(booster('upgrade').cost);
+      this.cancelBooster();
+      const { x, y, tier: t0 } = hit;
+      this.destroy(hit);
+      const n = this.addPiece(t0 + 1, x, y, 0, 0);
+      n.view.build = BUILD_CONVERGE_SKIP;
+      this.view.fx.impact(x, y, n.radius, tier(t0 + 1).color, 1.5);
+      this.sfx.merge(tier(t0 + 1).pitch, 1);
+      this.contractBuilt(t0 + 1);
+      this.refreshHud();
+    } else if (id === 'crane') {
+      this.craneHeld = hit;
+      this.hud.setTargeting('Now tap where to drop it', () => this.cancelBooster());
     }
   }
 

@@ -6,6 +6,7 @@ import { Lighting, type TimeOfDay } from './lighting';
 import { buildRails, RAIL_H, RAIL_W } from './site';
 import { animateMaterials } from '../models/materials';
 import { createModel, modelSize, tickAnims, wireframe, type ModelAnims } from '../models';
+import { Builder } from '../models/kit';
 import { ParticleFx, type Effect } from './fx';
 
 const W = CONFIG.tableWidth;
@@ -26,6 +27,8 @@ export interface PieceView {
   pop: number; // seconds since spawn-pop started; <0 = no pop
   build: number; // seconds into the merge build-in sequence; <0 = none
   wire: THREE.LineSegments | null;
+  /** Crane Lift in progress: the building arcs from one spot to another. */
+  held?: { from: { x: number; y: number }; to: { x: number; y: number }; t: number; done: () => void; cable: THREE.Line };
 }
 
 // Merge build-in timeline (seconds): twins converge, blueprint wireframe draws in,
@@ -234,6 +237,31 @@ export class SceneView {
     this.placeCamera();
   }
 
+  private obstacleGroup: THREE.Group | null = null;
+
+  /** Scaffold bumpers: a plank barrier on two posts with a top rail and hazard tape. */
+  setObstacles(list: [number, number, number, number][]) {
+    if (this.obstacleGroup) {
+      this.scene.remove(this.obstacleGroup);
+      this.obstacleGroup.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.geometry) m.geometry.dispose();
+      });
+      this.obstacleGroup = null;
+    }
+    if (!list.length) return;
+    const b = new Builder();
+    for (const [x, y, w, h] of list) {
+      const z = -y;
+      b.box(w, 0.035, h, 'wood', '#d39b4a', { x, z });
+      for (let i = 0; i < 5; i++) b.box(w / 10, 0.012, 0.004, 'matte', i % 2 ? '#222222' : '#f5c400', { x: x - w / 2 + (w / 5) * (i + 0.5), z: z + h / 2 + 0.002, y: 0.012 });
+      for (const sx of [-1, 1]) b.cyl(0.008, 0.009, 0.085, 'matte', '#9aa3ad', { x: x + sx * (w / 2 - 0.01), z }, 8);
+      b.box(w, 0.01, 0.012, 'matte', '#c0c6cc', { x, z, y: 0.075 });
+    }
+    this.obstacleGroup = b.finish();
+    this.scene.add(this.obstacleGroup);
+  }
+
   /** Height (world) of the tallest building on the table; the camera eases back for 13+. */
   setTallest(h: number) {
     this.tallTarget = Math.min(1, Math.max(0, (h - 0.35) / 0.3));
@@ -409,6 +437,16 @@ export class SceneView {
 
   /** `yaw` is the physics spin on the table; `tilt` is a small aiming wobble. */
   placePiece(p: PieceView, x: number, y: number, tilt = 0, yaw = 0) {
+    if (p.held) {
+      // Lift, swing over, set down: an arc with ease in and out.
+      const u = p.held.t;
+      const e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      const hx = p.held.from.x + (p.held.to.x - p.held.from.x) * e;
+      const hy = p.held.from.y + (p.held.to.y - p.held.from.y) * e;
+      p.group.position.set(hx, Math.sin(u * Math.PI) * 0.22, -hy);
+      p.group.rotation.set(0, 0, Math.sin(u * Math.PI * 3) * 0.06);
+      return;
+    }
     p.group.position.set(x, 0, -y);
     p.group.rotation.set(0, yaw, tilt);
   }
@@ -434,7 +472,29 @@ export class SceneView {
     return 1;
   }
 
+  /** Crane Lift: animates the building along an arc on a cable, then calls `done` on landing. */
+  craneLift(p: PieceView, from: { x: number; y: number }, to: { x: number; y: number }, done: () => void) {
+    const cable = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, p.height + 0.01, 0), new THREE.Vector3(0, 4, 0)]),
+      new THREE.LineBasicMaterial({ color: '#37474f' }),
+    );
+    p.group.add(cable);
+    p.held = { from, to, t: 0, done, cable };
+  }
+
   animatePiece(p: PieceView, dt: number) {
+    if (p.held) {
+      p.held.t = Math.min(1, p.held.t + dt / 0.65);
+      if (p.held.t >= 1) {
+        const h = p.held;
+        p.held = undefined;
+        p.group.remove(h.cable);
+        h.cable.geometry.dispose();
+        (h.cable.material as THREE.Material).dispose();
+        p.pop = 0.1;
+        h.done();
+      }
+    }
     if (p.build >= 0) this.animateBuild(p, dt);
     if (p.pop >= 0) {
       p.pop += dt;

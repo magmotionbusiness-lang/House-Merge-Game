@@ -9,7 +9,8 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "models:bake": "node scripts/bake.mjs"
+    "models:bake": "node scripts/bake.mjs",
+    "balance": "tsx scripts/balance.ts"
   },
   "dependencies": {
     "@dimforge/rapier2d-compat": "^0.21.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/three": "^0.187.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"

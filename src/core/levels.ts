@@ -1,4 +1,5 @@
-import { MAX_TIER } from './tiers';
+import { CONFIG } from './config';
+import { MAX_TIER, tier } from './tiers';
 
 /** A campaign level, defined in levels/district-NN.json. */
 export interface LevelDef {
@@ -8,6 +9,7 @@ export interface LevelDef {
   shots: number | null; // shot limit, or null for unlimited
   start?: [tier: number, x: number, y: number][]; // pre-placed pile
   spawn?: number[]; // spawn weights for tiers 1..n (defaults to the global weights)
+  obstacles?: [x: number, y: number, w: number, h: number][]; // scaffold bumpers (centre and size, table units)
   hint?: string; // one-line tip shown at the start
 }
 
@@ -28,10 +30,26 @@ export function validateDistrict(d: District): District {
       if (c.count < 1) throw new Error(`Level ${l.id}: contract count must be at least 1`);
     }
     if (l.shots !== null && l.shots < 1) throw new Error(`Level ${l.id}: shots must be null or positive`);
+    for (const [x, y, w, h] of l.obstacles ?? []) {
+      if (Math.abs(x) + w / 2 > 0.5 || y - h / 2 < CONFIG.failY + 0.1 || y + h / 2 > CONFIG.tableLength) throw new Error(`Level ${l.id}: obstacle at (${x}, ${y}) is off the table or too close to the boundary`);
+    }
     for (const [t, x, y] of l.start ?? []) {
       if (t < 1 || t > MAX_TIER) throw new Error(`Level ${l.id}: start tier ${t} out of range`);
       if (Math.abs(x) > 0.5 || y < 0.5 || y > 1.8) throw new Error(`Level ${l.id}: start piece at (${x}, ${y}) is off the table`);
     }
+    // Starting pieces must fit on the table and must not overlap each other or the scaffolds.
+    const rad = (t: number) => (tier(t).footprint * CONFIG.footprintScale) / 2;
+    const start = l.start ?? [];
+    start.forEach(([t, x, y], i) => {
+      if (Math.abs(x) + rad(t) > 0.5 + 1e-6 || y + rad(t) > CONFIG.tableLength) throw new Error(`Level ${l.id}: start tier ${t} hangs off the table`);
+      for (const [t2, x2, y2] of start.slice(i + 1))
+        if (Math.hypot(x - x2, y - y2) < rad(t) + rad(t2) - 1e-6) throw new Error(`Level ${l.id}: start pieces ${t} and ${t2} overlap`);
+      for (const [ox, oy, w, h] of l.obstacles ?? []) {
+        const dx = Math.max(Math.abs(x - ox) - w / 2, 0);
+        const dy = Math.max(Math.abs(y - oy) - h / 2, 0);
+        if (Math.hypot(dx, dy) < rad(t)) throw new Error(`Level ${l.id}: start tier ${t} overlaps a scaffold`);
+      }
+    });
   }
   return d;
 }

@@ -1,4 +1,5 @@
 import type { Contract } from '../core/contracts';
+import { BOOSTERS, type BoosterId } from '../core/boosters';
 import { ERA_RING, MAX_TIER, tier } from '../core/tiers';
 import { ICONS } from './icons';
 
@@ -35,6 +36,7 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
 
 export interface HudHandlers {
   onPause(): void;
+  onBooster(id: BoosterId): void;
 }
 
 export class Hud {
@@ -54,6 +56,8 @@ export class Hud {
   private hint = el('div', 'hint');
   private coinPill = el('div', 'pill stat coins');
   private shownCoins = 0;
+  private boosterBtns = new Map<BoosterId, HTMLButtonElement>();
+  private targetBar = el('div', 'target-bar');
   private flashEl = el('div', 'screen-flash');
   private debugEl = el('div', 'debug');
   private chips: HTMLElement[] = [];
@@ -95,7 +99,21 @@ export class Hud {
       this.evo.append(c);
     }
 
-    root.append(this.flashEl, this.top, this.combo, this.labels, this.toast, this.hint, this.bottom, this.debugEl);
+    // Booster buttons sit in the two bottom corners, just above the evolution bar.
+    const left2 = el('div', 'boosters left');
+    const right2 = el('div', 'boosters right');
+    BOOSTERS.forEach((b, i) => {
+      const btn = el('button', 'booster');
+      btn.innerHTML = `${ICONS[b.id]}<span class="b-price"><span class="mini-coin"></span>${b.cost}</span>`;
+      btn.setAttribute('aria-label', `${b.name}, ${b.cost} coins`);
+      btn.title = b.name;
+      btn.onclick = () => h.onBooster(b.id);
+      this.boosterBtns.set(b.id, btn);
+      (i < 2 ? left2 : right2).append(btn);
+    });
+    this.bottom.prepend(left2);
+    this.bottom.append(right2);
+    root.append(this.flashEl, this.targetBar, this.top, this.combo, this.labels, this.toast, this.hint, this.bottom, this.debugEl);
   }
 
   setScore(score: number, best: number) {
@@ -107,6 +125,7 @@ export class Hud {
   setCoins(total: number) {
     const from = this.shownCoins;
     this.shownCoins = total;
+    for (const b of BOOSTERS) this.boosterBtns.get(b.id)?.classList.toggle('poor', total < b.cost);
     if (total <= from) {
       this.coins.textContent = total.toLocaleString('en-US');
       return;
@@ -187,6 +206,28 @@ export class Hud {
       void this.coinPill.offsetWidth;
       this.coinPill.classList.add('bump');
     }, 650);
+  }
+
+  /** Booster aiming banner ("Tap a building to demolish it") with a cancel button; null hides it. */
+  setTargeting(prompt: string | null, onCancel?: () => void) {
+    this.targetBar.replaceChildren();
+    this.targetBar.classList.toggle('show', prompt !== null);
+    this.root.classList.toggle('targeting', prompt !== null);
+    if (prompt === null) return;
+    const cancel = el('button', 'pill icon-btn');
+    cancel.innerHTML = ICONS.close;
+    cancel.setAttribute('aria-label', 'Cancel');
+    cancel.onclick = () => onCancel?.();
+    this.targetBar.append(el('span', '', prompt), cancel);
+  }
+
+  /** "Not enough coins" nudge on a booster button. */
+  boosterDenied(id: BoosterId) {
+    const b = this.boosterBtns.get(id);
+    if (!b) return;
+    b.classList.remove('denied');
+    void b.offsetWidth;
+    b.classList.add('denied');
   }
 
   /** One-line tip at the start of a level. */

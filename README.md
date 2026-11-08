@@ -15,7 +15,7 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 5 of 10: **HUD and flow** done (title, campaign map, pause, settings, contracts, coins, level complete and fail screens; District 1 playable). Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
+Phase 6 of 10: **Campaign** done: 45 levels in three districts, tuned by a balancing bot, plus four coin boosters. Phase 5: title, campaign map, pause, settings, contracts, coins, level complete and fail screens. Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 
@@ -27,6 +27,7 @@ npm run dev        # local dev server (also reachable from a phone on the same W
 npm test           # unit tests (merge rules, spawn weights, scoring)
 npm run build      # type-check + production build into dist/
 npm run models:bake  # re-render tier thumbnails, .glb exports and docs/tier-lineup.png
+npm run balance      # bot-play every level, report to docs/balance.csv (add -- --write to tune shot limits)
 ```
 
 ## Deploy
@@ -59,4 +60,4 @@ Each tier lives in `src/models/tierNN.ts`. Models are built in "model units": th
 
 ## Adding levels
 
-Levels live in `levels/district-NN.json`. Each level has an `id`, `name`, `shots` (a number or `null`), `contracts` (`[{ "tier": 4, "count": 2 }]`), and optionally a starting pile `start` (`[[tier, x, y], ...]`, with x from -0.5 to 0.5 and y from 0.5 to 1.8), spawn weights `spawn` and a `hint`. `npm test` validates every district.
+Levels live in `levels/district-NN.json` (generated from `tools/make_levels.py`; edit the table there and run `python3 tools/make_levels.py`, then `npm run balance -- --write`). Levels can also have scaffold `obstacles` (`[[x, y, width, height]]`). Each level has an `id`, `name`, `shots` (a number or `null`), `contracts` (`[{ "tier": 4, "count": 2 }]`), and optionally a starting pile `start` (`[[tier, x, y], ...]`, with x from -0.5 to 0.5 and y from 0.5 to 1.8), spawn weights `spawn` and a `hint`. `npm test` validates every district.

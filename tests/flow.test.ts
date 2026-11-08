@@ -3,6 +3,8 @@ import { endlessContract, isComplete, makeContract, recordBuild } from '../src/c
 import { starsFor, validateDistrict, type District } from '../src/core/levels';
 import { Rng } from '../src/core/rng';
 import district1 from '../levels/district-01.json';
+import district2 from '../levels/district-02.json';
+import district3 from '../levels/district-03.json';
 
 describe('contracts', () => {
   it('counts builds of the right tier and completes once', () => {
@@ -30,8 +32,14 @@ describe('contracts', () => {
 });
 
 describe('levels', () => {
-  it('district 1 is valid', () => {
-    expect(() => validateDistrict(district1 as District)).not.toThrow();
+  it('every district is valid', () => {
+    for (const d of [district1, district2, district3]) expect(() => validateDistrict(d as District)).not.toThrow();
+  });
+  it('each district has 15 levels with a Big Build every 5th', () => {
+    for (const d of [district1, district2, district3] as District[]) {
+      expect(d.levels).toHaveLength(15);
+      d.levels.forEach((l, i) => expect(l.name.startsWith('Big Build')).toBe((i + 1) % 5 === 0));
+    }
   });
   it('rejects bad configs', () => {
     const bad = { id: 9, name: 'x', time: 'noon', levels: [{ id: '9-1', name: 'x', shots: 10, contracts: [{ tier: 30, count: 1 }] }] } as District;

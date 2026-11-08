@@ -68,6 +68,22 @@ export class TableWorld {
     return { body, collider };
   }
 
+  /** A fixed obstacle (scaffold bumper) centred at x, y with half-extents hw, hh, in table units. */
+  addObstacle(x: number, y: number, hw: number, hh: number) {
+    const S = this.S;
+    const body = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(x * S, y * S));
+    const collider = this.world.createCollider(
+      // Scaffolds absorb hits (no bounce), so a blocked shot stops in front of them
+      // instead of rebounding over the site boundary.
+      RAPIER.ColliderDesc.cuboid(hw * S, hh * S)
+        .setRestitution(0)
+        .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min)
+        .setFriction(0.4),
+      body,
+    );
+    return { body, collider };
+  }
+
   remove(b: Body) {
     this.world.removeRigidBody(b.body);
   }
@@ -86,6 +102,12 @@ export class TableWorld {
   setVel(b: Body, vx: number, vy: number) {
     b.body.setLinvel({ x: vx * this.S, y: vy * this.S }, true);
   }
+  /** Moves a body instantly (Crane Lift) and stops it. */
+  teleport(b: Body, x: number, y: number) {
+    b.body.setTranslation({ x: x * this.S, y: y * this.S }, true);
+    b.body.setLinvel({ x: 0, y: 0 }, true);
+  }
+
   /** Adds a velocity change (widths/s) regardless of mass. */
   kick(b: Body, dvx: number, dvy: number) {
     const v = b.body.linvel();

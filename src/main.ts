@@ -13,8 +13,10 @@ import { Screens } from './ui/screens';
 import { onSettings } from './game/settings';
 import { validateDistrict, type District, type LevelDef } from './core/levels';
 import district1 from '../levels/district-01.json';
+import district2 from '../levels/district-02.json';
+import district3 from '../levels/district-03.json';
 
-const DISTRICTS: District[] = [validateDistrict(district1 as District)];
+const DISTRICTS: District[] = [district1, district2, district3].map((d) => validateDistrict(d as District));
 
 /** Canvas textures draw with these fonts, so wait for them (but never block boot for long). */
 function loadFonts() {
@@ -48,10 +50,20 @@ async function boot() {
     game.setPaused(true);
     screens?.pause();
   };
-  const hud = new Hud(hudRoot, { onPause: () => {
-    game?.sfx.tap();
-    pause();
-  } });
+  const hud = new Hud(hudRoot, {
+    onPause: () => {
+      game?.sfx.tap();
+      pause();
+    },
+    onBooster: (id) => {
+      const r = game?.useBooster(id);
+      if (r === 'coins') {
+        hud.boosterDenied(id);
+        hud.showHint('Not enough coins yet: finish contracts to earn more.');
+      }
+      game?.sfx.tap();
+    },
+  });
   // Build every building, outline and effect while the splash shows, so play
   // never stutters later. One tier per frame keeps the loading bar moving.
   for (let t = 1; t <= MAX_TIER; t++) {
