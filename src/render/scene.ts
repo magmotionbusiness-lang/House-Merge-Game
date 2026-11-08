@@ -50,7 +50,7 @@ export class SceneView {
   readonly camera = new THREE.PerspectiveCamera(35, 1, 0.05, 60);
   private target = new THREE.Vector3(0, 0, -L / 2);
   private dist = 3;
-  private readonly tilt = THREE.MathUtils.degToRad(55);
+  private readonly tilt = THREE.MathUtils.degToRad(CONFIG.cameraTilt);
   private effects: Effect[] = [];
   private aim: THREE.Mesh;
   private failLine: THREE.Mesh;
@@ -184,7 +184,7 @@ export class SceneView {
    * view (more when tall towers stand on the table).
    */
   private fitFor(headroom: number) {
-    const top = 1 - (2 * this.hudTop) / this.height;
+    const top = 1 - (2 * (this.hudTop + CONFIG.topGap * this.height)) / this.height;
     const bottom = -1 + (2 * this.hudBottom) / this.height;
     const xr = 0.9;
     const pts = [

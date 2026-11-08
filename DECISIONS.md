@@ -116,3 +116,7 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 - **Settings:**
   - **Controls:** Sound, Aiming (Slide or Sling), Calm effects (no screen shake or white flashes) and Large text, all saved on the device.
   - **Not yet:** music arrives in Phase 9.
+
+## Phase 5.1: Camera angle (playtest feedback)
+
+- **The table lies flatter and sits lower:** the camera tilt went from 55° to 47°, and 5% of the screen height is kept free above the back rail. More of the painted site shows above the table, and the contract tickets no longer overlap the back of the table. 42° was also tried, but it made the back row too small to read. Both values live in `src/core/config.ts` (`cameraTilt`, `topGap`).
