@@ -12,7 +12,8 @@ import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
 import { Music } from './audio/music';
-import { onSettings } from './game/settings';
+import { onSettings, progress } from './game/settings';
+import { claimLogin, dailySeed, dayKey } from './core/meta';
 import { validateDistrict, type District, type LevelDef } from './core/levels';
 import district1 from '../levels/district-01.json';
 import district2 from '../levels/district-02.json';
@@ -50,7 +51,7 @@ async function boot() {
   const pause = () => {
     if (!game?.isRunning || screens?.open) return;
     game.setPaused(true);
-    screens?.pause();
+    screens?.pause(game.currentMode.kind === 'daily');
   };
   const hud = new Hud(hudRoot, {
     onPause: () => pause(),
@@ -116,6 +117,22 @@ async function boot() {
   screens = new Screens(hudRoot.parentElement as HTMLElement, DISTRICTS, {
     tap: () => game!.sfx.unlock(),
     playEndless: () => startWithDust(() => game!.start({ kind: 'endless' })),
+    playDaily: () => {
+      const day = dayKey();
+      if (progress.daily(day)) return screens!.dailyDone();
+      // One attempt per day: the attempt counts as soon as it starts.
+      progress.setDaily(day, { score: 0, highest: 0, built: [] });
+      startWithDust(() => game!.start({ kind: 'daily', day, seed: dailySeed(day) }));
+    },
+    claimLogin: () => {
+      const r = claimLogin(progress.login(), dayKey());
+      if (!r) return null;
+      progress.setLogin(r.state);
+      hud.setCoins(progress.addCoins(r.reward));
+      game!.sfx.contract();
+      return r.reward;
+    },
+    coinsChanged: () => undefined,
     playLevel: startLevel,
     resume: () => screens!.leave(() => game!.setPaused(false)),
     restart: () =>

@@ -74,3 +74,33 @@ describe('music playlist', () => {
     }
   });
 });
+
+describe('meta: login calendar and daily', async () => {
+  const { loginStatus, claimLogin, LOGIN_REWARDS, dailySeed, dailyShareText } = await import('../src/core/meta');
+  it('first claim is day 1', () => {
+    expect(loginStatus({ lastClaim: null, day: 0 }, '2026-11-08')).toEqual({ day: 1, claimable: true });
+  });
+  it('claims once per day and advances the streak on consecutive days', () => {
+    let s = { lastClaim: null as string | null, day: 0 };
+    const days = ['2026-11-08', '2026-11-09', '2026-11-10'];
+    days.forEach((d, i) => {
+      const c = claimLogin(s, d)!;
+      expect(c.reward).toBe(LOGIN_REWARDS[i]);
+      s = c.state;
+      expect(claimLogin(s, d)).toBeNull();
+    });
+  });
+  it('a missed day restarts the streak, and day 7 wraps to day 1', () => {
+    expect(loginStatus({ lastClaim: '2026-11-08', day: 3 }, '2026-11-10').day).toBe(1);
+    expect(loginStatus({ lastClaim: '2026-11-08', day: 7 }, '2026-11-09').day).toBe(1);
+  });
+  it('daily seed is the same for everyone on a day and differs between days', () => {
+    expect(dailySeed('2026-11-08')).toBe(dailySeed('2026-11-08'));
+    expect(dailySeed('2026-11-08')).not.toBe(dailySeed('2026-11-09'));
+  });
+  it('share text shows a grid of reached tiers', () => {
+    const t = dailyShareText('2026-11-08', 12345, 7, new Set([1, 2, 3, 4, 5, 6, 7]));
+    expect(t).toContain('Score 12,345');
+    expect(t.split('\n')).toHaveLength(4);
+  });
+});

@@ -1728,3 +1728,226 @@ input.vol::-moz-range-thumb {
 .combo {
   display: none;
 }
+
+/* ================= Phase 7: meta screens ================= */
+.btn.orange {
+  background: linear-gradient(#ffb547, #f07d12);
+}
+.btn.big.orange.done {
+  background: linear-gradient(#d9c7a8, #b59a73);
+}
+.menu-row {
+  display: flex;
+  gap: 8px;
+}
+.menu-row .btn {
+  flex: 1;
+  padding: 8px 6px;
+  font-size: 15px;
+}
+.menu-row .btn.icon-only {
+  flex: 0 0 48px;
+}
+.menu-row .btn svg {
+  width: 18px;
+  height: 18px;
+}
+.title-card .menu {
+  gap: 9px;
+}
+
+/* Login calendar */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+  margin: 8px 0 4px;
+}
+.cal-day {
+  position: relative;
+  border: 2.5px solid var(--hud-ink);
+  border-radius: 12px;
+  background: #fff;
+  padding: 6px 2px 8px;
+  box-shadow: 0 3px 0 var(--hud-ink);
+}
+.cal-day.big {
+  grid-column: span 2;
+  background: linear-gradient(#fff4c2, #ffd76a);
+}
+.cal-day.today {
+  background: linear-gradient(#d6ffdc, #8ee59a);
+  animation: pulse 1.1s ease-in-out infinite;
+}
+.cal-day.got {
+  opacity: 0.6;
+}
+.cal-day.pop {
+  animation: landed 0.5s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+.cal-label {
+  font: 900 14px/1 var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cal-coin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 6px;
+  font: 900 17px/1 var(--display);
+  color: #9a6a00;
+}
+.cal-check {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2e9b3c;
+  border: 2px solid #fff;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font: 900 13px/1 var(--display);
+}
+.calendar .btn {
+  width: 100%;
+  margin-top: 10px;
+}
+.btn:disabled {
+  filter: grayscale(0.7);
+  opacity: 0.7;
+}
+
+/* Collection book */
+.collection,
+.skyline-panel {
+  max-height: 86vh;
+  overflow-y: auto;
+  text-align: left;
+}
+.collection .panel-head h2,
+.skyline-panel .panel-head h2 {
+  flex: 1;
+  text-align: right;
+}
+.collection-count {
+  font: 700 15px/1.2 var(--ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a6a45;
+  margin: 6px 0 10px;
+}
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.book-cell {
+  position: relative;
+  border: 2.5px solid var(--hud-ink);
+  border-radius: 14px;
+  background: radial-gradient(circle at 50% 40%, #ffffff, color-mix(in srgb, var(--c) 25%, #fff6e6));
+  box-shadow: 0 3px 0 var(--hud-ink);
+  padding: 4px 4px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+.book-cell img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+.book-cell.locked img {
+  filter: brightness(0) opacity(0.25);
+}
+.book-cell.locked {
+  background: #efe6d6;
+  cursor: default;
+}
+.book-name {
+  font: 900 13px/1.05 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-align: center;
+}
+.book-num {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font: 900 14px/1 var(--display);
+  color: #8a6a45;
+}
+.building-card {
+  text-align: center;
+}
+.bc-img {
+  width: 190px;
+  height: 190px;
+  object-fit: contain;
+  animation: spin-in 0.6s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@keyframes spin-in {
+  from {
+    transform: scale(0.4) rotate(-20deg);
+    opacity: 0;
+  }
+}
+.bc-fact {
+  font: 400 18px/1.35 var(--hand);
+  margin: 6px 0 10px;
+}
+.bc-built {
+  font: 900 15px/1 var(--display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9a6a00;
+  margin-bottom: 12px;
+}
+
+/* My Skyline */
+.skyline-view {
+  border: 3px solid var(--hud-ink);
+  border-radius: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: linear-gradient(#5fb2ff 0%, #bfe4ff 72%, #9fd36e 72%, #7fb955 80%, #c9a26b 80%, #b88f5a 100%);
+  height: 250px;
+  -webkit-overflow-scrolling: touch;
+}
+.skyline-street {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding: 0 18px 30px;
+  min-width: max-content;
+}
+.plot {
+  flex: none;
+  width: var(--w);
+  height: var(--w);
+  margin: 0 -7px;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.plot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.25));
+}
+.plot.sel img {
+  filter: drop-shadow(0 0 6px #ffd84d) drop-shadow(0 0 2px #fff);
+  transform: translateY(-6px);
+}

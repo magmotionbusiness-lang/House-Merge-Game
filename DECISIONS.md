@@ -215,3 +215,23 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
     - score numbers that grow with the combo and turn rainbow at 4+
   - **Calm effects:** this setting removes the shake, punch and glow.
 - **UI sounds:** every button, tile and booster plays a soft rising pop on press. Back, cancel, close and home play a falling pop instead. This is handled in one place, so new buttons get it automatically.
+
+## Phase 7: Meta and retention
+
+- **Title menu:** Play (Endless), Campaign, Daily Blueprint, plus a row with Skyline, Collection and Settings.
+- **Daily Blueprint:**
+  - **Same deal for everyone:** the piece sequence and contracts are seeded by the date (`dailySeed`).
+  - **One attempt per day:** the attempt counts the moment it starts. Restart is hidden in its pause menu, and leaving mid-run keeps the score so far.
+  - **Results:** the result card and the title's "Daily · score" button offer Share, using the native share sheet (or clipboard) with a spoiler-free emoji grid of the tiers reached (⬜ for not yet), the day number and the score.
+- **Login calendar ("Site Pay Day"):**
+  - **When:** greets the player once per day on the title.
+  - **Rewards:** a 7-day streak paying 100, 150, 200, 300, 400, 500, then 1,200 coins.
+  - **Streak rules:** missing a day restarts at day 1, and day 7 wraps to day 1. The rules are pure functions with unit tests.
+- **Collection book:**
+  - **Grid:** all 18 buildings; locked ones show as dark silhouettes with "???". Tiers 1-5 and anything reached count as discovered.
+  - **Detail card:** tapping a building opens it spinning in, with its tier, league (bronze to diamond), a short fun fact and how many times it has been built.
+- **My Skyline:**
+  - **What goes in:** every completed contract adds its building to the player's own skyline (saved, last 80).
+  - **The view:** a horizontally scrolling street over sky and grass, where bigger tiers stand bigger.
+  - **Rearranging:** tap one building and then another to swap their plots, which keeps it to two taps on a phone.
+- **Deferred to later phases:** achievements and weekly events are listed in the brief's retention hooks; they come with the polish phase, once the core meta is played and tuned.

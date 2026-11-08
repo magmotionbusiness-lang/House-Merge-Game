@@ -62,6 +62,54 @@ export const progress = {
     all[id] = stars;
     store.set('bm.stars', JSON.stringify(all));
   },
+  /** How many of each tier the player has ever built (the collection book). */
+  builtCounts(): Record<number, number> {
+    try {
+      return JSON.parse(store.str('bm.built', '{}')) as Record<number, number>;
+    } catch {
+      return {};
+    }
+  },
+  addBuilt(tier: number) {
+    const all = progress.builtCounts();
+    all[tier] = (all[tier] ?? 0) + 1;
+    store.set('bm.built', JSON.stringify(all));
+  },
+  /** My Skyline: buildings from completed contracts, in the player's chosen order. */
+  skyline(): number[] {
+    try {
+      return JSON.parse(store.str('bm.skyline', '[]')) as number[];
+    } catch {
+      return [];
+    }
+  },
+  setSkyline(list: number[]) {
+    store.set('bm.skyline', JSON.stringify(list.slice(-80)));
+  },
+  addToSkyline(tier: number) {
+    progress.setSkyline([...progress.skyline(), tier]);
+  },
+  login(): { lastClaim: string | null; day: number } {
+    try {
+      return JSON.parse(store.str('bm.login', '{"lastClaim":null,"day":0}'));
+    } catch {
+      return { lastClaim: null, day: 0 };
+    }
+  },
+  setLogin(s: { lastClaim: string | null; day: number }) {
+    store.set('bm.login', JSON.stringify(s));
+  },
+  /** Daily Blueprint result for a day, if played. */
+  daily(day: string): { score: number; highest: number; built: number[] } | null {
+    try {
+      return JSON.parse(store.str(`bm.daily.${day}`, 'null'));
+    } catch {
+      return null;
+    }
+  },
+  setDaily(day: string, r: { score: number; highest: number; built: number[] }) {
+    store.set(`bm.daily.${day}`, JSON.stringify(r));
+  },
   coins(): number {
     return store.num('bm.coins', 0);
   },

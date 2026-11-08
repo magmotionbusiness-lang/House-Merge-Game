@@ -15,7 +15,10 @@ import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
 import { booster, boosterPrice, type BoosterId } from '../core/boosters';
 
-export type PlayMode = { kind: 'endless' } | { kind: 'level'; level: LevelDef; time: TimeOfDay };
+export type PlayMode =
+  | { kind: 'endless' }
+  | { kind: 'level'; level: LevelDef; time: TimeOfDay }
+  | { kind: 'daily'; day: string; seed: number };
 
 export interface EndResult {
   win: boolean;
@@ -26,6 +29,7 @@ export interface EndResult {
   highest: number;
   stars: number;
   coins: number; // earned this round
+  built: number[]; // tiers built this round (for the Daily share grid)
 }
 
 export interface GameEvents {
@@ -107,6 +111,7 @@ export class Game {
   private coinsEarned = 0;
   private winAt = -1; // time the level-complete celebration ends
   private obstacles: Body[] = [];
+  private builtThisRun = new Set<number>();
   /** Booster being aimed (waiting for a tap on a building), and the piece held by the crane. */
   private targeting: BoosterId | null = null;
   /** Crane Lift drag state: the lifted building, the finger moving it, and where it would land. */
@@ -140,6 +145,9 @@ export class Game {
 
   /** Back to the title: the table empties and input stops. */
   stop() {
+    // Leaving a Daily Blueprint mid-run keeps the score so far (one attempt per day).
+    if (this.playMode.kind === 'daily' && this.running && !this.over)
+      progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
     this.running = false;
     this.playMode = { kind: 'endless' };
     this.reset();
@@ -160,7 +168,9 @@ export class Game {
     this.pieces.clear();
     if (this.launcher) this.view.removePiece(this.launcher.view);
     this.launcher = null;
-    this.rng = new Rng(Date.now());
+    // The Daily Blueprint deals the same sequence to everyone that day.
+    this.rng = new Rng(this.playMode.kind === 'daily' ? this.playMode.seed : Date.now());
+    this.builtThisRun = new Set();
     this.combo.reset();
     this.score = 0;
     this.highestRun = 0;
@@ -489,9 +499,13 @@ export class Game {
 
   /** Credits a newly built tier to the contracts; pays coins and refills (endless) or wins (level). */
   private contractBuilt(tierId: number) {
+    progress.addBuilt(tierId);
+    this.builtThisRun.add(tierId);
     const done = recordBuild(this.contracts, tierId);
     this.hud.setContracts(this.contracts);
     for (const c of done) {
+      // Every finished contract adds its building to the player's skyline.
+      progress.addToSkyline(c.tier);
       this.coinsEarned += c.reward;
       this.hud.setCoins(progress.addCoins(c.reward));
       this.hud.contractDone(c.id, c.reward);
@@ -569,6 +583,8 @@ export class Game {
     this.view.setAim(0, 0, null);
     this.sfx.slide(0);
     let stars = 0;
+    if (this.playMode.kind === 'daily')
+      progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
     if (win && this.playMode.kind === 'level') {
       const lvl = this.playMode.level;
       stars = starsFor(lvl, this.shotsUsed, this.bestCombo);
@@ -590,6 +606,7 @@ export class Game {
       highest: this.highestRun,
       stars,
       coins: this.coinsEarned,
+      built: [...this.builtThisRun].sort((a, b) => a - b),
     });
   }
 

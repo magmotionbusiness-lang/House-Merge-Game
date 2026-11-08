@@ -15,7 +15,7 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 6 of 10: **Campaign** done: 45 levels in three districts, tuned by a balancing bot, plus four coin boosters. Phase 5: title, campaign map, pause, settings, contracts, coins, level complete and fail screens. Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
+Phase 7 of 10: **Meta and retention** done (Daily Blueprint, login calendar, collection book, My Skyline), plus music and the merge "dopamine" pass. Phase 6: 45 campaign levels tuned by a balancing bot, plus four coin boosters. Phase 5: title, campaign map, pause, settings, contracts, coins, level complete and fail screens. Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 

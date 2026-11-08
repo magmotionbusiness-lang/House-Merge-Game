@@ -17,6 +17,10 @@ export const ICONS = {
   crane: svg('<path d="M6 21V4h12M6 4l12 0M14 4v5"/><path d="M12 9h4v3.5a2 2 0 0 1-4 0"/><path d="M3 21h7"/>'),
   back: svg('<path d="M19 12H5.5M11 5.5L4.5 12l6.5 6.5" stroke-width="2.8"/>'),
   music: svg('<path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/>'),
+  calendar: svg('<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  city: svg('<path d="M3 20h18M5 20V10h5v10M10 20V5h6v15M16 20v-8h3v8"/>'),
+  book: svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>'),
+  share: svg('<path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12v7.5h14V12"/>'),
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.3-5.4"/><path d="M4 4.5v4.3h4.3"/>'),
 };

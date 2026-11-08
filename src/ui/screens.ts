@@ -2,6 +2,8 @@ import type { District, LevelDef } from '../core/levels';
 import { ERA_NAME, tier } from '../core/tiers';
 import type { EndResult } from '../game/Game';
 import { progress, settings, updateSettings } from '../game/settings';
+import { dailyNumber, dailyShareText, dayKey, FUN_FACTS, LOGIN_REWARDS, loginStatus } from '../core/meta';
+import { MAX_TIER } from '../core/tiers';
 import { ICONS } from './icons';
 import { thumbUrl } from './hud';
 
@@ -38,6 +40,9 @@ function stars(n: number, max = 3, animate = false) {
 export interface ScreenHandlers {
   tap(): void;
   playEndless(): void;
+  playDaily(): void;
+  claimLogin(): number | null; // coins paid, or null if already claimed today
+  coinsChanged(): void;
   playLevel(level: LevelDef, district: District): void;
   resume(): void;
   restart(): void;
@@ -107,13 +112,183 @@ export class Screens {
     coins.append(el('span', 'mini-coin'), el('span', '', progress.coins().toLocaleString('en-US')));
     stats.append(coins);
     const menu = el('div', 'menu');
-    menu.append(
-      button('Play', 'big green', () => this.h.playEndless(), ICONS.play),
-      button('Campaign', 'big blue', () => this.levels()),
-      button('Settings', 'small', () => this.settings(() => this.title()), ICONS.gear),
+    const today = dayKey();
+    const played = progress.daily(today);
+    const daily = button(played ? `Daily · ${played.score.toLocaleString('en-US')}` : 'Daily Blueprint', 'big orange', () => (played ? this.dailyDone() : this.h.playDaily()), ICONS.calendar);
+    if (played) daily.classList.add('done');
+    const row = el('div', 'menu-row');
+    row.append(
+      button('Skyline', 'small', () => this.skyline(), ICONS.city),
+      button('Collection', 'small', () => this.collection(), ICONS.book),
+      button('', 'small icon-only', () => this.settings(() => this.title()), ICONS.gear),
     );
+    (row.lastElementChild as HTMLElement).setAttribute('aria-label', 'Settings');
+    menu.append(button('Play', 'big green', () => this.h.playEndless(), ICONS.play), button('Campaign', 'big blue', () => this.levels()), daily, row);
     card.append(logo, name, tag, stats, menu);
     this.show(card, 'title');
+    // The daily reward calendar greets the player once per day.
+    if (loginStatus(progress.login(), today).claimable) window.setTimeout(() => this.current?.classList.contains('title') && this.calendar(), 650);
+  }
+
+  // ---------------------------------------------------------------- meta
+
+  private back(to: () => void) {
+    const b = button('Back', 'back-btn', to, ICONS.back);
+    b.setAttribute('aria-label', 'Back');
+    return b;
+  }
+
+  /** 7-day login calendar; today's reward is highlighted and claimable. */
+  calendar() {
+    const card = el('div', 'panel calendar');
+    card.append(el('div', 'eyebrow', 'Daily reward'), el('h2', '', 'Site Pay Day'));
+    const st = loginStatus(progress.login(), dayKey());
+    const grid = el('div', 'cal-grid');
+    LOGIN_REWARDS.forEach((r, i) => {
+      const d = i + 1;
+      const cell = el('div', `cal-day ${d < st.day ? 'got' : ''} ${d === st.day ? 'today' : ''} ${d === 7 ? 'big' : ''}`);
+      const coin = el('div', 'cal-coin');
+      coin.append(el('span', 'mini-coin'), el('span', '', r.toLocaleString('en-US')));
+      cell.append(el('div', 'cal-label', `Day ${d}`), coin);
+      if (d < st.day) cell.append(el('div', 'cal-check', '✓'));
+      grid.append(cell);
+    });
+    card.append(grid, el('p', 'note', 'Come back every day to grow your streak. Miss a day and it starts again.'));
+    const claim = button(st.claimable ? `Collect ${LOGIN_REWARDS[st.day - 1].toLocaleString('en-US')}` : 'Collected today', 'big green', () => {
+      if (this.h.claimLogin() !== null) {
+        this.h.coinsChanged();
+        claim.disabled = true;
+        grid.children[st.day - 1].classList.add('got', 'pop');
+        window.setTimeout(() => this.title(), 900);
+      } else this.title();
+    });
+    claim.disabled = !st.claimable;
+    card.append(claim, this.back(() => this.title()));
+    this.show(card);
+  }
+
+  /** The collection book: every building, locked until built, with a fun fact. */
+  collection() {
+    const card = el('div', 'panel collection');
+    const head = el('div', 'panel-head');
+    head.append(this.back(() => this.title()), el('h2', '', 'Collection'));
+    const counts = progress.builtCounts();
+    const reached = Math.max(5, Number(localStorage.getItem('bm.highest') ?? 0) || 0);
+    const owned = (t: number) => (counts[t] ?? 0) > 0 || t <= reached;
+    const total = Array.from({ length: MAX_TIER }, (_, i) => i + 1).filter(owned).length;
+    card.append(head, el('div', 'collection-count', `${total} / ${MAX_TIER} buildings discovered`));
+    const grid = el('div', 'book-grid');
+    for (let t = 1; t <= MAX_TIER; t++) {
+      const info = tier(t);
+      const has = owned(t);
+      const cell = el('button', `book-cell ${has ? '' : 'locked'}`);
+      cell.style.setProperty('--c', info.color);
+      const img = el('img') as HTMLImageElement;
+      img.src = thumbUrl(t);
+      img.alt = has ? info.name : 'Locked';
+      cell.append(img, el('div', 'book-name', has ? info.name : '???'), el('div', 'book-num', String(t)));
+      cell.onclick = () => (has ? this.buildingCard(t, counts[t] ?? 0) : undefined);
+      grid.append(cell);
+    }
+    card.append(grid);
+    this.show(card);
+  }
+
+  private buildingCard(t: number, built: number) {
+    const info = tier(t);
+    const card = el('div', 'panel building-card');
+    const img = el('img', 'bc-img') as HTMLImageElement;
+    img.src = thumbUrl(t);
+    card.append(
+      el('div', 'eyebrow', `Tier ${t} · ${ERA_NAME[info.era]}`),
+      img,
+      el('h2', '', info.name),
+      el('p', 'bc-fact', FUN_FACTS[t - 1]),
+      el('div', 'bc-built', built ? `Built ${built} time${built === 1 ? '' : 's'}` : 'Dealt by the launcher'),
+      this.back(() => this.collection()),
+    );
+    this.show(card);
+  }
+
+  /**
+   * My Skyline: every building from a finished contract stands in the
+   * player's own city. Tap one building, then another, to swap their plots.
+   */
+  skyline() {
+    const card = el('div', 'panel skyline-panel');
+    const head = el('div', 'panel-head');
+    head.append(this.back(() => this.title()), el('h2', '', 'My Skyline'));
+    const list = progress.skyline();
+    card.append(head);
+    if (!list.length) {
+      card.append(el('p', 'note', 'Finish contracts and their buildings will rise here.'));
+      this.show(card);
+      return;
+    }
+    card.append(el('div', 'collection-count', `${list.length} building${list.length === 1 ? '' : 's'} · tap two to swap their plots`));
+    const view = el('div', 'skyline-view');
+    const street = el('div', 'skyline-street');
+    let selected: number | null = null;
+    const render = () => {
+      street.replaceChildren(
+        ...progress.skyline().map((t, i) => {
+          const b = el('button', `plot ${selected === i ? 'sel' : ''}`);
+          // Bigger tiers stand bigger, so the city reads as a real skyline.
+          b.style.setProperty('--w', `${46 + t * 7}px`);
+          b.setAttribute('aria-label', tier(t).name);
+          const img = el('img') as HTMLImageElement;
+          img.src = thumbUrl(t);
+          img.alt = '';
+          b.append(img);
+          b.onclick = () => {
+            if (selected === null) selected = i;
+            else {
+              const l = progress.skyline();
+              [l[selected], l[i]] = [l[i], l[selected]];
+              progress.setSkyline(l);
+              selected = null;
+            }
+            render();
+          };
+          return b;
+        }),
+      );
+    };
+    render();
+    view.append(street);
+    card.append(view);
+    this.show(card);
+    view.scrollLeft = view.scrollWidth;
+  }
+
+  /** Daily already played: today's result and a share button. */
+  dailyDone() {
+    const day = dayKey();
+    const r = progress.daily(day);
+    if (!r) return this.title();
+    const card = el('div', 'panel result');
+    card.append(el('div', 'eyebrow', `Daily Blueprint #${dailyNumber(day)}`), el('h2', '', "Today's build"), el('div', 'result-score', r.score.toLocaleString('en-US')));
+    card.append(el('p', 'note', 'A new blueprint arrives tomorrow.'));
+    const menu = el('div', 'menu');
+    menu.append(this.shareButton(day, r.score, r.highest, r.built), this.back(() => this.title()));
+    card.append(menu);
+    this.show(card);
+  }
+
+  private shareButton(day: string, score: number, highest: number, built: number[]) {
+    const b = button('Share result', 'big blue', async () => {
+      const text = dailyShareText(day, score, highest, new Set(built));
+      try {
+        if (navigator.share) await navigator.share({ text });
+        else {
+          await navigator.clipboard.writeText(text);
+          b.querySelector('span')!.textContent = 'Copied!';
+        }
+      } catch {
+        /* share sheet dismissed */
+      }
+    }, ICONS.share);
+    return b;
   }
 
   // ---------------------------------------------------------------- campaign
@@ -174,13 +349,14 @@ export class Screens {
 
   // ---------------------------------------------------------------- pause & settings
 
-  pause() {
+  pause(daily = false) {
     const card = el('div', 'panel');
     card.append(el('h2', '', 'Paused'));
+    if (daily) card.append(el('p', 'note', 'Daily Blueprint: one attempt per day. Leaving ends your run.'));
     const menu = el('div', 'menu');
+    menu.append(button('Resume', 'big green', () => this.h.resume(), ICONS.play));
+    if (!daily) menu.append(button('Restart', 'big blue', () => this.h.restart(), ICONS.restart));
     menu.append(
-      button('Resume', 'big green', () => this.h.resume(), ICONS.play),
-      button('Restart', 'big blue', () => this.h.restart(), ICONS.restart),
       button('Settings', 'small', () => this.settings(() => this.pause()), ICONS.gear),
       button('Home', 'small', () => this.h.home(), ICONS.home),
     );
@@ -285,6 +461,13 @@ export class Screens {
     }
     card.append(info);
     const menu = el('div', 'menu');
+    if (r.mode.kind === 'daily') {
+      card.prepend(el('div', 'eyebrow', `Daily Blueprint #${dailyNumber(r.mode.day)}`));
+      menu.append(this.shareButton(r.mode.day, r.score, r.highest, r.built), button('Home', 'small', () => this.h.home(), ICONS.home));
+      card.append(menu);
+      this.show(card);
+      return;
+    }
     if (r.win && next) menu.append(button('Next level', 'big green', next, ICONS.play));
     menu.append(
       button(r.win ? 'Replay' : r.mode.kind === 'endless' ? 'Build again' : 'Try again', r.win && next ? 'big blue' : 'big green', () => this.h.restart(), ICONS.restart),
