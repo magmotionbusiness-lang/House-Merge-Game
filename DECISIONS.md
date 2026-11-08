@@ -235,3 +235,19 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - **The view:** a horizontally scrolling street over sky and grass, where bigger tiers stand bigger.
   - **Rearranging:** tap one building and then another to swap their plots, which keeps it to two taps on a phone.
 - **Deferred to later phases:** achievements and weekly events are listed in the brief's retention hooks; they come with the polish phase, once the core meta is played and tuned.
+
+## Phase 7.1: Music start, title motion, messages above the board (playtest feedback)
+
+- **Home music delay:**
+  - **Causes:** browsers only allow sound after the player touches the screen. The track also started downloading only when first needed, then faded in over 1.2 s.
+  - **Fix:** the loading screen now ends with a breathing "Tap to build" button. That tap is the required gesture, so the home theme (preloaded during loading) starts at once with a 0.35 s fade while the dust transition reveals the title.
+- **Quiet intros:**
+  - **The problem:** the gameplay tracks had long, near-silent intros (track 1 stayed below -50 dB for about 45 s), and the tracks differed by up to 10 dB in loudness.
+  - **The fix:** each file is trimmed past its quiet intro (track 1 at 45 s, 2 at 25 s, 3 at 6 s, 5 at 12 s) with a 0.5 s fade-in, and all tracks, including home, are loudness-normalised to -16 LUFS so nothing jumps in volume between songs.
+- **Title screen motion:**
+  - **Letters:** they drop in one by one, then ripple in a gentle wave.
+  - **Background:** golden dust motes drift up, and the painted site slowly pans and zooms (a GPU transform, essentially free).
+  - **Buttons:** they get a glossy top highlight and a light sweep. The Play button breathes with a soft glow and its arrow nudges forward.
+  - **Press and badge:** presses squash with a spring, and the Daily button shows a pulsing NEW badge until today's run is played.
+  - **Reduce Motion** turns it all off.
+- **Messages no longer cover the board:** praise words, "New Building!" cards and level hints now appear in the strip between the top HUD and the back of the board (the strip was widened from 5% to 8.5% of the screen). They are also more compact: smaller praise words, and a one-line card for new buildings.

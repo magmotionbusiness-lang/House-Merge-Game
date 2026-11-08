@@ -104,8 +104,28 @@ export class Screens {
     const logo = el('img', 'title-logo') as HTMLImageElement;
     logo.src = `${import.meta.env.BASE_URL}logo.webp`;
     logo.alt = '';
+    // Each letter drops in on its own, then the title keeps a gentle wave.
     const name = el('h1', 'title-name');
-    name.innerHTML = 'BLUEPRINT<br>MERGE';
+    ['BLUEPRINT', 'MERGE'].forEach((word, w) => {
+      const line = el('span', 'title-line');
+      [...word].forEach((ch, i) => {
+        const l = el('span', 'tl', ch);
+        const k = w * 9 + i;
+        l.style.setProperty('--d', `${0.05 + k * 0.045}s`);
+        l.style.setProperty('--w', `${k * 0.12}s`);
+        line.append(l);
+      });
+      name.append(line);
+    });
+    const sparks = el('div', 'title-sparks');
+    for (let i = 0; i < 18; i++) {
+      const sp = el('i');
+      sp.style.left = `${Math.random() * 100}%`;
+      sp.style.animationDelay = `${-Math.random() * 6}s`;
+      sp.style.animationDuration = `${4 + Math.random() * 4}s`;
+      sp.style.setProperty('--sx', `${(Math.random() - 0.5) * 60}px`);
+      sparks.append(sp);
+    }
     const tag = el('div', 'title-tag', 'From a single brick to a city in the clouds');
     const stats = el('div', 'title-stats');
     const coins = el('div', 'pill stat coins');
@@ -123,9 +143,12 @@ export class Screens {
       button('', 'small icon-only', () => this.settings(() => this.title()), ICONS.gear),
     );
     (row.lastElementChild as HTMLElement).setAttribute('aria-label', 'Settings');
-    menu.append(button('Play', 'big green', () => this.h.playEndless(), ICONS.play), button('Campaign', 'big blue', () => this.levels()), daily, row);
+    const play = button('Play', 'big green hero', () => this.h.playEndless(), ICONS.play);
+    if (!played) daily.append(el('span', 'badge-new', 'NEW'));
+    menu.append(play, button('Campaign', 'big blue shine', () => this.levels()), daily, row);
     card.append(logo, name, tag, stats, menu);
     this.show(card, 'title');
+    this.current!.prepend(sparks);
     // The daily reward calendar greets the player once per day.
     if (loginStatus(progress.login(), today).claimable) window.setTimeout(() => this.current?.classList.contains('title') && this.calendar(), 650);
   }

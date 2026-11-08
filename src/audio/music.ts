@@ -45,6 +45,9 @@ export class Music {
     }
     this.home.src = HOME_TRACK;
     this.home.loop = true;
+    // The home theme buffers during the loading screen so it starts the instant it's allowed to.
+    this.home.preload = 'auto';
+    this.home.load();
     this.game.addEventListener('ended', () => this.nextTrack());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -65,7 +68,7 @@ export class Music {
       this.gains[ch] = g;
     }
     this.resume();
-    if (this.want) this.fade(this.want, this.volume[this.want], 1.2);
+    if (this.want) this.fade(this.want, this.volume[this.want], 0.35);
   }
 
   setVolume(ch: Channel, v: number) {

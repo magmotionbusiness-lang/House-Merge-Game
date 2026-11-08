@@ -5,7 +5,7 @@ export const CONFIG = {
   launchY: 0.2, // where the current piece waits (distance from the player end)
   failY: 0.4, // red site-boundary line
   cameraTilt: 47, // degrees down from horizontal
-  topGap: 0.05, // extra screen space (fraction of height) kept free above the table
+  topGap: 0.085, // extra screen space (fraction of height) kept free above the table
   footprintScale: 1.3, // brief footprints felt too small on a phone; scale them up
   heightScale: 0.75,
 

@@ -1951,3 +1951,275 @@ input.vol::-moz-range-thumb {
   filter: drop-shadow(0 0 6px #ffd84d) drop-shadow(0 0 2px #fff);
   transform: translateY(-6px);
 }
+
+/* ================= Title screen motion ================= */
+/* The painted site drifts slowly while menus are open (cheap: a compositor transform). */
+body:has(.screen.title) #bg,
+body:has(.screen.title) #splash {
+  animation: kenburns 22s ease-in-out infinite alternate;
+}
+@keyframes kenburns {
+  from {
+    transform: scale(1.02) translate(0, 0);
+  }
+  to {
+    transform: scale(1.1) translate(-2%, 1.5%);
+  }
+}
+.title-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title-line {
+  display: block;
+  white-space: nowrap;
+}
+.tl {
+  display: inline-block;
+  animation:
+    letter-drop 0.7s var(--d) cubic-bezier(0.25, 1.6, 0.45, 1) both,
+    letter-wave 3.2s calc(1.2s + var(--w)) ease-in-out infinite;
+}
+@keyframes letter-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-70px) rotate(-14deg) scale(0.6);
+  }
+}
+@keyframes letter-wave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  12% {
+    transform: translateY(-7px) rotate(-2deg);
+  }
+  24% {
+    transform: translateY(0);
+  }
+}
+/* Floating dust and sparkles drifting up behind the title. */
+.title-sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.title-sparks i {
+  position: absolute;
+  bottom: -10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffbe6 0%, rgba(255, 230, 150, 0.7) 45%, transparent 70%);
+  animation: spark-rise linear infinite;
+}
+.title-sparks i:nth-child(3n) {
+  width: 10px;
+  height: 10px;
+}
+@keyframes spark-rise {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--sx), -105vh) scale(1.1);
+    opacity: 0;
+  }
+}
+/* Buttons: glossy highlight, a light sweep and a springy press. */
+.btn.big {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn.big::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 50% 0;
+  background: linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05));
+  border-radius: 10px 10px 40% 40% / 10px 10px 12px 12px;
+  z-index: -1;
+  pointer-events: none;
+}
+.title-card .btn.big::after,
+.btn.big.shine::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  width: 34%;
+  left: -50%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-18deg);
+  animation: sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.title-card .menu > :nth-child(2)::after {
+  animation-delay: 0.5s;
+}
+.title-card .menu > :nth-child(3)::after {
+  animation-delay: 1s;
+}
+@keyframes sweep {
+  0%,
+  55% {
+    left: -50%;
+  }
+  85%,
+  100% {
+    left: 130%;
+  }
+}
+.btn.hero {
+  font-size: 30px;
+  padding: 16px;
+  animation:
+    card-in 0.45s 0.18s cubic-bezier(0.3, 1.5, 0.5, 1) both,
+    hero-breathe 1.8s 1s ease-in-out infinite;
+}
+@keyframes hero-breathe {
+  50% {
+    transform: scale(1.045);
+    box-shadow: 0 4px 0 var(--hud-ink), 0 0 24px rgba(120, 255, 140, 0.55);
+  }
+}
+.btn.hero svg {
+  animation: nudge 1.8s 1s ease-in-out infinite;
+}
+@keyframes nudge {
+  50% {
+    transform: translateX(4px);
+  }
+}
+.btn {
+  transition: transform 0.12s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.btn:active {
+  transform: translateY(3px) scale(0.96);
+}
+.badge-new {
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: #ff3b6b;
+  border: 2px solid #fff;
+  color: #fff;
+  font: 900 12px/1 var(--display);
+  letter-spacing: 0.08em;
+  animation: pulse 1s ease-in-out infinite;
+}
+.title-stats .pill {
+  animation: card-in 0.5s 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tl,
+  .title-sparks i,
+  .btn.hero,
+  .btn.hero svg,
+  .btn.big::after,
+  body:has(.screen.title) #bg {
+    animation: none !important;
+  }
+}
+
+/* ================= Messages live above the board, not on it ================= */
+.praise {
+  top: var(--band-top, 130px);
+  transform: translate(-50%, 0);
+}
+.praise-word {
+  font-size: calc(40px * var(--s, 1));
+}
+.praise-combo {
+  font-size: 14px;
+  margin-top: 2px;
+}
+@keyframes praise-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.2) rotate(-10deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.2) rotate(3deg);
+  }
+  24% {
+    transform: translate(-50%, 0) scale(0.95);
+  }
+  34% {
+    transform: translate(-50%, 0) scale(1.03);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -26px) scale(0.92);
+  }
+}
+.toast {
+  top: var(--band-top, 130px);
+  transform: translate(-50%, 0);
+}
+.toast-card {
+  flex-direction: row;
+  gap: 10px;
+  padding: 6px 16px 6px 8px;
+  text-align: left;
+}
+.toast-card .chip-lg {
+  width: 40px;
+  height: 40px;
+}
+.toast-title {
+  font-size: 20px;
+}
+.toast-sub {
+  font-size: 16px;
+}
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.06);
+  }
+  20% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -16px) scale(1);
+  }
+}
+.hint {
+  top: var(--band-top, 130px);
+  font-size: 16px;
+  padding: 7px 12px;
+}
+/* The Daily button lets its NEW badge sit on the corner, outside the button. */
+.title-card .btn.big.orange {
+  overflow: visible;
+}
+.title-card .btn.big.orange::after {
+  display: none;
+}
+.badge-new {
+  top: -11px;
+  right: -8px;
+  box-shadow: 0 2px 0 var(--hud-ink);
+}

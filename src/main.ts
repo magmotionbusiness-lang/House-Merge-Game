@@ -182,6 +182,8 @@ async function boot() {
     const w = Math.round(box.width);
     const h = Math.round(box.height);
     const top = hud.top.getBoundingClientRect().bottom - box.top + 8;
+    // Praise, cards and hints sit in the strip between the top HUD and the board.
+    hudRoot.style.setProperty('--band-top', `${Math.round(top - 4)}px`);
     const bottom = box.bottom - hud.bottom.getBoundingClientRect().top + 8;
     view.resize(w, h, top, bottom);
   };
@@ -224,7 +226,18 @@ async function boot() {
   // rises, swaps in the title behind it, and clears.
   await nextFrame();
   await nextFrame();
-  await new Promise((r) => setTimeout(r, 350));
+  // Browsers only allow sound after a touch, so loading ends on "Tap to build":
+  // that tap starts the home music at once while the dust clears to the title.
+  await new Promise<void>((resolve) => {
+    const go = document.getElementById('sp-go');
+    const start = () => {
+      game!.sfx.unlock();
+      game!.sfx.dust();
+      resolve();
+    };
+    if (go) go.addEventListener('click', start, { once: true });
+    else resolve();
+  });
   view.settleQuality(3);
   void smokeTransition(() => {
     splash?.remove();

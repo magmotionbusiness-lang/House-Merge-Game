@@ -92,6 +92,15 @@
         text-shadow: 0 2px 0 #3d2614, 0 0 12px rgba(0,0,0,0.6);
       }
       .sp-text.swap { animation: sp-swap 0.6s ease; }
+      .sp-go {
+        display: none; margin-top: 4px; padding: 14px 40px; border-radius: 16px; border: 3.5px solid #3d2614;
+        background: linear-gradient(#5fd26b, #2e9b3c); color: #fff; box-shadow: 0 5px 0 #3d2614, 0 12px 26px rgba(0,0,0,0.4);
+        font: 900 26px/1 'Big Shoulders Display', sans-serif; letter-spacing: 0.1em; text-transform: uppercase;
+        text-shadow: 0 2px 0 rgba(0,0,0,0.25); cursor: pointer; -webkit-tap-highlight-color: transparent;
+      }
+      #splash.ready .sp-go { display: block; animation: sp-in 0.45s cubic-bezier(0.3,1.6,0.5,1) both, sp-breathe 1.4s 0.45s ease-in-out infinite; }
+      #splash.ready .sp-bar { display: none; }
+      @keyframes sp-breathe { 50% { transform: scale(1.06); } }
       @keyframes sp-drop { from { opacity: 0; transform: translateY(-40px) scale(0.9); } }
       @keyframes sp-rise { from { opacity: 0; transform: translate(var(--tx, 0), 30px); } }
       .sp-hero { --tx: -50%; }
@@ -112,6 +121,7 @@
       <div class="sp-bottom">
         <div class="sp-text" id="sp-text">Under construction</div>
         <div class="sp-bar"><div class="sp-fill" id="sp-fill"></div><div class="sp-pct" id="sp-pct">0%</div></div>
+        <button class="sp-go" id="sp-go" type="button">Tap to build</button>
       </div>
     </div>
     <script>
@@ -123,7 +133,7 @@
         window.__phrase = setInterval(function () { i = (i + 1) % phrases.length; show(i); }, 2300);
         window.__loading = function (v, done) {
           p = Math.max(p, v); fill.style.width = Math.round(3 + p * 97) + '%'; pct.textContent = Math.round(p * 100) + '%';
-          if (done) { clearInterval(window.__phrase); clearInterval(window.__creep); text.textContent = 'Ready to build!'; text.classList.remove('swap'); void text.offsetWidth; text.classList.add('swap'); }
+          if (done) { clearInterval(window.__phrase); clearInterval(window.__creep); text.textContent = 'Ready to build!'; text.classList.remove('swap'); void text.offsetWidth; text.classList.add('swap'); document.getElementById('splash').classList.add('ready'); }
         };
         window.__creep = setInterval(function () { if (p < 0.25) window.__loading(p + 0.012); }, 120);
       })();
