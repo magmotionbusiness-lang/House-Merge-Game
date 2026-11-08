@@ -280,6 +280,20 @@ export class Sfx {
     if (combo >= 2) this.stamp(0.02);
   }
 
+  /** The next piece clicking into the launcher. */
+  reload() {
+    if (!this.ok) return;
+    this.tone(320 * jitter(), 0.05, { gain: 0.08, freqEnd: 520, type: 'triangle' });
+  }
+
+  /** Streak up: a bright two-note "level up" that climbs with the streak. */
+  streak(n: number) {
+    if (!this.ok) return;
+    const f = 660 * Math.pow(2, MAJOR[Math.min(n - 2, MAJOR.length - 1)] / 12);
+    this.tone(f, 0.12, { gain: 0.1, type: 'square', wet: 0.3 });
+    this.tone(f * 1.5, 0.22, { gain: 0.09, type: 'square', when: 0.07, wet: 0.4 });
+  }
+
   /** Praise for a big combo ("Great!", "Amazing!"): a bright chord stab with a shimmering cascade. */
   praise(level: number) {
     if (!this.ok) return;

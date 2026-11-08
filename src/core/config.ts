@@ -24,6 +24,10 @@ export const CONFIG = {
   settleSpeed: 0.04, // widths/s
   settleTime: 0.25,
   nextBlankTime: 0.25,
+  // Reload: the next piece loads when the last shot has landed (slower than reloadSpeed), within these bounds.
+  reloadMin: 0.45,
+  reloadMax: 1.0,
+  reloadSpeed: 1.2,
   failHoldTime: 2,
 
   mergeImpulse: 0.9,

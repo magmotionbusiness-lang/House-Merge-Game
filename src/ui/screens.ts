@@ -40,6 +40,8 @@ function stars(n: number, max = 3, animate = false) {
 export interface ScreenHandlers {
   tap(): void;
   playEndless(): void;
+  continueRun(): void;
+  hasSavedRun(): number | null; // saved run's score, or null
   playDaily(): void;
   claimLogin(): number | null; // coins paid, or null if already claimed today
   coinsChanged(): void;
@@ -55,6 +57,7 @@ export interface ScreenHandlers {
  */
 export class Screens {
   private layer = el('div', 'screens');
+  private calendarShown = false;
   private current: HTMLElement | null = null;
 
   constructor(
@@ -143,14 +146,22 @@ export class Screens {
       button('', 'small icon-only', () => this.settings(() => this.title()), ICONS.gear),
     );
     (row.lastElementChild as HTMLElement).setAttribute('aria-label', 'Settings');
-    const play = button('Play', 'big green hero', () => this.h.playEndless(), ICONS.play);
+    // A run in progress comes first: one tap back to exactly where you were.
+    const saved = this.h.hasSavedRun();
+    const play =
+      saved !== null
+        ? button(`Continue · ${saved.toLocaleString('en-US')}`, 'big green hero', () => this.h.continueRun(), ICONS.play)
+        : button('Play', 'big green hero', () => this.h.playEndless(), ICONS.play);
     if (!played) daily.append(el('span', 'badge-new', 'NEW'));
-    menu.append(play, button('Campaign', 'big blue shine', () => this.levels()), daily, row);
+    menu.append(play);
+    if (saved !== null) menu.append(button('New game', 'small', () => this.h.playEndless(), ICONS.restart));
+    menu.append(button('Campaign', 'big blue shine', () => this.levels()), daily, row);
     card.append(logo, name, tag, stats, menu);
     this.show(card, 'title');
     this.current!.prepend(sparks);
     // The daily reward calendar greets the player once per day.
-    if (loginStatus(progress.login(), today).claimable) window.setTimeout(() => this.current?.classList.contains('title') && this.calendar(), 650);
+    // Greets once per session; going Back from it must not reopen it.
+    if (!this.calendarShown && Number(localStorage.getItem('bm.runs') ?? 0) > 0 && loginStatus(progress.login(), today).claimable) (this.calendarShown = true) && window.setTimeout(() => this.current?.classList.contains('title') && this.calendar(), 650);
   }
 
   // ---------------------------------------------------------------- meta
@@ -296,6 +307,24 @@ export class Screens {
     menu.append(this.shareButton(day, r.score, r.highest, r.built), this.back(() => this.title()));
     card.append(menu);
     this.show(card);
+  }
+
+  /** Endless: share a score and the top building as a challenge. */
+  private scoreShare(r: EndResult) {
+    const b = button('Challenge a friend', 'small', async () => {
+      const top = r.highest ? ` and built a ${tier(r.highest).name}` : '';
+      const text = `I scored ${r.score.toLocaleString('en-US')} in Blueprint Merge${top}. Can you beat it? 🏗️`;
+      try {
+        if (navigator.share) await navigator.share({ text, url: location.origin });
+        else {
+          await navigator.clipboard.writeText(`${text} ${location.origin}`);
+          b.querySelector('span')!.textContent = 'Copied!';
+        }
+      } catch {
+        /* dismissed */
+      }
+    }, ICONS.share);
+    return b;
   }
 
   private shareButton(day: string, score: number, highest: number, built: number[]) {
@@ -465,9 +494,30 @@ export class Screens {
     } else {
       card.append(el('h2', 'result-title', r.reason === 'Out of shots' ? 'Out of shots' : 'Site overflow!'), el('div', 'result-sub', r.reason));
     }
-    const score = el('div', 'result-score', r.score.toLocaleString('en-US'));
+    // The score rolls up, then the "so close" or "new best" line lands.
+    const score = el('div', 'result-score', '0');
     card.append(score);
-    if (r.mode.kind === 'endless') card.append(el('div', 'result-best', r.score >= r.best && r.score > 0 ? 'New best!' : `Best ${r.best.toLocaleString('en-US')}`));
+    const t0 = performance.now();
+    const roll = (now: number) => {
+      const u = Math.min(1, (now - t0) / 900);
+      score.textContent = Math.round(r.score * (1 - Math.pow(1 - u, 3))).toLocaleString('en-US');
+      if (u < 1) requestAnimationFrame(roll);
+    };
+    requestAnimationFrame(roll);
+    if (r.mode.kind === 'endless') {
+      const gap = r.bestBefore - r.score;
+      let line = `Best ${r.best.toLocaleString('en-US')}`;
+      let cls = 'result-best';
+      if (r.score > r.bestBefore && r.bestBefore > 0) {
+        line = `New best! +${(r.score - r.bestBefore).toLocaleString('en-US')} over your record`;
+        cls += ' hot';
+      } else if (r.bestBefore === 0 && r.score > 0) line = 'Your first record!';
+      else if (gap > 0 && r.score >= r.bestBefore * 0.7) {
+        line = `So close! Only ${gap.toLocaleString('en-US')} from your best`;
+        cls += ' close';
+      }
+      card.append(el('div', cls, line));
+    }
     const info = el('div', 'result-info');
     if (r.highest > 0) {
       const top = el('div', 'result-top');
@@ -491,11 +541,12 @@ export class Screens {
       this.show(card);
       return;
     }
-    if (r.win && next) menu.append(button('Next level', 'big green', next, ICONS.play));
+    if (r.win && next) menu.append(button('Next level', 'big green hero', next, ICONS.play));
     menu.append(
-      button(r.win ? 'Replay' : r.mode.kind === 'endless' ? 'Build again' : 'Try again', r.win && next ? 'big blue' : 'big green', () => this.h.restart(), ICONS.restart),
-      button('Home', 'small', () => this.h.home(), ICONS.home),
+      button(r.win ? 'Replay' : r.mode.kind === 'endless' ? 'Build again' : 'Try again', r.win && next ? 'big blue' : 'big green hero', () => this.h.restart(), ICONS.restart),
     );
+    if (r.mode.kind === 'endless') menu.append(this.scoreShare(r));
+    menu.append(button('Home', 'small', () => this.h.home(), ICONS.home));
     card.append(menu);
     this.show(card);
   }

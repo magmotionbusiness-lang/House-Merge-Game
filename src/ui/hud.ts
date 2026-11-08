@@ -46,6 +46,7 @@ export class Hud {
   private score = el('div', 'score-value', '0');
   private best = el('div', 'best', 'BEST 0');
   private nextSlot = el('div', 'next-slot');
+  private afterSlot = el('div', 'after-slot');
   private evo = el('div', 'evo-track');
   private combo = el('div', 'combo');
   private labels = el('div', 'labels');
@@ -81,7 +82,7 @@ export class Hud {
 
     const right = el('div', 'top-right');
     const next = el('div', 'next-card');
-    next.append(this.nextSlot, el('div', 'next-label', 'NEXT'));
+    next.append(this.nextSlot, el('div', 'next-label', 'NEXT'), this.afterSlot);
     const pause = el('button', 'pill icon-btn pause-btn');
     pause.innerHTML = ICONS.pause;
     pause.setAttribute('aria-label', 'Pause');
@@ -116,9 +117,42 @@ export class Hud {
     root.append(this.flashEl, this.targetBar, this.top, this.combo, this.labels, this.toast, this.hint, this.bottom, this.debugEl);
   }
 
-  setScore(score: number, best: number) {
+  /** Score, with a live countdown to the record you're chasing ("1,240 TO BEAT BEST"). */
+  setScore(score: number, best: number, chasing = 0) {
     this.score.textContent = score.toLocaleString('en-US');
-    this.best.textContent = `BEST ${best.toLocaleString('en-US')}`;
+    const gap = chasing - score;
+    if (chasing > 0 && gap > 0) {
+      this.best.textContent = `${gap.toLocaleString('en-US')} TO BEAT BEST`;
+      this.best.classList.toggle('close', gap <= chasing * 0.15);
+      this.best.classList.remove('beaten');
+    } else if (chasing > 0) {
+      this.best.textContent = 'NEW BEST!';
+      this.best.classList.add('beaten');
+      this.best.classList.remove('close');
+    } else {
+      this.best.textContent = `BEST ${best.toLocaleString('en-US')}`;
+      this.best.classList.remove('close', 'beaten');
+    }
+  }
+
+  private streakEl = el('div', 'streak');
+
+  /** The shot streak badge: hidden below 2, flames grow with the streak. */
+  setStreak(n: number) {
+    if (!this.streakEl.isConnected) this.coinPill.parentElement?.append(this.streakEl);
+    this.streakEl.classList.toggle('on', n >= 2);
+    if (n < 2) return;
+    this.streakEl.replaceChildren(el('span', 'streak-fire', '🔥'), el('span', 'streak-n', `${n}`), el('span', 'streak-x', `×${Number((1 + Math.min(n, 10) * 0.25).toFixed(2))}`));
+    this.streakEl.dataset.hot = String(Math.min(5, Math.floor(n / 2)));
+    this.streakEl.classList.remove('up');
+    void this.streakEl.offsetWidth;
+    this.streakEl.classList.add('up');
+  }
+
+  /** A streak ended: a little "streak lost" note so the player knows why the multiplier went. */
+  streakLost(n: number) {
+    const r = this.score.getBoundingClientRect();
+    this.floatText(r.left + 60, r.bottom + 34, `Streak ${n} lost`, false);
   }
 
   /** Coin counter: counts up to the new total. */
@@ -303,13 +337,19 @@ export class Hud {
     box.classList.add('bump');
   }
 
-  /** Blank the NEXT card briefly, then show the upcoming piece. */
-  setNext(tierId: number | null) {
+  /** NEXT, plus a smaller chip for the piece after it (three pieces visible in all). */
+  setNext(tierId: number | null, after: number | null = null) {
     this.nextSlot.replaceChildren();
+    this.afterSlot.replaceChildren();
     if (tierId !== null) {
       const c = chip(tierId, 'lg');
       c.classList.add('pop-in');
       this.nextSlot.append(c);
+    }
+    if (after !== null) {
+      const c = chip(after, 'sm');
+      c.classList.add('pop-in');
+      this.afterSlot.append(el('span', 'after-label', 'THEN'), c);
     }
   }
 
@@ -337,12 +377,14 @@ export class Hud {
    * Praise word for a combo: it grows and changes colour as the chain gets
    * longer, punches in with an elastic bounce and floats away.
    */
-  praise(combo: number, color: string) {
+  praise(combo: number, color: string, special?: string) {
     if (!this.praiseEl.isConnected) this.root.append(this.glowEl, this.praiseEl);
     const words = ['', '', 'Nice!', 'Great!', 'Awesome!', 'Amazing!', 'Incredible!', 'Unbelievable!'];
-    const word = words[Math.min(combo, words.length - 1)];
-    this.praiseEl.replaceChildren(el('div', 'praise-word', word), el('div', 'praise-combo', `COMBO ×${combo}`));
-    this.praiseEl.style.setProperty('--s', String(0.85 + Math.min(combo, 8) * 0.1));
+    const word = special ?? words[Math.min(combo, words.length - 1)];
+    this.praiseEl.replaceChildren(el('div', 'praise-word', word), el('div', 'praise-combo', special ? '' : `COMBO ×${combo}`));
+    // Special shout-outs ("Chain reaction!") are longer words: fixed gold, sized to fit.
+    this.praiseEl.style.setProperty('--s', String(special ? 0.95 : 0.85 + Math.min(combo, 8) * 0.1));
+    if (special) combo = 4;
     this.praiseEl.style.setProperty('--tint', color);
     this.praiseEl.dataset.level = String(Math.min(combo, 7));
     this.praiseEl.classList.remove('go');

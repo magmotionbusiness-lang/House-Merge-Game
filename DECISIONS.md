@@ -251,3 +251,25 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - **Press and badge:** presses squash with a spring, and the Daily button shows a pulsing NEW badge until today's run is played.
   - **Reduce Motion** turns it all off.
 - **Messages no longer cover the board:** praise words, "New Building!" cards and level hints now appear in the strip between the top HUD and the back of the board (the strip was widened from 5% to 8.5% of the screen). They are also more compact: smaller praise words, and a one-line card for new buildings.
+
+## Phase 7.2: Anti-spam and the Block Blast lessons (playtest feedback and analysis)
+
+**Spam fix.** Shots could be fired every 0.25 s, and releases made while the launcher was empty were queued, so the pile could be machine-gunned. Now the next piece loads only once the last shot has landed (slowed below 1.2 widths/s or merged), at least 0.45 s and at most 1 s after the shot, with a small "click" sound. A release while the launcher is empty does nothing. In a test, ten taps in one second fired one shot.
+
+**Block Blast lessons, translated to a merge game:**
+
+| Block Blast lesson | What Blueprint Merge does now |
+|---|---|
+| Three visible pieces give a short planning horizon | The launcher, NEXT, and a "THEN" chip under NEXT: three pieces visible, never more |
+| Consecutive clears build a combo (the core dopamine loop) | **Shot streak:** each shot that causes a merge extends a 🔥 streak that multiplies merge points (x1.25 per step, up to x3.5). A whiff breaks it with a small "Streak N lost" note, and a rising two-note jingle plays on each step |
+| Make the player feel intelligent (credit for skill) | Named skill moments with bonus points and their own praise: **Chain reaction!** (a fresh merge triggering another, x1.5) and **Bank shot!** (a ricochet off a rail into a merge, x1.25) |
+| Multi-line and full-board clears feel disproportionately good | **Clean site!** When a merge leaves at most one building on the table: a big bonus (500 x top tier), a triple confetti burst, flash, glow and fanfare |
+| The personal high-score loop gives every run a purpose | The HUD counts down "N TO BEAT BEST" (orange and pulsing within 15%), celebrates **New best!** mid-run, and the results screen rolls the score up |
+| Near-misses fuel "one more try" | Results say "So close! Only N from your best" (70%+ of the record) or "New best! +N over your record" |
+| The board itself creates tension, then relief | As the pile approaches the boundary, the music is filtered as if underwater and the red line pulses faster and stronger. Clearing space brings the music back |
+| Low friction: open, understand, play | First-ever session skips the menu: "Tap to build" goes straight onto the board with a one-line hint. Daily rewards wait until after the first run |
+| Restarting is effortless, and runs aren't lost | **Continue:** the Endless board saves after every shot and when the app is hidden, and the title offers "Continue · score" (plus New game). "Build again" breathes on the results card, which appears faster (0.65 s) |
+| Social proof (people share scores) | Endless results get "Challenge a friend" (native share sheet or clipboard) |
+| Difficulty "recipes" (the 2026 teardown found ones that manufacture losses) | Only **helpful** recipes, never harmful ones: in Endless, new players (first 3 runs) and crowded boards get a better chance of a piece matching one near the front. Pieces are never dealt to cause a loss; the brief's fairness rule stands, and trust is the long-term asset |
+
+Also fixed: going Back from the daily-reward calendar reopened it in a loop; it now greets once per session.

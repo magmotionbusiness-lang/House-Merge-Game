@@ -657,7 +657,8 @@ export class SceneView {
   }
 
   setDanger(level: number) {
-    const pulse = level > 0 ? 0.5 + 0.5 * Math.sin(this.time * 10) : 0;
+    // Pulses faster and harder as the pile closes in (level 0-1).
+    const pulse = level > 0 ? level * (0.5 + 0.5 * Math.sin(this.time * (5 + level * 7))) : 0;
     this.failMat.opacity = 0.75 + 0.25 * pulse;
     this.failLine.scale.z = 1 + pulse * 1.5;
     this.failMat.color.setRGB(1, 1 - pulse * 0.3, 1 - pulse * 0.3);

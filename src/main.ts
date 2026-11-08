@@ -7,7 +7,7 @@ import './style.css';
 import { initPhysics } from './physics/world';
 import { SceneView } from './render/scene';
 import { Hud } from './ui/hud';
-import { Game } from './game/Game';
+import { Game, savedRun } from './game/Game';
 import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
@@ -105,18 +105,25 @@ async function boot() {
     screens!.levelIntro(level, district, () => startWithDust(() => game!.start({ kind: 'level', level, time: district.time })));
   };
   game = new Game(view, hud, canvas, {
+    onTension: (k) => music.setTension(k),
     onMerge: (tierId, combo) => {
       if (tierId >= 10 || combo >= 3) music.duck(0.35, 0.45);
     },
     onEnd: (r) => {
       const next = r.win && r.mode.kind === 'level' ? levelAfter(r.mode.level.id) : null;
       // Let the moment land before the results card slides in.
-      window.setTimeout(() => screens!.result(r, next ? () => startLevel(next[0], next[1]) : null), r.win ? 300 : 900);
+      window.setTimeout(() => screens!.result(r, next ? () => startLevel(next[0], next[1]) : null), r.win ? 300 : 650);
     },
   });
   screens = new Screens(hudRoot.parentElement as HTMLElement, DISTRICTS, {
     tap: () => game!.sfx.unlock(),
     playEndless: () => startWithDust(() => game!.start({ kind: 'endless' })),
+    continueRun: () => {
+      const r = savedRun();
+      if (r) startWithDust(() => game!.resumeRun(r));
+      else startWithDust(() => game!.start({ kind: 'endless' }));
+    },
+    hasSavedRun: () => savedRun()?.score ?? null,
     playDaily: () => {
       const day = dayKey();
       if (progress.daily(day)) return screens!.dailyDone();
@@ -196,8 +203,12 @@ async function boot() {
 
   // Leaving the app pauses the game and opens the pause menu.
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) pause();
+    if (document.hidden) {
+      game?.saveRun();
+      pause();
+    }
   });
+  window.addEventListener('pagehide', () => game?.saveRun());
 
   // Add ?debug to the URL to show frame rate and render resolution.
   const debug = new URLSearchParams(location.search).has('debug');
@@ -239,9 +250,17 @@ async function boot() {
     else resolve();
   });
   view.settleQuality(3);
+  // Brand-new players go straight onto the board: no menu between "I want to
+  // play" and playing. Everyone else lands on the title (with Continue if a run is saved).
+  const firstEver = Number(localStorage.getItem('bm.runs') ?? 0) === 0 && !savedRun();
   void smokeTransition(() => {
     splash?.remove();
-    screens!.title();
+    if (firstEver) {
+      setPlaying(true);
+      music.playGame();
+      game!.start({ kind: 'endless' });
+      hud.showHint('Drag to aim, let go to slide. Match two buildings to merge them!');
+    } else screens!.title();
   });
   (window as unknown as { __game: Game; __view: SceneView }).__game = game;
   (window as unknown as { __view: SceneView }).__view = view;

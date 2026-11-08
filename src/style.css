@@ -2223,3 +2223,119 @@ body:has(.screen.title) #splash {
   right: -8px;
   box-shadow: 0 2px 0 var(--hud-ink);
 }
+
+/* ---------- Block Blast-style layers: streak, best chase, queue ---------- */
+.score-box {
+  position: relative;
+}
+.best.close {
+  color: #e65100;
+  opacity: 1;
+  animation: pulse 0.9s ease-in-out infinite;
+}
+.best.beaten {
+  color: #2e9b3c;
+  opacity: 1;
+}
+.streak {
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  margin-left: 6px;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 9px 3px 6px;
+  border-radius: 14px;
+  border: 2.5px solid var(--hud-ink);
+  background: linear-gradient(#ffd25a, #ff8a1f);
+  box-shadow: 0 3px 0 var(--hud-ink), 0 0 14px rgba(255, 140, 30, 0.6);
+  color: #fff;
+  font: 900 18px/1 var(--display);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+.streak.on {
+  display: flex;
+}
+.streak.up {
+  animation: streak-up 0.5s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+.streak[data-hot='2'],
+.streak[data-hot='3'] {
+  background: linear-gradient(#ffb03a, #ff4e1f);
+}
+.streak[data-hot='4'],
+.streak[data-hot='5'] {
+  background: linear-gradient(#ff7a3a, #d6001c);
+  box-shadow: 0 3px 0 var(--hud-ink), 0 0 22px rgba(255, 60, 20, 0.85);
+}
+.streak-fire {
+  font-size: 16px;
+  animation: flicker 0.5s ease-in-out infinite alternate;
+}
+.streak-x {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-left: 3px;
+}
+@keyframes streak-up {
+  0% {
+    transform: translateY(-50%) scale(1.6);
+  }
+}
+@keyframes flicker {
+  to {
+    transform: scale(1.18) rotate(-6deg);
+  }
+}
+.after-slot {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  margin-top: 1px;
+}
+.after-label {
+  font: 900 10px/1 var(--display);
+  letter-spacing: 0.1em;
+  color: #8a6a45;
+}
+.after-slot .chip-sm {
+  --chip: 20px;
+}
+
+.result-best.close {
+  color: #e65100;
+  animation: pulse 1s ease-in-out infinite;
+}
+.result-best.hot {
+  color: #2e9b3c;
+}
+.result .btn.hero {
+  animation: hero-breathe 1.8s 0.6s ease-in-out infinite;
+}
+
+/* The streak badge sits in the row under the score, beside the coins. */
+.btn-row .streak {
+  position: static;
+  margin-left: 0;
+  transform: none;
+  height: 28px;
+  font-size: 16px;
+}
+.btn-row .streak.up {
+  animation: streak-pop 0.5s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes streak-pop {
+  0% {
+    transform: scale(1.7);
+  }
+}
+
+/* Praise words never run off the screen. */
+.praise-word {
+  font-size: min(calc(40px * var(--s, 1)), 10.5vw);
+  max-width: 94vw;
+}

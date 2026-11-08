@@ -36,6 +36,17 @@ export class Music {
   private index = 0;
   private want: Channel | null = null;
   private duckUntil = 0;
+  private tension: BiquadFilterNode | null = null;
+  private tensionK = 0;
+
+  /** 0 = relaxed, 1 = the pile is at the boundary (music muffled, as if underwater). */
+  setTension(k: number) {
+    if (!this.ctx || !this.tension || Math.abs(k - this.tensionK) < 0.03) return;
+    this.tensionK = k;
+    const e = Math.max(0, (k - 0.35) / 0.65);
+    const f = 20000 * Math.pow(1 - e, 2.2) + 700 * e;
+    this.tension.frequency.setTargetAtTime(f, this.ctx.currentTime, 0.25);
+  }
 
   constructor() {
     for (const a of [this.home, this.game]) {
@@ -64,7 +75,15 @@ export class Music {
     for (const ch of ['home', 'game'] as Channel[]) {
       const g = ctx.createGain();
       g.gain.value = 0;
-      ctx.createMediaElementSource(ch === 'home' ? this.home : this.game).connect(g).connect(ctx.destination);
+      const src = ctx.createMediaElementSource(ch === 'home' ? this.home : this.game);
+      if (ch === 'game') {
+        // Tension filter: the music muffles as the pile closes in on the boundary.
+        this.tension = ctx.createBiquadFilter();
+        this.tension.type = 'lowpass';
+        this.tension.frequency.value = 20000;
+        this.tension.Q.value = 0.7;
+        src.connect(this.tension).connect(g).connect(ctx.destination);
+      } else src.connect(g).connect(ctx.destination);
       this.gains[ch] = g;
     }
     this.resume();

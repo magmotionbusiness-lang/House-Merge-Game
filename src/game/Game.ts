@@ -30,11 +30,42 @@ export interface EndResult {
   stars: number;
   coins: number; // earned this round
   built: number[]; // tiers built this round (for the Daily share grid)
+  bestBefore: number; // record when the run began (for "so close" messages)
+}
+
+/** A saved Endless run, so leaving the app never loses a board (Continue on the title). */
+export interface RunSave {
+  v: 1;
+  score: number;
+  highestRun: number;
+  pieces: [tier: number, x: number, y: number][];
+  launcher: number | null;
+  next: number;
+  after: number;
+  contracts: { tier: number; count: number; done: number; reward: number }[];
+  streak: number;
+  rng: number;
+  bestAtStart: number;
+  built: number[];
+  uses: Partial<Record<BoosterId, number>>;
+  launched: number;
+}
+
+const RUN_KEY = 'bm.run';
+
+export function savedRun(): RunSave | null {
+  try {
+    const r = JSON.parse(store.str(RUN_KEY, 'null')) as RunSave | null;
+    return r && r.v === 1 && r.pieces ? r : null;
+  } catch {
+    return null;
+  }
 }
 
 export interface GameEvents {
   onEnd(r: EndResult): void;
   onMerge?(tier: number, combo: number): void;
+  onTension?(k: number): void;
 }
 
 const DT = 1 / 60;
@@ -53,6 +84,12 @@ interface Piece {
   still: number;
   over: number;
   dead: boolean;
+  /** Time it was created by a merge (for chain reactions), or -1. */
+  mergedAt: number;
+  /** Bounced off a rail since launch (for bank shots). */
+  railHit: boolean;
+  /** Launched by the player (rather than built or pre-placed). */
+  shot: boolean;
   // Cached physics state (read once per step), plus the previous step for smooth rendering.
   x: number;
   y: number;
@@ -81,8 +118,16 @@ export class Game {
   private combo = new Combo();
   launcher: Launcher | null = null;
   nextTier = 1;
+  /** The piece after NEXT: three pieces are always visible, like Block Blast's tray. */
+  afterTier = 1;
+  /** The last piece the player shot: the next one loads once it has landed. */
+  private lastShot: Piece | null = null;
+  // Streak: consecutive shots that each caused at least one merge multiply the score.
+  streak = 0;
+  private mergesSinceShot = 0;
+  private bestBeaten = false;
+  private runsPlayed = store.num('bm.runs', 0);
   private aim: Aim | null = null;
-  private pendingLaunch = false;
   private lastLaunch = -10;
   private launchedCount = 0;
   private time = 0;
@@ -108,6 +153,8 @@ export class Game {
   shotsLeft: number | null = null;
   private shotsUsed = 0;
   bestCombo = 0;
+  /** The record when this run began: the HUD counts down to it. */
+  private bestAtStart = 0;
   private coinsEarned = 0;
   private winAt = -1; // time the level-complete celebration ends
   private obstacles: Body[] = [];
@@ -136,6 +183,7 @@ export class Game {
 
   /** Starts a round in endless or level mode. */
   start(mode: PlayMode) {
+    if (mode.kind === 'endless') this.clearSavedRun();
     this.playMode = mode;
     this.reset();
     this.running = true;
@@ -143,11 +191,69 @@ export class Game {
     if (mode.kind === 'level' && mode.level.hint) this.hud.showHint(mode.level.hint);
   }
 
+  /** Saves the current Endless run (after every shot and when the app is hidden). */
+  saveRun() {
+    if (this.playMode.kind !== 'endless' || !this.running || this.over) return;
+    const save: RunSave = {
+      v: 1,
+      score: this.score,
+      highestRun: this.highestRun,
+      pieces: [...this.pieces.values()].map((p) => [p.tier, +p.x.toFixed(4), +p.y.toFixed(4)]),
+      launcher: this.launcher?.tier ?? null,
+      next: this.nextTier,
+      after: this.afterTier,
+      contracts: this.contracts.map((c) => ({ tier: c.tier, count: c.count, done: c.done, reward: c.reward })),
+      streak: this.streak,
+      rng: this.rng.state,
+      bestAtStart: this.bestAtStart,
+      built: [...this.builtThisRun],
+      uses: this.boosterUses,
+      launched: this.launchedCount,
+    };
+    store.set(RUN_KEY, JSON.stringify(save));
+  }
+
+  clearSavedRun() {
+    store.set(RUN_KEY, 'null');
+  }
+
+  /** Continues a saved Endless run exactly where it was left. */
+  resumeRun(r: RunSave) {
+    this.start({ kind: 'endless' });
+    for (const p of [...this.pieces.values()]) this.destroy(p);
+    for (const [t, x, y] of r.pieces) this.addPiece(t, x, y, 0, 0);
+    if (this.launcher) this.view.removePiece(this.launcher.view);
+    this.launcher = null;
+    this.nextTier = r.launcher ?? r.next;
+    this.afterTier = r.launcher === null ? r.after : r.next;
+    this.spawnLauncher();
+    this.afterTier = r.after;
+    this.showQueue();
+    this.contracts = r.contracts.map((c) => {
+      const k = makeContract(c.tier, c.count, c.reward);
+      k.done = c.done;
+      return k;
+    });
+    this.hud.setContracts(this.contracts);
+    this.score = r.score;
+    this.highestRun = Math.max(this.highestRun, r.highestRun);
+    this.streak = r.streak;
+    this.hud.setStreak(this.streak);
+    this.rng.state = r.rng;
+    this.bestAtStart = r.bestAtStart;
+    this.builtThisRun = new Set(r.built);
+    this.boosterUses = r.uses ?? {};
+    this.refreshPrices();
+    this.launchedCount = r.launched;
+    this.refreshHud();
+  }
+
   /** Back to the title: the table empties and input stops. */
   stop() {
     // Leaving a Daily Blueprint mid-run keeps the score so far (one attempt per day).
     if (this.playMode.kind === 'daily' && this.running && !this.over)
       progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
+    this.saveRun();
     this.running = false;
     this.playMode = { kind: 'endless' };
     this.reset();
@@ -175,7 +281,6 @@ export class Game {
     this.score = 0;
     this.highestRun = 0;
     this.over = false;
-    this.pendingLaunch = false;
     this.aim = null;
     this.launchedCount = 0;
     this.slowmo = 0;
@@ -201,7 +306,14 @@ export class Game {
     }
     this.hud.setContracts(this.contracts);
     this.hud.setShots(this.shotsLeft);
-    this.nextTier = nextSpawn(this.rng, null, this.highestOnTable(), this.spawnTable());
+    this.nextTier = this.draw(null);
+    this.afterTier = this.draw(this.nextTier);
+    this.streak = 0;
+    this.mergesSinceShot = 0;
+    this.bestBeaten = false;
+    this.bestAtStart = this.best;
+    this.lastShot = null;
+    this.hud.setStreak(0);
     this.spawnLauncher();
     this.lastLaunch = this.time - 10;
     this.setDanger(false);
@@ -283,6 +395,11 @@ export class Game {
       worst = Math.max(worst, p.over);
     }
     this.setDanger(danger);
+    // Tension rises smoothly as the pile approaches the line (checked a few times a second).
+    if (Math.round(this.time * 60) % 10 === 0) {
+      this.tensionK = this.pressure();
+      this.events.onTension?.(this.running && !this.over ? this.tensionK : 0);
+    }
     if (worst >= CONFIG.failHoldTime && this.winAt < 0) {
       this.endRound(false, 'The pile crossed the site boundary');
       return;
@@ -306,19 +423,80 @@ export class Game {
       }
     }
 
-    // The next piece appears a moment after each shot. A release before it
-    // appears fires it the instant it does.
-    if (this.launcher === null && this.shotsLeft !== 0 && this.time - this.lastLaunch >= CONFIG.nextBlankTime) {
+    // The next piece loads once the last shot has landed (slowed down or hit
+    // something), at least 0.45 s and at most 1 s after the shot. This stops
+    // machine-gunning the pile while keeping the rhythm brisk.
+    if (this.launcher === null && this.shotsLeft !== 0 && this.reloadReady()) {
+      this.resolveShot();
       this.spawnLauncher();
-      if (this.pendingLaunch) {
-        this.pendingLaunch = false;
-        this.launch();
-      }
     }
   }
 
+  private reloadReady() {
+    const since = this.time - this.lastLaunch;
+    if (since < CONFIG.reloadMin) return false;
+    if (since >= CONFIG.reloadMax) return true;
+    const s = this.lastShot;
+    return !s || s.dead || s.speed < CONFIG.reloadSpeed;
+  }
+
+  /** A shot has played out: it extends the streak if it caused a merge, otherwise breaks it. */
+  private resolveShot() {
+    if (this.launchedCount === 0 || !this.lastShot) return;
+    if (this.mergesSinceShot > 0) {
+      this.streak++;
+      if (this.streak >= 2) this.sfx.streak(this.streak);
+    } else if (this.streak > 0) {
+      if (this.streak >= 2) this.hud.streakLost(this.streak);
+      this.streak = 0;
+    }
+    this.mergesSinceShot = 0;
+    this.lastShot = null;
+    this.hud.setStreak(this.streak);
+    this.saveRun();
+  }
+
+  /** Score multiplier from the shot streak: x1, x1.25, x1.5 ... up to x3.5. */
+  private streakMult() {
+    return 1 + Math.min(this.streak, 10) * 0.25;
+  }
+
+  /**
+   * Draws the next piece. Only helpful "recipes" exist: in Endless, new
+   * players and crowded boards get a better chance of a piece that matches
+   * one near the front. Spawns are never rigged to cause a loss.
+   */
+  private draw(prev: number | null): number {
+    const table = this.spawnTable();
+    if (this.playMode.kind === 'endless' && this.pieces.size) {
+      let chance = 0.1;
+      if (this.runsPlayed < 3) chance += 0.25;
+      if (this.pressure() > 0.5) chance += 0.2;
+      if (this.rng.next() < chance) {
+        const cap = Math.min(5, Math.max(1, this.highestOnTable()) + 2);
+        let best: Piece | null = null;
+        for (const p of this.pieces.values()) if (p.tier <= cap && (!best || p.y < best.y)) best = p;
+        if (best) return best.tier;
+      }
+    }
+    return nextSpawn(this.rng, prev, this.highestOnTable(), table);
+  }
+
+  /** 0 when the pile is far from the boundary, 1 when it touches it. */
+  private pressure() {
+    let k = 0;
+    for (const p of this.pieces.values()) {
+      if (this.time - p.born < 0.6) continue;
+      const gap = p.y - p.radius - CONFIG.failY;
+      k = Math.max(k, Math.min(1, Math.max(0, 1 - gap / 0.35)));
+    }
+    return k;
+  }
+
+  private tensionK = 0;
+
   private setDanger(on: boolean) {
-    this.view.setDanger(on ? 1 : 0);
+    this.view.setDanger(Math.max(on ? 1 : 0, this.tensionK * 0.55));
     if (on === this.wasDanger) return;
     this.wasDanger = on;
     this.hud.setDanger(on);
@@ -331,9 +509,16 @@ export class Game {
     v.pop = 0;
     const r = pieceRadius(t);
     this.launcher = { tier: t, view: v, x: this.clampX(this.aimX, r) };
-    this.nextTier = nextSpawn(this.rng, t, this.highestOnTable(), this.spawnTable());
-    // The last shot has no "next" piece.
-    this.hud.setNext(this.shotsLeft === 1 ? null : this.nextTier);
+    this.nextTier = this.afterTier;
+    this.afterTier = this.draw(this.nextTier);
+    this.showQueue();
+    this.sfx.reload();
+  }
+
+  /** NEXT and the piece after it (the last shots of a level show fewer). */
+  private showQueue() {
+    const left = this.shotsLeft;
+    this.hud.setNext(left === 1 ? null : this.nextTier, left !== null && left <= 2 ? null : this.afterTier);
   }
 
   private launchSpeed(power: number) {
@@ -353,11 +538,12 @@ export class Game {
     const power = this.aim?.power ?? this.lastPower;
     const speed = this.launchSpeed(power);
     this.view.removePiece(l.view);
-    this.addPiece(l.tier, l.x, CONFIG.launchY, 0, speed);
+    const shot = this.addPiece(l.tier, l.x, CONFIG.launchY, 0, speed);
+    shot.shot = true;
+    this.lastShot = shot;
     this.launcher = null;
     this.lastLaunch = this.time;
     this.launchedCount++;
-    this.hud.setNext(null);
     this.sfx.launch(this.mode === 'slide' ? 0.7 : power);
   }
 
@@ -379,6 +565,9 @@ export class Game {
       still: 0,
       over: 0,
       dead: false,
+      mergedAt: -1,
+      railHit: false,
+      shot: false,
       x,
       y,
       px: x,
@@ -414,9 +603,14 @@ export class Game {
 
     const combo = this.combo.hit(this.time);
     this.bestCombo = Math.max(this.bestCombo, combo);
+    this.mergesSinceShot++;
+    // Skill moments the player can take credit for.
+    const chain = (a.mergedAt >= 0 && this.time - a.mergedAt < 0.8) || (b.mergedAt >= 0 && this.time - b.mergedAt < 0.8);
+    const bank = (a.shot && a.railHit) || (b.shot && b.railHit);
     const res = mergeResult(a.tier, combo);
-    this.addScore(res.points);
-    const label = `+${res.points.toLocaleString('en-US')}`;
+    const points = Math.round(res.points * this.streakMult() * (chain ? 1.5 : 1) * (bank ? 1.25 : 1));
+    this.addScore(points);
+    const label = `+${points.toLocaleString('en-US')}`;
 
     if (res.newTier === null) {
       this.view.converge(a.view, b.view, mx, my, () => {
@@ -439,6 +633,7 @@ export class Game {
     const t = tier(nt);
     const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
     n.view.build = 0;
+    n.mergedAt = this.time;
     const power = Math.min(3, nt / 6 + (combo - 1) * 0.3);
     // The twins slam together first (with a rising whoosh); the payoff lands on impact.
     this.sfx.mergeRise(combo);
@@ -460,7 +655,12 @@ export class Game {
       // Escalating payoff: camera punch-in on every merge, praise words and a
       // colour burst as the chain grows.
       if (!settings.calm) this.view.punch(0.9 + Math.min(2, (combo - 1) * 0.45) + Math.min(1, nt * 0.06));
-      if (combo >= 2) this.hud.praise(combo, t.color);
+      if (chain) this.hud.praise(combo, t.color, 'Chain reaction!');
+      else if (bank) this.hud.praise(combo, t.color, 'Bank shot!');
+      else if (combo >= 2) this.hud.praise(combo, t.color);
+      if (chain || bank) this.sfx.praise(Math.max(0, combo - 2));
+      // Clearing the site (one building left) is the big jackpot, like a full board clear.
+      if (this.playMode.kind !== 'level' && this.launchedCount > 6 && this.pieces.size <= 1) this.cleanSite(at.x, at.y);
       if (combo >= 3) {
         this.sfx.praise(combo - 3);
         this.view.fx.merge(at.x, at.y, 3, t.color, power + 1);
@@ -526,6 +726,21 @@ export class Game {
     if (this.playMode.kind === 'level' && this.winAt < 0 && this.contracts.every(isComplete)) this.winAt = this.time + 1.4;
   }
 
+  /** Clean Site: the table is (almost) empty after a merge. A big bonus and celebration. */
+  private cleanSite(x: number, y: number) {
+    const bonus = 500 * Math.max(1, this.highestRun);
+    this.addScore(bonus);
+    this.hud.praise(5, '#ffd84d', 'Clean site!');
+    this.hud.floatText(this.view.toScreen(x, y, 0.2).x, this.view.toScreen(x, y, 0.2).y - 40, `+${bonus.toLocaleString('en-US')}`, true, 6);
+    for (let i = 0; i < 3; i++) this.view.fx.merge(x + (i - 1) * 0.25, y, 3, '#ffd84d', 3);
+    if (!settings.calm) {
+      this.hud.glow('#ffd84d');
+      this.hud.flash();
+    }
+    this.sfx.wonder();
+    this.events.onMerge?.(12, 5);
+  }
+
   /** Non-merging contact: dust puff and a material "thunk" scaled by impact speed. */
   private impact(ha: number, hb: number) {
     const a = this.pieces.get(ha);
@@ -550,12 +765,23 @@ export class Game {
         this.view.fx.dust(pa.x + (pb.x - pa.x) * w, pa.y + (pb.y - pa.y) * w, 0.04 + Math.min(0.06, speed * 0.01));
       }
     } else {
+      p.railHit = true;
       this.sfx.rail(speed);
     }
   }
 
   private addScore(p: number) {
+    const before = this.score;
     this.score += p;
+    // Beating your record mid-run is its own celebration (once per run).
+    if (!this.bestBeaten && this.best > 0 && before <= this.best && this.score > this.best && this.playMode.kind === 'endless') {
+      this.bestBeaten = true;
+      window.setTimeout(() => {
+        this.hud.praise(6, '#ffd84d', 'New best!');
+        this.hud.glow('#ffd84d');
+        this.sfx.fanfare();
+      }, 450);
+    }
     if (this.score > this.best) {
       this.best = this.score;
       store.set('bm.best', this.best);
@@ -564,7 +790,7 @@ export class Game {
   }
 
   private refreshHud() {
-    this.hud.setScore(this.score, this.best);
+    this.hud.setScore(this.score, this.best, this.bestAtStart);
     this.hud.setProgress(Math.max(5, this.highestEver), this.highestRun);
     // The scene reacts to progress: the day moves on, and the camera eases
     // back when tall towers stand on the table.
@@ -576,9 +802,9 @@ export class Game {
 
   private endRound(win: boolean, reason: string) {
     this.over = true;
+    if (this.playMode.kind === 'endless') this.clearSavedRun();
     this.cancelBooster();
     this.aim = null;
-    this.pendingLaunch = false;
     this.setDanger(false);
     this.view.setAim(0, 0, null);
     this.sfx.slide(0);
@@ -607,7 +833,11 @@ export class Game {
       stars,
       coins: this.coinsEarned,
       built: [...this.builtThisRun].sort((a, b) => a - b),
+      bestBefore: this.bestAtStart,
     });
+    this.events.onTension?.(0);
+    this.runsPlayed++;
+    store.set('bm.runs', this.runsPlayed);
   }
 
   private highestOnTable() {
@@ -704,8 +934,8 @@ export class Game {
         this.aim = null;
         return;
       }
+      // Without a loaded piece the release does nothing: no queued spam shots.
       if (this.launcher) this.launch();
-      else this.pendingLaunch = true;
       this.aim = null;
     };
     c.addEventListener('pointerup', (e) => end(e, false));
@@ -752,7 +982,7 @@ export class Game {
       l.view.pop = 0;
       l.x = this.clampX(l.x, l.view.radius);
       this.nextTier = newNext;
-      this.hud.setNext(this.nextTier);
+      this.showQueue();
       this.sfx.launch(0.3);
       return 'ok';
     }
@@ -945,7 +1175,7 @@ export class Game {
     if (this.launcher) {
       this.launcher.x = this.clampX(x, this.launcher.view.radius);
       this.launch();
-    } else this.pendingLaunch = true;
+    }
     return true;
   }
 
