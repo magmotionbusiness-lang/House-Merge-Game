@@ -7,5 +7,9 @@ const speaker = '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" st
 export const ICONS = {
   soundOn: svg(`${speaker}<path d="M15.5 9a4.2 4.2 0 0 1 0 6"/><path d="M18.3 6.3a8 8 0 0 1 0 11.4"/>`),
   soundOff: svg(`${speaker}<path d="M16 9.5l5 5M21 9.5l-5 5"/>`),
+  pause: svg('<path d="M8.5 5v14M15.5 5v14" stroke-width="3"/>'),
+  play: svg('<path d="M7 4.5v15l13-7.5z" fill="currentColor"/>'),
+  home: svg('<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 10v9.5h4.5v-5h3v5H18V10"/>'),
+  gear: svg('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.9 1.9M16.6 16.6l1.9 1.9M5.5 18.5l1.9-1.9M16.6 7.4l1.9-1.9"/>'),
   restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.3-5.4"/><path d="M4 4.5v4.3h4.3"/>'),
 };

@@ -88,3 +88,31 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 - **Camera eases back for tall towers** (tallest building over ~0.35 table-widths): at most 10% further away, as the brief says, re-framed to keep the back rail and spires in view.
 - **Blueprint sheet:** faint technical drawings (house elevations, a floor plan, dimension arrows, a compass circle), paper grain, a scissors mark on the dashed launch line, and a fuller title block.
 - **Reduced motion:** with the system's "Reduce Motion" setting on, the site's ambient animations stop. The "Calm background" toggle arrives with the Settings screen in Phase 5.
+
+## Phase 4.1: Painted backdrop and 60 fps (playtest feedback)
+
+- **The 3D construction site is replaced by the owner's painted backdrop** (`public/bg/site.webp`, source in `art/background-source.png`), shown behind a transparent canvas. The browser composites it for free, so the GPU only draws the table and buildings. The crane, flag, mixer, excavator, welding sparks and dust motes went with it. The steel I-beam rails stay as part of the table, and a soft contact shadow seats the table on the painted ground.
+- **Time of day still works:** each preset now lays a colour tint over the painting (warm in the morning, orange at golden hour, purple at dusk, deep blue at night), faded with a CSS transition instead of per-frame rendering.
+- **HUD contrast:** every HUD card, pill and the evolution bar has a thicker dark-brown outline, a solid "3D" bottom edge and a soft drop shadow, so it never blends into the busy painting. Floating score numbers get a full outline.
+- **60 fps work:**
+  - **No first-appearance stalls:** every tier's model, outline and blueprint wireframe is pre-built at start-up and its shaders are compiled ahead. Before, the first time a tier appeared it was built on the spot, which stalled for a moment.
+  - **Smoother motion:** rendering is interpolated between physics steps, so motion is smooth even when the display and the 60 Hz physics drift apart.
+  - **No snowballing slow frames:** at most 3 physics steps run per frame.
+  - **Less garbage collection:** physics positions and speeds are read once per step and cached, which cuts per-frame allocations.
+  - **Bigger savings:** the canvas no longer draws a background or ground at all.
+  - **Note:** iPhones in Low Power Mode cap Safari at 30 fps, and no web game can override that.
+
+## Phase 5: HUD and flow
+
+- **Screens:** title (Play, Campaign, Settings, coin balance), campaign map, level intro (contracts and shot limit), pause (Resume, Restart, Settings, Home), settings, and results (level complete with animated stars, out of shots, site overflow). All are DOM overlays in the same style as the HUD. Leaving the app opens the pause menu.
+- **HUD layout:**
+  - **Top left:** score, best, coins and shots left (levels only; turns red at 3).
+  - **Top centre:** contract tickets.
+  - **Top right:** NEXT card with a pause button underneath.
+  - **Moved off the HUD:** Restart, aim mode and sound now live in the pause and settings menus to declutter the play area.
+- **Contracts:** taped paper tickets showing the target building, progress (1/2) and coin reward. A completed ticket shakes, gets a green DONE stamp, and coins fly in an arc to the coin counter with a stamp-and-coins sound. In Endless, a new contract replaces it after 1.4 s, aimed a little above the player's best tier this run. In levels, completing every ticket wins the level.
+- **Coins** are a saved currency (for boosters in Phase 6). Rewards grow with tier squared, so higher builds are worth chasing.
+- **Levels:** defined in `levels/district-NN.json` and validated on load and in tests. Each level sets contracts, a shot limit, an optional starting pile, optional spawn weights and a hint. Stars follow the brief (1 = done; 2 = done with 30% of shots left; 3 = 50% left plus a 3+ combo). Levels unlock in order. District 1 (Backyard, 8 levels) ships now as the first slice of the campaign. Phase 6 completes the 15-level districts and tunes them with the balancing bot.
+- **Settings:**
+  - **Controls:** Sound, Aiming (Slide or Sling), Calm effects (no screen shake or white flashes) and Large text, all saved on the device.
+  - **Not yet:** music arrives in Phase 9.

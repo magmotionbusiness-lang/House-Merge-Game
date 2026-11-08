@@ -8,6 +8,13 @@ import { initPhysics } from './physics/world';
 import { SceneView } from './render/scene';
 import { Hud } from './ui/hud';
 import { Game } from './game/Game';
+import { MAX_TIER } from './core/tiers';
+import { Screens } from './ui/screens';
+import { onSettings } from './game/settings';
+import { validateDistrict, type District, type LevelDef } from './core/levels';
+import district1 from '../levels/district-01.json';
+
+const DISTRICTS: District[] = [validateDistrict(district1 as District)];
 
 /** Canvas textures draw with these fonts, so wait for them (but never block boot for long). */
 function loadFonts() {
@@ -20,18 +27,81 @@ async function boot() {
   await Promise.all([initPhysics(), loadFonts()]);
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const hudRoot = document.getElementById('hud') as HTMLElement;
-  const view = new SceneView(canvas);
+  const tint = document.getElementById('bg-tint') as HTMLElement;
+  const view = new SceneView(canvas, (css) => (tint.style.backgroundColor = css));
   let game: Game | null = null;
-  const hud = new Hud(hudRoot, {
-    onRestart: () => {
-      game?.sfx.unlock();
-      game?.sfx.tap();
-      game?.reset();
+  let screens: Screens | null = null;
+  const pause = () => {
+    if (!game?.isRunning || screens?.open) return;
+    game.setPaused(true);
+    screens?.pause();
+  };
+  const hud = new Hud(hudRoot, { onPause: () => {
+    game?.sfx.tap();
+    pause();
+  } });
+  // Pre-build the starting tiers now and the rest in the background, one per
+  // tick, so a tier appearing for the first time never causes a hitch.
+  for (let t = 1; t <= 6; t++) view.prewarm(t);
+  let warm = 7;
+  const warmNext = () => {
+    if (warm > MAX_TIER) return;
+    view.prewarm(warm++);
+    setTimeout(warmNext, 30);
+  };
+  setTimeout(warmNext, 400);
+  // Flow: title -> play (endless) or campaign -> level intro -> play -> results.
+  const setPlaying = (on: boolean) => hudRoot.classList.toggle('idle', !on);
+  const levelAfter = (id: string): [LevelDef, District] | null => {
+    for (const d of DISTRICTS) {
+      const i = d.levels.findIndex((l) => l.id === id);
+      if (i >= 0 && i + 1 < d.levels.length) return [d.levels[i + 1], d];
+    }
+    return null;
+  };
+  const startLevel = (level: LevelDef, district: District) => {
+    screens!.levelIntro(level, district, () => {
+      screens!.hide();
+      setPlaying(true);
+      game!.start({ kind: 'level', level, time: district.time });
+    });
+  };
+  game = new Game(view, hud, canvas, {
+    onEnd: (r) => {
+      const next = r.win && r.mode.kind === 'level' ? levelAfter(r.mode.level.id) : null;
+      // Let the moment land before the results card slides in.
+      window.setTimeout(() => screens!.result(r, next ? () => startLevel(next[0], next[1]) : null), r.win ? 300 : 900);
     },
-    onToggleMode: () => game?.toggleMode(),
-    onToggleSound: () => game?.toggleSound(),
   });
-  game = new Game(view, hud, canvas);
+  screens = new Screens(hudRoot.parentElement as HTMLElement, DISTRICTS, {
+    tap: () => {
+      game!.sfx.unlock();
+      game!.sfx.tap();
+    },
+    playEndless: () => {
+      screens!.hide();
+      setPlaying(true);
+      game!.start({ kind: 'endless' });
+    },
+    playLevel: startLevel,
+    resume: () => {
+      screens!.hide();
+      game!.setPaused(false);
+    },
+    restart: () => {
+      screens!.hide();
+      setPlaying(true);
+      game!.start(game!.currentMode);
+    },
+    home: () => {
+      game!.stop();
+      game!.setPaused(false);
+      setPlaying(false);
+      screens!.title();
+    },
+  });
+  setPlaying(false);
+  screens.title();
 
   const resize = () => {
     const w = window.innerWidth;
@@ -42,9 +112,15 @@ async function boot() {
   };
   window.addEventListener('resize', resize);
   window.visualViewport?.addEventListener('resize', resize);
-  resize();
+  onSettings((st) => {
+    document.documentElement.classList.toggle('large-text', st.largeText);
+    requestAnimationFrame(resize);
+  });
 
-  document.addEventListener('visibilitychange', () => game?.setPaused(document.hidden));
+  // Leaving the app pauses the game and opens the pause menu.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) pause();
+  });
 
   // Add ?debug to the URL to show frame rate and render resolution.
   const debug = new URLSearchParams(location.search).has('debug');

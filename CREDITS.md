@@ -17,3 +17,4 @@ All 3D geometry, textures, UI icons and sound effects are generated in code for 
 ## App icon
 
 - Builder illustration supplied by the project owner (`art/icon-source.png`).
+- Painted construction-site backdrop supplied by the project owner (`art/background-source.png`).

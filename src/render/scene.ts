@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { ERA_RING, tier } from '../core/tiers';
-import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, groundTexture, hazardTexture } from './textures';
+import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
 import { Lighting, type TimeOfDay } from './lighting';
-import { buildSite, RAIL_H, RAIL_W, type SiteRefs } from './site';
+import { buildRails, RAIL_H, RAIL_W } from './site';
 import { animateMaterials } from '../models/materials';
 import { createModel, modelSize, tickAnims, wireframe, type ModelAnims } from '../models';
 import { ParticleFx, type Effect } from './fx';
@@ -76,7 +76,6 @@ export class SceneView {
   readonly fx: ParticleFx;
   private badgeMats = new Map<number, THREE.SpriteMaterial>();
   private sheetMat = new THREE.MeshBasicMaterial({ map: blueprintTexture() });
-  private site!: SiteRefs;
   private lighting!: Lighting;
   // Camera ease-back for tall buildings: fitted camera for normal and tall tables.
   private fitNormal = { dist: 3, z: -L / 2 };
@@ -84,19 +83,20 @@ export class SceneView {
   private tallK = 0;
   private tallTarget = 0;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, onTint: (css: string) => void = () => undefined) {
     // On Retina screens the pixel density hides jaggies, so skip costly MSAA there.
+    // The canvas is transparent: the painted construction site shows through behind it.
     const retina = window.devicePixelRatio >= 2;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !retina, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !retina, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x000000, 0);
     this.dpr = Math.min(window.devicePixelRatio, 2);
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 0.95;
 
-    this.scene.fog = new THREE.Fog('#e7cf9f', 3.5, 7);
     this.buildTable();
-    this.site = buildSite(this.scene);
-    this.lighting = new Lighting(this.scene, this.sheetMat, (k) => this.site.setNight(k));
+    buildRails(this.scene);
+    this.lighting = new Lighting(this.scene, this.sheetMat, () => undefined, onTint);
     this.fx = new ParticleFx(this.scene, (e) => this.effects.push(e));
 
     // Aim line: dotted strip, scaled along its length every frame.
@@ -122,14 +122,13 @@ export class SceneView {
   }
 
   private buildTable() {
-    // Cheap materials: the sheet is unlit (its shading is painted into the texture).
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(16, 16).rotateX(-Math.PI / 2),
-      new THREE.MeshLambertMaterial({ map: groundTexture() }),
+    // Soft contact shadow so the table sits on the painted ground.
+    const shadow = new THREE.Mesh(
+      new THREE.PlaneGeometry(W * 1.6, L * 1.25).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, opacity: 0.7, depthWrite: false }),
     );
-    (ground.material as THREE.MeshLambertMaterial).map!.repeat.set(8, 8);
-    ground.position.set(0, -0.06, -L / 2);
-    this.scene.add(ground);
+    shadow.position.set(0.05, -0.07, -L / 2 - 0.04);
+    this.scene.add(shadow);
 
     const base = new THREE.Mesh(
       new THREE.BoxGeometry(W + RAIL_W * 2 + 0.06, 0.06, L + RAIL_W * 2 + 0.06),
@@ -240,9 +239,6 @@ export class SceneView {
     this.lighting.set(t);
   }
 
-  setSiteFloors(n: number) {
-    this.site.setFloors(n);
-  }
 
   private placeCamera() {
     const d = this.dist;
@@ -498,7 +494,7 @@ export class SceneView {
     }
     const len = Math.max(0.01, y1 - y0);
     this.aim.visible = true;
-    this.aim.position.copy(toWorld(x, y0, 0.004));
+    this.aim.position.set(x, 0.004, -y0);
     this.aim.scale.set(0.014, 1, len);
     const map = (this.aim.material as THREE.MeshBasicMaterial).map!;
     map.repeat.set(1, len / 0.03);
@@ -542,6 +538,20 @@ export class SceneView {
     });
   }
 
+  /**
+   * Builds a tier's model, outline and blueprint wireframe ahead of time and
+   * compiles its shaders, so the first merge into a new tier never stalls a frame.
+   */
+  prewarm(tierId: number) {
+    wireframe(tierId);
+    const tmp = new THREE.Scene();
+    const p = this.createPiece(tierId);
+    this.scene.remove(p.group);
+    tmp.add(p.group, ...this.scene.children.filter((o) => (o as THREE.Light).isLight).map((l) => l.clone()));
+    this.renderer.compile(tmp, this.camera);
+    this.removePiece(p);
+  }
+
   quality() {
     const info = this.renderer.info.render;
     return `${this.dpr.toFixed(2)}x · ${info.calls} draws · ${info.triangles} tris`;
@@ -570,7 +580,6 @@ export class SceneView {
     this.time += dt;
     animateMaterials(this.time);
     this.lighting.update(dt);
-    this.site.update(dt, this.time);
     if (Math.abs(this.tallK - this.tallTarget) > 0.001) {
       this.tallK += (this.tallTarget - this.tallK) * Math.min(1, dt * 1.5);
       this.applyFit();

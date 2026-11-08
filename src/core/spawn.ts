@@ -10,14 +10,14 @@ export const STEP_UP_BIAS = 0.08; // extra chance to give previous + 1
  * - Never more than 2 tiers above the highest tier on the table.
  * - Soft bias toward repeating the previous piece (or the one above it), as Suika does.
  */
-export function nextSpawn(rng: Rng, prev: number | null, highestOnTable: number): number {
-  const cap = Math.min(SPAWN_WEIGHTS.length, Math.max(1, highestOnTable) + 2);
+export function nextSpawn(rng: Rng, prev: number | null, highestOnTable: number, table: number[] = SPAWN_WEIGHTS): number {
+  const cap = Math.min(table.length, Math.max(1, highestOnTable) + 2);
   const r = rng.next();
   if (prev !== null) {
     if (r < REPEAT_BIAS && prev <= cap) return prev;
     if (r < REPEAT_BIAS + STEP_UP_BIAS && prev + 1 <= cap) return prev + 1;
   }
-  const weights = SPAWN_WEIGHTS.slice(0, cap);
+  const weights = table.slice(0, cap);
   const total = weights.reduce((a, b) => a + b, 0);
   let x = rng.next() * total;
   for (let i = 0; i < weights.length; i++) {

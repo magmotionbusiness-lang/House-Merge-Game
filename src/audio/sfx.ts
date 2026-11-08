@@ -226,6 +226,20 @@ export class Sfx {
     [1047, 1319, 1568, 2093].forEach((f, i) => this.bell(f, 0.2, 0.5 + i * 0.12));
   }
 
+  /** Contract done: a rubber stamp and a cascade of coins. */
+  contract() {
+    if (!this.ok) return;
+    this.stamp();
+    for (let i = 0; i < 6; i++) this.tone((1800 + i * 140) * jitter(), 0.09, { gain: 0.08, type: 'triangle', when: 0.12 + i * 0.06 });
+  }
+
+  /** Level complete: a short rising jingle. */
+  levelComplete() {
+    if (!this.ok) return;
+    [523, 659, 784, 1047, 1319].forEach((f, i) => this.bell(f, 0.22, i * 0.11));
+    this.tone(262, 0.6, { gain: 0.12, type: 'triangle', when: 0.44 });
+  }
+
   setDanger(on: boolean) {
     this.dangerOn = on;
   }

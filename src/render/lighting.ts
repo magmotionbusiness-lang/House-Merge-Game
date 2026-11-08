@@ -14,17 +14,17 @@ interface Preset {
   sun: string;
   sunI: number;
   sunPos: [number, number, number];
-  bg: string;
+  bg: string; // CSS tint laid over the painted backdrop
   sheet: string; // tint multiplier for the unlit blueprint sheet
   night: number; // 0 day .. 1 night: window glow and floodlights
 }
 
 export const PRESETS: Record<TimeOfDay, Preset> = {
-  morning: { sky: '#fff1e4', ground: '#9a7e66', hemi: 1.35, sun: '#ffd9b0', sunI: 1.9, sunPos: [-2, 2.2, 1], bg: '#f2d9b8', sheet: '#f4f1ff', night: 0 },
-  noon: { sky: '#ffffff', ground: '#8a6f4a', hemi: 1.5, sun: '#fff6e6', sunI: 2.3, sunPos: [-0.6, 3.2, 0.5], bg: '#e7cf9f', sheet: '#ffffff', night: 0 },
-  golden: { sky: '#ffe2b8', ground: '#8a5a3a', hemi: 1.25, sun: '#ffb070', sunI: 2.4, sunPos: [2.2, 1.4, 0.6], bg: '#f0b97a', sheet: '#ffe9cf', night: 0.15 },
-  dusk: { sky: '#b9a6e8', ground: '#4a3a58', hemi: 1.05, sun: '#ff8f7a', sunI: 1.3, sunPos: [2.5, 0.8, -0.5], bg: '#8f78b8', sheet: '#d6d0f2', night: 0.6 },
-  night: { sky: '#7c8fd8', ground: '#1f2440', hemi: 0.85, sun: '#a9c4ff', sunI: 0.9, sunPos: [-1, 2.5, 1], bg: '#2c3460', sheet: '#aab6e8', night: 1 },
+  morning: { sky: '#fff1e4', ground: '#9a7e66', hemi: 1.35, sun: '#ffd9b0', sunI: 1.9, sunPos: [-2, 2.2, 1], bg: 'rgba(255,170,120,0.10)', sheet: '#f4f1ff', night: 0 },
+  noon: { sky: '#ffffff', ground: '#8a6f4a', hemi: 1.5, sun: '#fff6e6', sunI: 2.3, sunPos: [-0.6, 3.2, 0.5], bg: 'rgba(255,255,255,0)', sheet: '#ffffff', night: 0 },
+  golden: { sky: '#ffe2b8', ground: '#8a5a3a', hemi: 1.25, sun: '#ffb070', sunI: 2.4, sunPos: [2.2, 1.4, 0.6], bg: 'rgba(255,130,30,0.24)', sheet: '#ffe9cf', night: 0.15 },
+  dusk: { sky: '#b9a6e8', ground: '#4a3a58', hemi: 1.05, sun: '#ff8f7a', sunI: 1.3, sunPos: [2.5, 0.8, -0.5], bg: 'rgba(80,40,140,0.42)', sheet: '#d6d0f2', night: 0.6 },
+  night: { sky: '#7c8fd8', ground: '#1f2440', hemi: 0.85, sun: '#a9c4ff', sunI: 0.9, sunPos: [-1, 2.5, 1], bg: 'rgba(10,20,70,0.62)', sheet: '#aab6e8', night: 1 },
 };
 
 export class Lighting {
@@ -36,7 +36,6 @@ export class Lighting {
     sky: new THREE.Color(),
     ground: new THREE.Color(),
     sun: new THREE.Color(),
-    bg: new THREE.Color(),
     sheet: new THREE.Color(),
   };
   private blend = 1;
@@ -44,9 +43,10 @@ export class Lighting {
   name: TimeOfDay;
 
   constructor(
-    private scene: THREE.Scene,
+    scene: THREE.Scene,
     private sheet: THREE.MeshBasicMaterial,
     private onNight: (k: number) => void,
+    private onTint: (css: string) => void,
     start: TimeOfDay = 'morning',
   ) {
     this.cur = this.target = PRESETS[start];
@@ -55,8 +55,8 @@ export class Lighting {
     this.sun = new THREE.DirectionalLight();
     this.sun.target.position.set(0, 0, -0.9);
     scene.add(this.hemi, this.sun, this.sun.target);
-    scene.background = new THREE.Color();
     this.apply(this.cur, this.cur, 1);
+    onTint(this.cur.bg);
   }
 
   set(name: TimeOfDay) {
@@ -65,6 +65,8 @@ export class Lighting {
     this.from = this.snapshot();
     this.target = PRESETS[name];
     this.blend = 0;
+    // The backdrop tint fades with a CSS transition (cheap, off the render loop).
+    this.onTint(this.target.bg);
   }
 
   private snapshot(): Preset {
@@ -75,7 +77,7 @@ export class Lighting {
       sun: `#${this.c.sun.getHexString()}`,
       sunI: this.sun.intensity,
       sunPos: [this.sun.position.x, this.sun.position.y, this.sun.position.z],
-      bg: `#${this.c.bg.getHexString()}`,
+      bg: this.target.bg,
       sheet: `#${this.c.sheet.getHexString()}`,
       night: this.cur.night,
     };
@@ -86,7 +88,6 @@ export class Lighting {
     lerpC(this.c.sky, a.sky, b.sky);
     lerpC(this.c.ground, a.ground, b.ground);
     lerpC(this.c.sun, a.sun, b.sun);
-    lerpC(this.c.bg, a.bg, b.bg);
     lerpC(this.c.sheet, a.sheet, b.sheet);
     this.hemi.color.copy(this.c.sky);
     this.hemi.groundColor.copy(this.c.ground);
@@ -98,8 +99,6 @@ export class Lighting {
       a.sunPos[1] + (b.sunPos[1] - a.sunPos[1]) * u,
       a.sunPos[2] + (b.sunPos[2] - a.sunPos[2]) * u,
     );
-    (this.scene.background as THREE.Color).copy(this.c.bg);
-    if (this.scene.fog) this.scene.fog.color.copy(this.c.bg);
     this.sheet.color.copy(this.c.sheet);
     const night = a.night + (b.night - a.night) * u;
     this.cur = { ...b, night };

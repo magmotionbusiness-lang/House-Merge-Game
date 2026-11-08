@@ -10,6 +10,27 @@ import { Lighting } from '../render/lighting';
 import { modelSize } from '../models';
 import { Hud } from '../ui/hud';
 import { store } from './storage';
+import { endlessContract, isComplete, makeContract, recordBuild, type Contract } from '../core/contracts';
+import { levelCoins, starsFor, type LevelDef } from '../core/levels';
+import type { TimeOfDay } from '../render/lighting';
+import { onSettings, progress, settings } from './settings';
+
+export type PlayMode = { kind: 'endless' } | { kind: 'level'; level: LevelDef; time: TimeOfDay };
+
+export interface EndResult {
+  win: boolean;
+  reason: string;
+  mode: PlayMode;
+  score: number;
+  best: number;
+  highest: number;
+  stars: number;
+  coins: number; // earned this round
+}
+
+export interface GameEvents {
+  onEnd(r: EndResult): void;
+}
 
 const DT = 1 / 60;
 const W = CONFIG.tableWidth;
@@ -25,6 +46,12 @@ interface Piece {
   still: number;
   over: number;
   dead: boolean;
+  // Cached physics state (read once per step), plus the previous step for smooth rendering.
+  x: number;
+  y: number;
+  px: number;
+  py: number;
+  speed: number;
 }
 
 interface Launcher {
@@ -67,17 +94,54 @@ export class Game {
   private hitstop = 0; // real seconds the physics stays frozen on a merge impact
   private lastDust = 0;
   private wasDanger = false;
-  readonly sfx = new Sfx(store.str('bm.sound', 'on') === 'off');
+  readonly sfx = new Sfx(!settings.sound);
+  private playMode: PlayMode = { kind: 'endless' };
+  private running = false; // false behind the title and menus
+  contracts: Contract[] = [];
+  shotsLeft: number | null = null;
+  private shotsUsed = 0;
+  private bestCombo = 0;
+  private coinsEarned = 0;
+  private winAt = -1; // time the level-complete celebration ends
+  private outOfShotsAt = -1;
 
   constructor(
     private view: SceneView,
-    private hud: Hud,
+    readonly hud: Hud,
     private canvas: HTMLCanvasElement,
+    private events: GameEvents,
   ) {
     this.bindInput();
-    this.hud.setMode(this.mode);
-    this.hud.setSound(store.str('bm.sound', 'on') !== 'off');
+    onSettings((st) => {
+      this.mode = st.aim;
+      this.sfx.setMuted(!st.sound);
+    });
+    this.hud.setCoins(progress.coins());
     this.reset();
+  }
+
+  /** Starts a round in endless or level mode. */
+  start(mode: PlayMode) {
+    this.playMode = mode;
+    this.reset();
+    this.running = true;
+    this.paused = false;
+    if (mode.kind === 'level' && mode.level.hint) this.hud.showHint(mode.level.hint);
+  }
+
+  /** Back to the title: the table empties and input stops. */
+  stop() {
+    this.running = false;
+    this.playMode = { kind: 'endless' };
+    this.reset();
+  }
+
+  get isRunning() {
+    return this.running && !this.over;
+  }
+
+  get currentMode() {
+    return this.playMode;
   }
 
   // ------------------------------------------------------------ lifecycle
@@ -96,33 +160,36 @@ export class Game {
     this.aim = null;
     this.launchedCount = 0;
     this.slowmo = 0;
-    this.nextTier = nextSpawn(this.rng, null, 0);
+    this.hitstop = 0;
+    this.shotsUsed = 0;
+    this.bestCombo = 0;
+    this.coinsEarned = 0;
+    this.winAt = -1;
+    this.outOfShotsAt = -1;
+    const lvl = this.playMode.kind === 'level' ? this.playMode.level : null;
+    this.shotsLeft = lvl ? lvl.shots : null;
+    for (const [t, x, y] of lvl?.start ?? []) this.addPiece(t, x, y, 0, 0);
+    if (lvl) this.contracts = lvl.contracts.map((c) => makeContract(c.tier, c.count, c.reward));
+    else {
+      this.contracts = [endlessContract(this.rng, 3)];
+      this.contracts.push(endlessContract(this.rng, 4, [this.contracts[0].tier]));
+    }
+    this.hud.setContracts(this.contracts);
+    this.hud.setShots(this.shotsLeft);
+    this.nextTier = nextSpawn(this.rng, null, this.highestOnTable(), this.spawnTable());
     this.spawnLauncher();
     this.lastLaunch = this.time - 10;
-    this.hud.hideOverlay();
     this.setDanger(false);
     this.refreshHud();
+  }
+
+  private spawnTable() {
+    return this.playMode.kind === 'level' && this.playMode.level.spawn ? this.playMode.level.spawn : undefined;
   }
 
   setPaused(p: boolean) {
     this.paused = p;
     if (p) this.sfx.slide(0);
-  }
-
-  toggleMode() {
-    this.mode = this.mode === 'slide' ? 'sling' : 'slide';
-    store.set('bm.mode', this.mode);
-    this.hud.setMode(this.mode);
-    this.sfx.tap();
-  }
-
-  toggleSound() {
-    const on = store.str('bm.sound', 'on') === 'off';
-    store.set('bm.sound', on ? 'on' : 'off');
-    this.sfx.unlock();
-    this.sfx.setMuted(!on);
-    this.hud.setSound(on);
-    this.sfx.tap();
   }
 
   /** Called every animation frame with real elapsed seconds. */
@@ -141,11 +208,15 @@ export class Game {
       simDt = 0;
     }
     this.acc += simDt;
-    while (this.acc >= DT) {
+    // At most 3 physics steps per frame, so a slow frame can't snowball.
+    let steps = 0;
+    while (this.acc >= DT && steps < 3) {
       this.fixedStep();
       this.acc -= DT;
+      steps++;
     }
-    this.syncViews(dt);
+    if (steps === 3) this.acc = Math.min(this.acc, DT);
+    this.syncViews(dt, this.acc / DT);
     this.view.update(dt);
     this.view.render();
     this.sfx.update();
@@ -171,10 +242,15 @@ export class Game {
     let worst = 0;
     for (const p of this.pieces.values()) {
       const v = this.world.vel(p.b);
-      const speed = Math.hypot(v.x, v.y);
+      const pos = this.world.pos(p.b);
+      p.px = p.x;
+      p.py = p.y;
+      p.x = pos.x;
+      p.y = pos.y;
+      p.speed = Math.hypot(v.x, v.y);
+      const speed = p.speed;
       p.still = speed < CONFIG.settleSpeed ? p.still + DT : 0;
       const settled = p.still >= CONFIG.settleTime;
-      const pos = this.world.pos(p.b);
       const crossing = pos.y - p.radius < CONFIG.failY && this.time - p.born > 0.6;
       if (!crossing) p.over = 0;
       else if (settled) p.over += DT;
@@ -182,14 +258,32 @@ export class Game {
       worst = Math.max(worst, p.over);
     }
     this.setDanger(danger);
-    if (worst >= CONFIG.failHoldTime) {
-      this.gameOver();
+    if (worst >= CONFIG.failHoldTime && this.winAt < 0) {
+      this.endRound(false, 'The pile crossed the site boundary');
       return;
+    }
+
+    // Level won: let the celebration play, then show the results.
+    if (this.winAt >= 0 && this.time >= this.winAt) {
+      this.endRound(true, 'All contracts complete');
+      return;
+    }
+
+    // Out of shots: once the table settles without finishing the contracts, the level is lost.
+    if (this.shotsLeft === 0 && !this.launcher && this.winAt < 0) {
+      const settled = [...this.pieces.values()].every((p) => p.still >= CONFIG.settleTime);
+      if (settled && this.time - this.lastLaunch > 1) {
+        if (this.outOfShotsAt < 0) this.outOfShotsAt = this.time;
+        if (this.time - this.outOfShotsAt > 0.6) {
+          this.endRound(false, 'Out of shots');
+          return;
+        }
+      }
     }
 
     // The next piece appears a moment after each shot. A release before it
     // appears fires it the instant it does.
-    if (this.launcher === null && this.time - this.lastLaunch >= CONFIG.nextBlankTime) {
+    if (this.launcher === null && this.shotsLeft !== 0 && this.time - this.lastLaunch >= CONFIG.nextBlankTime) {
       this.spawnLauncher();
       if (this.pendingLaunch) {
         this.pendingLaunch = false;
@@ -212,8 +306,9 @@ export class Game {
     v.pop = 0;
     const r = pieceRadius(t);
     this.launcher = { tier: t, view: v, x: this.clampX(this.aimX, r) };
-    this.nextTier = nextSpawn(this.rng, t, this.highestOnTable());
-    this.hud.setNext(this.nextTier);
+    this.nextTier = nextSpawn(this.rng, t, this.highestOnTable(), this.spawnTable());
+    // The last shot has no "next" piece.
+    this.hud.setNext(this.shotsLeft === 1 ? null : this.nextTier);
   }
 
   private launchSpeed(power: number) {
@@ -224,7 +319,12 @@ export class Game {
 
   private launch() {
     const l = this.launcher;
-    if (!l || this.over) return;
+    if (!l || this.over || !this.running || this.shotsLeft === 0) return;
+    if (this.shotsLeft !== null) {
+      this.shotsLeft--;
+      this.hud.setShots(this.shotsLeft);
+    }
+    this.shotsUsed++;
     const power = this.aim?.power ?? this.lastPower;
     const speed = this.launchSpeed(power);
     this.view.removePiece(l.view);
@@ -244,7 +344,22 @@ export class Game {
     this.world.setVel(b, vx, vy);
     const view = this.view.createPiece(tierId);
     this.view.placePiece(view, x, y);
-    const p: Piece = { id: ++this.ids, tier: tierId, b, view, radius: r, born: this.time, still: 0, over: 0, dead: false };
+    const p: Piece = {
+      id: ++this.ids,
+      tier: tierId,
+      b,
+      view,
+      radius: r,
+      born: this.time,
+      still: 0,
+      over: 0,
+      dead: false,
+      x,
+      y,
+      px: x,
+      py: y,
+      speed: Math.hypot(vx, vy),
+    };
     this.pieces.set(b.collider.handle, p);
     if (tierId > this.highestRun) this.highestRun = tierId;
     return p;
@@ -273,6 +388,7 @@ export class Game {
     this.destroy(b, true);
 
     const combo = this.combo.hit(this.time);
+    this.bestCombo = Math.max(this.bestCombo, combo);
     const res = mergeResult(a.tier, combo);
     this.addScore(res.points);
     const label = `+${res.points.toLocaleString('en-US')}`;
@@ -306,11 +422,11 @@ export class Game {
       this.view.ring(at.x, at.y, n.radius * 1.1, '#ffffff');
       this.view.fx.merge(at.x, at.y, t.era, t.color, power);
       this.view.fx.impact(at.x, at.y, n.radius, t.color, power);
-      this.view.shake(1.5 + Math.min(6, nt * 0.35) + (combo - 1));
+      if (!settings.calm) this.view.shake(1.5 + Math.min(6, nt * 0.35) + (combo - 1));
       this.hitstop = 0.05 + Math.min(0.05, nt * 0.004);
       if (nt >= 13) {
         this.slowmo = 0.15;
-        this.hud.flash();
+        if (!settings.calm) this.hud.flash();
       }
       this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3);
       this.hud.showCombo(combo);
@@ -332,6 +448,8 @@ export class Game {
       }
     }
 
+    this.contractBuilt(nt);
+
     if (nt > this.highestEver) {
       this.highestEver = nt;
       store.set('bm.highest', nt);
@@ -342,6 +460,31 @@ export class Game {
     }
     this.refreshHud();
     return true;
+  }
+
+  /** Credits a newly built tier to the contracts; pays coins and refills (endless) or wins (level). */
+  private contractBuilt(tierId: number) {
+    const done = recordBuild(this.contracts, tierId);
+    this.hud.setContracts(this.contracts);
+    for (const c of done) {
+      this.coinsEarned += c.reward;
+      this.hud.setCoins(progress.addCoins(c.reward));
+      this.hud.contractDone(c.id, c.reward);
+      this.sfx.contract();
+      if (this.playMode.kind === 'endless') {
+        window.setTimeout(() => {
+          if (this.playMode.kind !== 'endless' || !this.contracts.includes(c)) return;
+          const next = endlessContract(
+            this.rng,
+            Math.max(this.highestRun, 4),
+            this.contracts.map((o) => o.tier),
+          );
+          this.contracts[this.contracts.indexOf(c)] = next;
+          this.hud.setContracts(this.contracts);
+        }, 1400);
+      }
+    }
+    if (this.playMode.kind === 'level' && this.winAt < 0 && this.contracts.every(isComplete)) this.winAt = this.time + 1.4;
   }
 
   /** Non-merging contact: dust puff and a material "thunk" scaled by impact speed. */
@@ -384,26 +527,42 @@ export class Game {
   private refreshHud() {
     this.hud.setScore(this.score, this.best);
     this.hud.setProgress(Math.max(5, this.highestEver), this.highestRun);
-    // The scene reacts to progress: the day moves on, the background building
-    // grows, and the camera eases back when tall towers stand on the table.
-    this.view.setTimeOfDay(Lighting.forTier(this.highestRun));
-    this.view.setSiteFloors(2 + Math.floor(this.highestRun / 2));
+    // The scene reacts to progress: the day moves on, and the camera eases
+    // back when tall towers stand on the table.
+    this.view.setTimeOfDay(this.playMode.kind === 'level' ? this.playMode.time : Lighting.forTier(this.highestRun));
     const top = this.highestOnTable();
     this.view.setTallest(top ? modelSize(top).height : 0);
   }
 
-  private gameOver() {
+  private endRound(win: boolean, reason: string) {
     this.over = true;
     this.aim = null;
     this.pendingLaunch = false;
     this.setDanger(false);
     this.view.setAim(0, 0, null);
-    this.view.shake(6);
-    this.sfx.gameOver();
     this.sfx.slide(0);
-    this.hud.showGameOver(this.score, this.best, this.highestRun, () => {
-      this.sfx.tap();
-      this.reset();
+    let stars = 0;
+    if (win && this.playMode.kind === 'level') {
+      const lvl = this.playMode.level;
+      stars = starsFor(lvl, this.shotsUsed, this.bestCombo);
+      const bonus = levelCoins(lvl, stars, 0);
+      this.coinsEarned += bonus;
+      this.hud.setCoins(progress.addCoins(bonus));
+      progress.setStars(lvl.id, stars);
+      this.sfx.levelComplete();
+    } else {
+      if (!settings.calm) this.view.shake(6);
+      this.sfx.gameOver();
+    }
+    this.events.onEnd({
+      win,
+      reason,
+      mode: this.playMode,
+      score: this.score,
+      best: this.best,
+      highest: this.highestRun,
+      stars,
+      coins: this.coinsEarned,
     });
   }
 
@@ -419,14 +578,15 @@ export class Game {
 
   // ------------------------------------------------------------ rendering sync
 
-  private syncViews(dt: number) {
+  /** `alpha` blends between the last two physics steps so motion stays smooth at any frame rate. */
+  private syncViews(dt: number, alpha: number) {
     let fastest = 0;
     for (const p of this.pieces.values()) {
-      const pos = this.world.pos(p.b);
-      this.view.placePiece(p.view, pos.x, pos.y); // buildings always face the player
+      const x = p.px + (p.x - p.px) * alpha;
+      const y = p.py + (p.y - p.py) * alpha;
+      this.view.placePiece(p.view, x, y); // buildings always face the player
       this.view.animatePiece(p.view, dt);
-      const v = this.world.vel(p.b);
-      fastest = Math.max(fastest, Math.hypot(v.x, v.y));
+      fastest = Math.max(fastest, p.speed);
     }
     this.sfx.slide(this.paused || this.over ? 0 : fastest);
     const l = this.launcher;
@@ -450,10 +610,9 @@ export class Game {
       end = Math.min(end, CONFIG.launchY + this.launchSpeed(this.aim.power) / CONFIG.linearDamping);
     }
     for (const p of this.pieces.values()) {
-      const pos = this.world.pos(p.b);
-      const dx = Math.abs(pos.x - l.x);
+      const dx = Math.abs(p.x - l.x);
       const rr = r + p.radius;
-      if (dx < rr && pos.y > CONFIG.launchY) end = Math.min(end, pos.y - Math.sqrt(rr * rr - dx * dx));
+      if (dx < rr && p.y > CONFIG.launchY) end = Math.min(end, p.y - Math.sqrt(rr * rr - dx * dx));
     }
     return Math.max(CONFIG.launchY + r, end) - r;
   }
@@ -472,7 +631,7 @@ export class Game {
     const c = this.canvas;
     c.addEventListener('pointerdown', (e) => {
       this.sfx.unlock();
-      if (this.over || this.aim) return;
+      if (this.over || this.aim || !this.running || this.paused) return;
       c.setPointerCapture(e.pointerId);
       this.aim = { pointerId: e.pointerId, startY: e.clientY, power: 0, ticks: 0 };
       this.updateAim(e);

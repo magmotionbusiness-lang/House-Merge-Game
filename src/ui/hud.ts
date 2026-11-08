@@ -1,4 +1,4 @@
-import type { AimMode } from '../core/config';
+import type { Contract } from '../core/contracts';
 import { ERA_RING, MAX_TIER, tier } from '../core/tiers';
 import { ICONS } from './icons';
 
@@ -34,9 +34,7 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
 }
 
 export interface HudHandlers {
-  onRestart(): void;
-  onToggleMode(): void;
-  onToggleSound(): void;
+  onPause(): void;
 }
 
 export class Hud {
@@ -49,10 +47,13 @@ export class Hud {
   private evo = el('div', 'evo-track');
   private combo = el('div', 'combo');
   private labels = el('div', 'labels');
-  private overlay = el('div', 'overlay hidden');
   private toast = el('div', 'toast');
-  private modeBtn = el('button', 'pill', 'Aim: Slide');
-  private soundBtn = el('button', 'pill icon-btn');
+  private coins = el('span', 'coin-count', '0');
+  private shots = el('div', 'pill stat shots');
+  private tickets = el('div', 'tickets');
+  private hint = el('div', 'hint');
+  private coinPill = el('div', 'pill stat coins');
+  private shownCoins = 0;
   private flashEl = el('div', 'screen-flash');
   private debugEl = el('div', 'debug');
   private chips: HTMLElement[] = [];
@@ -68,18 +69,21 @@ export class Hud {
     col.append(this.score, this.best);
     scoreBox.append(coin, col);
     const btns = el('div', 'btn-row');
-    const restart = el('button', 'pill');
-    restart.innerHTML = `${ICONS.restart}<span>Restart</span>`;
-    restart.onclick = () => h.onRestart();
-    this.modeBtn.onclick = () => h.onToggleMode();
-    this.soundBtn.onclick = () => h.onToggleSound();
-    btns.append(restart, this.modeBtn, this.soundBtn);
+    this.coinPill.append(el('span', 'mini-coin'), this.coins);
+    this.coinPill.setAttribute('aria-label', 'Coins');
+    btns.append(this.coinPill, this.shots);
     const left = el('div', 'top-left');
     left.append(scoreBox, btns);
 
+    const right = el('div', 'top-right');
     const next = el('div', 'next-card');
     next.append(this.nextSlot, el('div', 'next-label', 'NEXT'));
-    this.top.append(left, next);
+    const pause = el('button', 'pill icon-btn pause-btn');
+    pause.innerHTML = ICONS.pause;
+    pause.setAttribute('aria-label', 'Pause');
+    pause.onclick = () => h.onPause();
+    right.append(next, pause);
+    this.top.append(left, this.tickets, right);
 
     this.bottom = el('div', 'hud-bottom');
     const arrow = el('div', 'evo-arrow');
@@ -91,7 +95,7 @@ export class Hud {
       this.evo.append(c);
     }
 
-    root.append(this.flashEl, this.top, this.combo, this.labels, this.toast, this.bottom, this.overlay, this.debugEl);
+    root.append(this.flashEl, this.top, this.combo, this.labels, this.toast, this.hint, this.bottom, this.debugEl);
   }
 
   setScore(score: number, best: number) {
@@ -99,10 +103,98 @@ export class Hud {
     this.best.textContent = `BEST ${best.toLocaleString('en-US')}`;
   }
 
-  setSound(on: boolean) {
-    this.soundBtn.innerHTML = on ? ICONS.soundOn : ICONS.soundOff;
-    this.soundBtn.setAttribute('aria-label', on ? 'Sound on' : 'Sound off');
-    this.soundBtn.classList.toggle('off', !on);
+  /** Coin counter: counts up to the new total. */
+  setCoins(total: number) {
+    const from = this.shownCoins;
+    this.shownCoins = total;
+    if (total <= from) {
+      this.coins.textContent = total.toLocaleString('en-US');
+      return;
+    }
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const u = Math.min(1, (now - t0) / 700);
+      this.coins.textContent = Math.round(from + (total - from) * u).toLocaleString('en-US');
+      if (u < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /** Shots left in a level (hidden in endless). Turns red when running low. */
+  setShots(n: number | null) {
+    this.shots.style.display = n === null ? 'none' : '';
+    if (n === null) return;
+    this.shots.textContent = `SHOTS ${n}`;
+    this.shots.classList.toggle('low', n <= 3);
+  }
+
+  /** Contract tickets pinned at the top: target building, progress and reward. */
+  setContracts(list: Contract[]) {
+    const keep = new Map<number, HTMLElement>();
+    for (const t of Array.from(this.tickets.children) as HTMLElement[]) keep.set(Number(t.dataset.id), t);
+    this.tickets.replaceChildren(
+      ...list.map((c) => {
+        const t = keep.get(c.id) ?? this.ticket(c);
+        const prog = t.querySelector('.t-prog') as HTMLElement;
+        prog.textContent = `${Math.min(c.done, c.count)}/${c.count}`;
+        t.classList.toggle('done', c.done >= c.count);
+        return t;
+      }),
+    );
+  }
+
+  private ticket(c: Contract) {
+    const t = el('div', 'ticket');
+    t.dataset.id = String(c.id);
+    t.title = `Build ${c.count} ${tier(c.tier).name}`;
+    const img = document.createElement('img');
+    img.src = thumbUrl(c.tier);
+    img.alt = tier(c.tier).name;
+    const reward = el('div', 't-reward');
+    reward.append(el('span', 'mini-coin'), el('span', '', String(c.reward)));
+    t.append(el('div', 't-tape'), img, el('div', 't-prog'), reward, el('div', 't-stamp', 'DONE'));
+    t.classList.add('pop-in');
+    return t;
+  }
+
+  /** Stamps a ticket DONE and flies coins from it to the coin counter. */
+  contractDone(id: number, reward: number) {
+    const t = this.tickets.querySelector(`[data-id="${id}"]`) as HTMLElement | null;
+    if (!t) return;
+    t.classList.add('done', 'shake');
+    const from = t.getBoundingClientRect();
+    const to = this.coinPill.getBoundingClientRect();
+    const n = Math.min(8, 3 + Math.floor(reward / 60));
+    for (let i = 0; i < n; i++) {
+      const c = el('div', 'fly-coin');
+      c.style.left = `${from.left + from.width / 2}px`;
+      c.style.top = `${from.top + from.height / 2}px`;
+      document.body.append(c);
+      const dx = to.left + 12 - (from.left + from.width / 2);
+      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      const arc = -40 - Math.random() * 40;
+      c.animate(
+        [
+          { transform: 'translate(-50%,-50%) scale(0.6)' },
+          { transform: `translate(calc(-50% + ${dx * 0.5 + (Math.random() - 0.5) * 40}px), calc(-50% + ${dy * 0.5 + arc}px)) scale(1.1)`, offset: 0.5 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.7)` },
+        ],
+        { duration: 650 + i * 60, easing: 'cubic-bezier(0.4,0,0.6,1)', delay: i * 45 },
+      ).onfinish = () => c.remove();
+    }
+    window.setTimeout(() => {
+      this.coinPill.classList.remove('bump');
+      void this.coinPill.offsetWidth;
+      this.coinPill.classList.add('bump');
+    }, 650);
+  }
+
+  /** One-line tip at the start of a level. */
+  showHint(text: string) {
+    this.hint.textContent = text;
+    this.hint.classList.remove('show');
+    void this.hint.offsetWidth;
+    this.hint.classList.add('show');
   }
 
   /** White flash for big moments (tier 13+, Wonders). */
@@ -153,10 +245,6 @@ export class Hud {
     box.classList.remove('bump');
     void box.offsetWidth;
     box.classList.add('bump');
-  }
-
-  setMode(m: AimMode) {
-    this.modeBtn.textContent = m === 'slide' ? 'Aim: Slide' : 'Aim: Sling';
   }
 
   /** Blank the NEXT card briefly, then show the upcoming piece. */
@@ -217,33 +305,4 @@ export class Hud {
   setDanger(on: boolean) {
     this.root.classList.toggle('danger', on);
   }
-
-  showGameOver(score: number, best: number, highest: number, onRestart: () => void) {
-    this.overlay.replaceChildren();
-    const card = el('div', 'over-card');
-    card.append(
-      el('div', 'over-title', 'Site Overflow!'),
-      el('div', 'over-sub', 'The pile crossed the site boundary'),
-      el('div', 'over-score', score.toLocaleString('en-US')),
-      el('div', 'over-best', score >= best && score > 0 ? 'NEW BEST!' : `Best ${best.toLocaleString('en-US')}`),
-    );
-    if (highest > 0) {
-      const row = el('div', 'over-tier');
-      row.append(chip(highest, 'lg'), el('div', '', `Top build: ${tier(highest).name}`));
-      card.append(row);
-    }
-    const btn = el('button', 'big-btn', 'Build Again');
-    btn.onclick = () => {
-      this.overlay.classList.add('hidden');
-      onRestart();
-    };
-    card.append(btn);
-    this.overlay.append(card);
-    this.overlay.classList.remove('hidden');
-  }
-
-  hideOverlay() {
-    this.overlay.classList.add('hidden');
-  }
 }
-

@@ -145,36 +145,6 @@ export function blueprintTexture(): THREE.Texture {
   return tex;
 }
 
-/** Packed-dirt construction ground with pebbles and tyre tracks (tiles). */
-export function groundTexture(): THREE.Texture {
-  const { c, ctx } = canvas(256, 256);
-  ctx.fillStyle = '#c9a26b';
-  ctx.fillRect(0, 0, 256, 256);
-  let seed = 11;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 1800; i++) {
-    const v = rnd();
-    ctx.fillStyle = v < 0.5 ? 'rgba(120,85,50,0.18)' : 'rgba(255,240,210,0.16)';
-    const s = 1 + rnd() * 3;
-    ctx.fillRect(rnd() * 256, rnd() * 256, s, s);
-  }
-  for (let i = 0; i < 30; i++) {
-    ctx.fillStyle = 'rgba(110,95,80,0.45)';
-    ctx.beginPath();
-    ctx.ellipse(rnd() * 256, rnd() * 256, 2 + rnd() * 3, 1.5 + rnd() * 2, rnd() * 3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = 'rgba(100,70,40,0.12)';
-  for (let y = 0; y < 256; y += 10) {
-    ctx.fillRect(60, y, 16, 5);
-    ctx.fillRect(110, y + 5, 16, 5);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 export function dashTexture(color: string, dash = 0.6): THREE.Texture {
   const { c, ctx } = canvas(64, 8);
   ctx.fillStyle = color;

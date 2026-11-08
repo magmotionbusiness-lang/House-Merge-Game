@@ -15,7 +15,7 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
-Phase 4 of 10: **Scene** done (construction site, time-of-day lighting, camera ease-back). Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
+Phase 5 of 10: **HUD and flow** done (title, campaign map, pause, settings, contracts, coins, level complete and fail screens; District 1 playable). Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
 
@@ -47,6 +47,8 @@ To install on iPhone: open the site in Safari → Share → **Add to Home Screen
 | `scripts/bake.mjs` | Bakes thumbnails (`public/thumbs`), `.glb` exports (`art/models`) and the lineup sheet. |
 | `src/ui` | DOM HUD: score, NEXT card, evolution bar, combo stamp, game-over card. |
 | `src/game` | The game loop that ties the above together. |
+| `src/ui` | HUD (`hud.ts`) and menu screens (`screens.ts`). |
+| `levels` | Campaign districts as JSON (`district-01.json`, ...). |
 | `tests` | Vitest unit tests. |
 
 All balancing data lives in `src/core/tiers.ts` and `src/core/config.ts`.
@@ -54,3 +56,7 @@ All balancing data lives in `src/core/tiers.ts` and `src/core/config.ts`.
 ## Editing a building
 
 Each tier lives in `src/models/tierNN.ts`. Models are built in "model units": the footprint is 1 unit across and the base sits at y = 0. After changing a model, run `npm run models:bake` so the HUD thumbnails and the lineup sheet match. The bake fails if a tier goes over its triangle budget.
+
+## Adding levels
+
+Levels live in `levels/district-NN.json`. Each level has an `id`, `name`, `shots` (a number or `null`), `contracts` (`[{ "tier": 4, "count": 2 }]`), and optionally a starting pile `start` (`[[tier, x, y], ...]`, with x from -0.5 to 0.5 and y from 0.5 to 1.8), spawn weights `spawn` and a `hint`. `npm test` validates every district.
