@@ -11,6 +11,7 @@ import { Game } from './game/Game';
 import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
+import { Music } from './audio/music';
 import { onSettings } from './game/settings';
 import { validateDistrict, type District, type LevelDef } from './core/levels';
 import district1 from '../levels/district-01.json';
@@ -44,23 +45,21 @@ async function boot() {
   const view = new SceneView(canvas, (css) => (tint.style.backgroundColor = css));
   let game: Game | null = null;
   let screens: Screens | null = null;
+  const music = new Music();
+  music.playHome();
   const pause = () => {
     if (!game?.isRunning || screens?.open) return;
     game.setPaused(true);
     screens?.pause();
   };
   const hud = new Hud(hudRoot, {
-    onPause: () => {
-      game?.sfx.tap();
-      pause();
-    },
+    onPause: () => pause(),
     onBooster: (id) => {
       const r = game?.useBooster(id);
       if (r === 'coins') {
         hud.boosterDenied(id);
         hud.showHint('Not enough coins yet: finish contracts to earn more.');
       }
-      game?.sfx.tap();
     },
   });
   // Build every building, outline and effect while the splash shows, so play
@@ -73,12 +72,13 @@ async function boot() {
   view.prewarmFx();
   loading(1, true);
   // Flow: title -> play (endless) or campaign -> level intro -> play -> results.
-  /** Dust cloud rises over the menu; behind it the round starts, then it clears to reveal the table. */
+  /** Dust cloud rises over the menu; behind it the round starts (with a freshly shuffled playlist), then it clears. */
   const startWithDust = (begin: () => void) => {
     game!.sfx.dust();
     void smokeTransition(() => {
       screens!.hide();
       setPlaying(true);
+      music.playGame();
       begin();
     });
   };
@@ -104,6 +104,9 @@ async function boot() {
     screens!.levelIntro(level, district, () => startWithDust(() => game!.start({ kind: 'level', level, time: district.time })));
   };
   game = new Game(view, hud, canvas, {
+    onMerge: (tierId, combo) => {
+      if (tierId >= 10 || combo >= 3) music.duck(0.35, 0.45);
+    },
     onEnd: (r) => {
       const next = r.win && r.mode.kind === 'level' ? levelAfter(r.mode.level.id) : null;
       // Let the moment land before the results card slides in.
@@ -111,26 +114,48 @@ async function boot() {
     },
   });
   screens = new Screens(hudRoot.parentElement as HTMLElement, DISTRICTS, {
-    tap: () => {
-      game!.sfx.unlock();
-      game!.sfx.tap();
-    },
+    tap: () => game!.sfx.unlock(),
     playEndless: () => startWithDust(() => game!.start({ kind: 'endless' })),
     playLevel: startLevel,
     resume: () => screens!.leave(() => game!.setPaused(false)),
     restart: () =>
       screens!.leave(() => {
         setPlaying(true);
+        music.playGame();
         game!.start(game!.currentMode);
       }),
     home: () => {
       game!.stop();
       game!.setPaused(false);
       setPlaying(false);
+      music.playHome();
       screens!.title();
     },
   });
   hudRoot.classList.add('idle');
+
+  // Audio starts on the first touch (browsers require a gesture); music joins the same context.
+  game.sfx.onUnlock((ctx) => music.attach(ctx));
+  onSettings((st) => {
+    music.setVolume('home', st.homeMusic);
+    music.setVolume('game', st.gameMusic);
+  });
+  // Every button gets a click: a soft pop, or a falling pop for back, close and home.
+  const unlock = () => game!.sfx.unlock();
+  document.addEventListener('touchend', unlock, { passive: true });
+  document.addEventListener('click', unlock);
+  document.addEventListener(
+    'pointerdown',
+    (e) => {
+      unlock();
+      const b = (e.target as Element | null)?.closest('button, .level-tile');
+      if (!b) return;
+      const label = `${b.getAttribute('aria-label') ?? ''} ${b.textContent ?? ''}`.toLowerCase();
+      if (/back|cancel|home|close/.test(label)) game!.sfx.tapBack();
+      else game!.sfx.tap();
+    },
+    { capture: true },
+  );
 
   // Size everything to the game area itself (full screen on phones, letterboxed on iPad).
   const app = document.getElementById('app') as HTMLElement;
@@ -190,6 +215,7 @@ async function boot() {
   });
   (window as unknown as { __game: Game; __view: SceneView }).__game = game;
   (window as unknown as { __view: SceneView }).__view = view;
+  (window as unknown as { __music: Music }).__music = music;
 }
 
 boot().catch((e) => {

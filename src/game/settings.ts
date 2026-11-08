@@ -3,7 +3,9 @@ import { store } from './storage';
 
 /** Player settings, persisted on the device. */
 export interface Settings {
-  sound: boolean;
+  sfxVolume: number; // 0-1
+  gameMusic: number; // 0-1
+  homeMusic: number; // 0-1
   aim: AimMode;
   calm: boolean; // less screen shake and no white flashes
   largeText: boolean;
@@ -13,13 +15,19 @@ const KEY = 'bm.settings';
 
 function load(): Settings {
   const d: Settings = {
-    sound: store.str('bm.sound', 'on') !== 'off',
+    sfxVolume: store.str('bm.sound', 'on') === 'off' ? 0 : 0.8,
+    gameMusic: 0.5,
+    homeMusic: 0.6,
     aim: store.str('bm.mode', 'slide') === 'sling' ? 'sling' : 'slide',
     calm: false,
     largeText: false,
   };
   try {
-    return { ...d, ...(JSON.parse(store.str(KEY, '{}')) as Partial<Settings>) };
+    const saved = JSON.parse(store.str(KEY, '{}')) as Partial<Settings> & { sound?: boolean };
+    // Older saves had a single on/off sound switch.
+    if (saved.sound === false && saved.sfxVolume === undefined) saved.sfxVolume = 0;
+    delete saved.sound;
+    return { ...d, ...saved };
   } catch {
     return d;
   }

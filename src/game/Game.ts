@@ -30,6 +30,7 @@ export interface EndResult {
 
 export interface GameEvents {
   onEnd(r: EndResult): void;
+  onMerge?(tier: number, combo: number): void;
 }
 
 const DT = 1 / 60;
@@ -96,13 +97,13 @@ export class Game {
   private hitstop = 0; // real seconds the physics stays frozen on a merge impact
   private lastDust = 0;
   private wasDanger = false;
-  readonly sfx = new Sfx(!settings.sound);
+  readonly sfx = new Sfx(settings.sfxVolume);
   private playMode: PlayMode = { kind: 'endless' };
   private running = false; // false behind the title and menus
   contracts: Contract[] = [];
   shotsLeft: number | null = null;
   private shotsUsed = 0;
-  private bestCombo = 0;
+  bestCombo = 0;
   private coinsEarned = 0;
   private winAt = -1; // time the level-complete celebration ends
   private obstacles: Body[] = [];
@@ -122,7 +123,7 @@ export class Game {
     this.bindInput();
     onSettings((st) => {
       this.mode = st.aim;
-      this.sfx.setMuted(!st.sound);
+      this.sfx.setVolume(st.sfxVolume);
     });
     this.hud.setCoins(progress.coins());
     this.reset();
@@ -429,7 +430,8 @@ export class Game {
     const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
     n.view.build = 0;
     const power = Math.min(3, nt / 6 + (combo - 1) * 0.3);
-    // The twins slam together first; the payoff lands on impact.
+    // The twins slam together first (with a rising whoosh); the payoff lands on impact.
+    this.sfx.mergeRise(combo);
     this.view.converge(a.view, b.view, mx, my, () => {
       const at = n.dead ? { x: mx, y: my } : this.world.pos(n.b);
       const sp = this.view.toScreen(at.x, at.y, 0.1);
@@ -442,10 +444,19 @@ export class Game {
         this.slowmo = 0.15;
         if (!settings.calm) this.hud.flash();
       }
-      this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3);
-      this.hud.showCombo(combo);
+      this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3, combo);
       this.hud.bumpScore();
-      this.sfx.merge(t.pitch, combo);
+      this.sfx.merge(nt, combo);
+      // Escalating payoff: camera punch-in on every merge, praise words and a
+      // colour burst as the chain grows.
+      if (!settings.calm) this.view.punch(0.9 + Math.min(2, (combo - 1) * 0.45) + Math.min(1, nt * 0.06));
+      if (combo >= 2) this.hud.praise(combo, t.color);
+      if (combo >= 3) {
+        this.sfx.praise(combo - 3);
+        this.view.fx.merge(at.x, at.y, 3, t.color, power + 1);
+        if (!settings.calm) this.hud.glow(t.color);
+      }
+      this.events.onMerge?.(nt, combo);
     });
 
     // Radial shove so merges cause little chain reactions.
@@ -893,7 +904,7 @@ export class Game {
       const n = this.addPiece(t0 + 1, x, y, 0, 0);
       n.view.build = BUILD_CONVERGE_SKIP;
       this.view.fx.impact(x, y, n.radius, tier(t0 + 1).color, 1.5);
-      this.sfx.merge(tier(t0 + 1).pitch, 1);
+      this.sfx.merge(t0 + 1, 1);
       this.contractBuilt(t0 + 1);
       this.refreshHud();
     } else if (id === 'crane') {

@@ -734,6 +734,15 @@ export class SceneView {
     return `${this.dpr.toFixed(2)}x · ${info.calls} draws · ${info.triangles} tris`;
   }
 
+  private punchAmp = 0;
+  private punchT = 0;
+
+  /** Camera punch-in: a quick zoom toward the table that springs back (merge impacts). */
+  punch(degrees: number) {
+    this.punchAmp = Math.max(this.punchAmp * Math.exp(-this.punchT * 9), degrees);
+    this.punchT = 0;
+  }
+
   /** Brief screen-space kick for big moments. */
   shake(amount: number) {
     this.camShake = Math.max(this.camShake, amount);
@@ -827,6 +836,17 @@ export class SceneView {
       return ok;
     });
     this.effects = alive.concat(this.effects);
+    if (this.punchAmp > 0) {
+      this.punchT += dt;
+      const k = Math.exp(-this.punchT * 9);
+      this.camera.fov = 35 - this.punchAmp * k * Math.cos(this.punchT * 14);
+      this.camera.updateProjectionMatrix();
+      if (k < 0.01) {
+        this.punchAmp = 0;
+        this.camera.fov = 35;
+        this.camera.updateProjectionMatrix();
+      }
+    }
     this.placeCamera();
     if (this.camShake > 0) {
       const px = this.camShake * 0.0025;

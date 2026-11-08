@@ -16,6 +16,7 @@ export const ICONS = {
   upgrade: svg('<path d="M12 19V6M6.5 11.5L12 6l5.5 5.5"/><path d="M5 21h14"/>'),
   crane: svg('<path d="M6 21V4h12M6 4l12 0M14 4v5"/><path d="M12 9h4v3.5a2 2 0 0 1-4 0"/><path d="M3 21h7"/>'),
   back: svg('<path d="M19 12H5.5M11 5.5L4.5 12l6.5 6.5" stroke-width="2.8"/>'),
+  music: svg('<path d="M9 18V5.5l11-2V16"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/>'),
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.3-5.4"/><path d="M4 4.5v4.3h4.3"/>'),
 };

@@ -198,7 +198,31 @@ export class Screens {
       r.append(t, control);
       return r;
     };
-    const toggle = (key: 'sound' | 'calm' | 'largeText') => {
+    // Volume slider (0-100) bound to a 0-1 setting; the label shows the value live.
+    const slider = (key: 'sfxVolume' | 'gameMusic' | 'homeMusic', label: string, icon: string) => {
+      const wrap = el('div', 'vol-row');
+      const head = el('div', 'vol-head');
+      const val = el('span', 'vol-val', `${Math.round(settings[key] * 100)}%`);
+      head.innerHTML = `${icon}<span class="set-label">${label}</span>`;
+      head.append(val);
+      const input = el('input', 'vol') as HTMLInputElement;
+      input.type = 'range';
+      input.min = '0';
+      input.max = '100';
+      input.step = '5';
+      input.value = String(Math.round(settings[key] * 100));
+      input.setAttribute('aria-label', `${label} volume`);
+      const paint = () => input.style.setProperty('--pct', `${input.value}%`);
+      paint();
+      input.oninput = () => {
+        updateSettings({ [key]: Number(input.value) / 100 });
+        val.textContent = `${input.value}%`;
+        paint();
+      };
+      wrap.append(head, input);
+      return wrap;
+    };
+    const toggle = (key: 'calm' | 'largeText') => {
       const b = el('button', `toggle ${settings[key] ? 'on' : ''}`);
       b.setAttribute('role', 'switch');
       b.setAttribute('aria-checked', String(settings[key]));
@@ -222,11 +246,12 @@ export class Screens {
       seg.append(b);
     }
     card.append(
-      row('Sound', 'Effects and chimes', toggle('sound')),
+      slider('sfxVolume', 'Sound effects', ICONS.soundOn),
+      slider('gameMusic', 'Game music', ICONS.music),
+      slider('homeMusic', 'Home music', ICONS.home),
       row('Aiming', 'Slide: fixed power. Sling: pull down for power.', seg),
       row('Calm effects', 'No screen shake or white flashes', toggle('calm')),
       row('Large text', 'Bigger labels and numbers', toggle('largeText')),
-      el('p', 'note', 'Music arrives in a later update.'),
       button('Done', 'big green', back),
     );
     this.show(card);

@@ -62,3 +62,15 @@ describe('boosters', () => {
     expect(boosterPrice('upgrade', 2)).toBeGreaterThan(boosterPrice('upgrade', 1));
   });
 });
+
+describe('music playlist', () => {
+  it('shuffles every track exactly once and never repeats at the seam', async () => {
+    const { shuffle, GAME_TRACKS } = await import('../src/audio/music');
+    for (let i = 0; i < 200; i++) {
+      const a = shuffle(GAME_TRACKS);
+      expect([...a].sort()).toEqual([...GAME_TRACKS].sort());
+      const b = shuffle(GAME_TRACKS, a[a.length - 1]);
+      expect(b[0]).not.toBe(a[a.length - 1]);
+    }
+  });
+});

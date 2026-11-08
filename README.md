@@ -44,7 +44,7 @@ To install on iPhone: open the site in Safari → Share → **Add to Home Screen
 | `src/physics` | Rapier 2D table world (the game is simulated on the table plane and drawn in 3D). |
 | `src/render` | Three.js scene, camera fit, procedural textures, merge effects, the construction site (`site.ts`) and time-of-day lighting (`lighting.ts`). |
 | `src/models` | One file per tier (`tier01.ts` … `tier18.ts`) building the model in code, plus the modelling kit and shared materials. |
-| `src/audio` | Procedural Web Audio sound effects. |
+| `src/audio` | Procedural Web Audio sound effects (`sfx.ts`) and the music player with the shuffled playlist (`music.ts`). |
 | `scripts/bake.mjs` | Bakes thumbnails (`public/thumbs`), `.glb` exports (`art/models`) and the lineup sheet. |
 | `src/ui` | DOM HUD: score, NEXT card, evolution bar, combo stamp, game-over card. |
 | `src/game` | The game loop that ties the above together. |

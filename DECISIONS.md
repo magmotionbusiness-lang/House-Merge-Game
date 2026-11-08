@@ -188,3 +188,30 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
   - **Preview:** a pulsing footprint ring shows exactly where it will land, green when it fits and red when there's no room. The spot snaps to the nearest free place, never overlapping another building or a scaffold.
   - **Drop:** let go to set it down with a puff of dust. Letting go without moving keeps it lifted, so you can drag again. Cancel puts it back.
   - **Charge:** coins are only taken on a successful drop.
+
+## Phase 6.4: Music, merge "dopamine" pass, UI sounds (playtest feedback)
+
+- **Music** (owner-supplied tracks in `public/audio`):
+  - **Tracks:** a looping home track on the title and menus, and a playlist of gameplay tracks.
+  - **Shuffle:** every round (including restarts and the next level) starts a freshly shuffled order from its first track. When the order runs out mid-round, a new shuffle continues, never repeating the track that just ended.
+  - **Switching:** home and game music cross-fade on the way in and out of play.
+  - **Plumbing:** tracks stream through `<audio>` elements routed into Web Audio gain nodes, because iOS ignores `audio.volume`. They pause when the app is hidden.
+  - **Ducking:** big merges (tier 10+ or combo 3+) duck the music by 35% for 0.45 s, as the brief asks.
+  - **Track 4:** the supplied `4.mp3` is byte-identical to `2.mp3`, so the playlist uses the four unique tracks until the real track 4 arrives.
+- **Volume sliders in Settings:** sound effects, game music and home music (0-100%). They apply live and are saved. They replace the old on/off sound switch, and old saves with sound off migrate to 0% effects.
+- **Why Block Blast-style clears feel so good:**
+  - **Instant, layered feedback:** an impact, a reward and a sparkle all land in the same frame.
+  - **Escalation:** each consecutive clear sounds higher, looks bigger and is praised louder, so streaks feel like climbing.
+  - **Words of praise** ("Great!", "Amazing!") that name the achievement.
+  - **Impact frames:** a pause, a shake and a zoom.
+  - **Saturated colour bursts:** confetti and screen glow on big moments.
+  - **Short loops and low friction:** frequent, variable rewards that invite "one more".
+- **What the merge does now:**
+  - **Sound:** a rising whoosh as the twins rush together. On impact, a low thump and click, then a major chord with bell overtones and a short reverb, then a fast sparkle arpeggio. Each combo step climbs one note up the major scale, so chains play a rising melody. Tier 9+ adds a sub boom, and combos of 3+ add a bright chord stab with a shimmer cascade.
+  - **Visuals:**
+    - a camera punch-in (a quick zoom that springs back) on every merge, growing with combo and tier
+    - praise words from combo 2 ("Nice!", "Great!", "Awesome!", "Amazing!", "Incredible!", "Unbelievable!") with "COMBO xN", bouncing in larger and in hotter colours as the chain grows, rainbow at 7+
+    - from combo 3, a confetti burst and a coloured glow pulsing in from the screen edges
+    - score numbers that grow with the combo and turn rainbow at 4+
+  - **Calm effects:** this setting removes the shake, punch and glow.
+- **UI sounds:** every button, tile and booster plays a soft rising pop on press. Back, cancel, close and home play a falling pop instead. This is handled in one place, so new buttons get it automatically.

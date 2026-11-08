@@ -1570,3 +1570,161 @@ body {
   flex: 1;
   text-align: right;
 }
+
+/* ---------- volume sliders ---------- */
+.vol-row {
+  padding: 10px 2px 12px;
+  border-bottom: 1.5px dashed rgba(61, 38, 20, 0.2);
+}
+.vol-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--ink);
+}
+.vol-head svg {
+  width: 20px;
+  height: 20px;
+}
+.vol-val {
+  margin-left: auto;
+  font: 900 17px/1 var(--display);
+  color: #9a6a00;
+}
+input.vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  border-radius: 8px;
+  border: 2.5px solid var(--hud-ink);
+  background: linear-gradient(90deg, #4fc35b var(--pct, 50%), #e6dac4 var(--pct, 50%));
+  outline: none;
+  margin: 0;
+}
+input.vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, #ffe9b8 70%);
+  border: 3px solid var(--hud-ink);
+  box-shadow: 0 3px 0 var(--hud-ink);
+  cursor: pointer;
+}
+input.vol::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--hud-ink);
+}
+
+/* ---------- combo praise (dopamine layer) ---------- */
+.praise {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+}
+.praise.go {
+  animation: praise-pop 1.15s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+.praise-word {
+  font: 900 calc(54px * var(--s, 1)) / 0.95 var(--display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #fff;
+  -webkit-text-stroke: 3px #3d2614;
+  paint-order: stroke fill;
+  text-shadow: 0 5px 0 #3d2614, 0 10px 24px rgba(0, 0, 0, 0.4), 0 0 30px var(--tint);
+  white-space: nowrap;
+}
+.praise[data-level='2'] .praise-word {
+  color: #b9ff6a;
+}
+.praise[data-level='3'] .praise-word {
+  color: #6fe7ff;
+}
+.praise[data-level='4'] .praise-word {
+  color: #ffd84d;
+}
+.praise[data-level='5'] .praise-word {
+  color: #ff9a3d;
+}
+.praise[data-level='6'] .praise-word {
+  color: #ff6fd8;
+}
+.praise[data-level='7'] .praise-word {
+  background: linear-gradient(90deg, #ff6b6b, #ffd84d, #6bff95, #6fd6ff, #c48bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 3px #3d2614;
+}
+.praise-combo {
+  margin-top: 4px;
+  font: 900 18px/1 var(--display);
+  letter-spacing: 0.22em;
+  color: #fff;
+  text-shadow: 0 2px 0 #3d2614, 0 0 10px rgba(0, 0, 0, 0.5);
+}
+@keyframes praise-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2) rotate(-12deg);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.25) rotate(4deg);
+  }
+  24% {
+    transform: translate(-50%, -50%) scale(0.94) rotate(-2deg);
+  }
+  34% {
+    transform: translate(-50%, -50%) scale(1.04) rotate(0deg);
+  }
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -62%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -95%) scale(0.9);
+  }
+}
+.combo-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 70px 18px var(--tint), inset 0 0 0 4px rgba(255, 255, 255, 0.6);
+}
+.combo-glow.go {
+  animation: combo-glow 0.7s ease-out;
+}
+@keyframes combo-glow {
+  0% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.float.rainbow {
+  background: linear-gradient(90deg, #ffd84d, #ff9a3d, #ff6fd8, #6fd6ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.5px #12345a;
+  text-shadow: none;
+}
+/* The old "APPROVED" stamp is replaced by the praise popup. */
+.combo {
+  display: none;
+}

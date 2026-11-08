@@ -330,17 +330,39 @@ export class Hud {
     }
   }
 
-  showCombo(n: number) {
-    if (n < 2) return;
-    this.combo.textContent = `APPROVED ×${n}`;
-    this.combo.style.setProperty('--s', String(1 + Math.min(n, 8) * 0.08));
-    this.combo.classList.remove('stamp');
-    void this.combo.offsetWidth;
-    this.combo.classList.add('stamp');
+  private praiseEl = el('div', 'praise');
+  private glowEl = el('div', 'combo-glow');
+
+  /**
+   * Praise word for a combo: it grows and changes colour as the chain gets
+   * longer, punches in with an elastic bounce and floats away.
+   */
+  praise(combo: number, color: string) {
+    if (!this.praiseEl.isConnected) this.root.append(this.glowEl, this.praiseEl);
+    const words = ['', '', 'Nice!', 'Great!', 'Awesome!', 'Amazing!', 'Incredible!', 'Unbelievable!'];
+    const word = words[Math.min(combo, words.length - 1)];
+    this.praiseEl.replaceChildren(el('div', 'praise-word', word), el('div', 'praise-combo', `COMBO ×${combo}`));
+    this.praiseEl.style.setProperty('--s', String(0.85 + Math.min(combo, 8) * 0.1));
+    this.praiseEl.style.setProperty('--tint', color);
+    this.praiseEl.dataset.level = String(Math.min(combo, 7));
+    this.praiseEl.classList.remove('go');
+    void this.praiseEl.offsetWidth;
+    this.praiseEl.classList.add('go');
   }
 
-  floatText(x: number, y: number, text: string, big = false) {
+  /** A coloured glow pulsing in from the screen edges on big combos. */
+  glow(color: string) {
+    if (!this.glowEl.isConnected) this.root.append(this.glowEl, this.praiseEl);
+    this.glowEl.style.setProperty('--tint', color);
+    this.glowEl.classList.remove('go');
+    void this.glowEl.offsetWidth;
+    this.glowEl.classList.add('go');
+  }
+
+  floatText(x: number, y: number, text: string, big = false, combo = 1) {
     const l = el('div', big ? 'float big' : 'float', text);
+    if (combo >= 2) l.style.fontSize = `${22 + Math.min(combo, 7) * 4}px`;
+    if (combo >= 4) l.classList.add('rainbow');
     l.style.left = `${x}px`;
     l.style.top = `${y}px`;
     this.labels.append(l);
