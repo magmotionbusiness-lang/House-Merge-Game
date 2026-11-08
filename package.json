@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "models:bake": "node scripts/bake.mjs"
   },
   "dependencies": {
     "@dimforge/rapier2d-compat": "^0.21.0",

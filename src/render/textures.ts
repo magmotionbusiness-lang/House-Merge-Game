@@ -114,32 +114,6 @@ export function hazardTexture(): THREE.Texture {
   return tex;
 }
 
-const capCache = new Map<number, THREE.Texture>();
-/** Greybox top cap: tier colour with its number, readable at thumbnail size. */
-export function capTexture(tierId: number, color: string): THREE.Texture {
-  const hit = capCache.get(tierId);
-  if (hit) return hit;
-  const { c, ctx } = canvas(128, 128);
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, 128, 128);
-  ctx.fillStyle = 'rgba(255,255,255,0.12)';
-  ctx.beginPath();
-  ctx.arc(64, 64, 52, 0, Math.PI * 2);
-  ctx.fill();
-  const light = new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }).l > 0.6;
-  ctx.fillStyle = light ? '#1b2333' : '#ffffff';
-  ctx.font = '900 76px "Big Shoulders Display", system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(String(tierId), 64, 70);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.center.set(0.5, 0.5);
-  tex.rotation = Math.PI / 2;
-  capCache.set(tierId, tex);
-  return tex;
-}
-
 /** Soft radial shadow used under every piece. */
 export function blobTexture(): THREE.Texture {
   const { c, ctx } = canvas(64, 64);

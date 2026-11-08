@@ -9,6 +9,9 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 };
 
+/** Baked 3D thumbnail for a tier (see `npm run models:bake`). */
+export const thumbUrl = (tierId: number) => `${import.meta.env.BASE_URL}thumbs/tier-${String(tierId).padStart(2, '0')}.png`;
+
 function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
   const c = el('div', `chip chip-${size}`);
   if (tierId === null) {
@@ -17,8 +20,12 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
   } else {
     const t = tier(tierId);
     c.style.setProperty('--c', t.color);
-    c.textContent = String(tierId);
-    if (tierId >= 9 && tierId !== 12) c.classList.add('dark-text');
+    c.title = t.name;
+    const img = document.createElement('img');
+    img.src = thumbUrl(tierId);
+    img.alt = t.name;
+    img.draggable = false;
+    c.append(img);
   }
   return c;
 }

@@ -32,3 +32,16 @@ Choices made where the brief was ambiguous or a number felt wrong in play.
 
 - **Architectural typography** (playtest request): Big Shoulders Display for numbers and titles, Barlow Condensed for UI labels, Architects Daughter for blueprint annotations such as building names. Fonts are bundled with the game rather than loaded from Google, so they work offline, in the Home Screen app and in the future App Store build. Only the weights in use are included (~100 KB).
 - **Icons are inline SVG line drawings**, not emoji, so they look the same on every device and match the drafting style.
+
+## Phase 3: Models
+
+- **All 18 tiers are built in code** with a small modelling kit (`src/models/kit.ts`): rounded boxes, gable and hip roofs, frustums, extrusions and tori, all merged into one mesh per material. Shared materials use near-white procedural textures (brick courses, roof tiles, planks, window grids) tinted by vertex colour, so 11 materials cover every building. Each building costs 1-6 draw calls and 340-1,500 triangles (see `docs/tier-stats.md`), well within the brief's budgets.
+- **Token base disc.** Every building stands on a thin disc in its tier colour. It shows the true collider size, keeps the colour readable when the model is small or seen from above, and makes the table read like a board game.
+- **Brick Stack is criss-crossed** rather than three bricks aligned: aligned, it was indistinguishable from the single Brick in grayscale.
+- **Signature effects:** chimney smoke (Cozy Cottage), a sway for the Desert Needle's heat shimmer, a pulsing energy core and spinning ring (Hero HQ), a bobbing island with scrolling waterfalls (Sky Citadel), and a scrolling light beam with a climbing pod (Orbital Elevator). A true heat-distortion shader was skipped: it needs a full-screen pass, which costs too much on phones.
+- **Glossy look:** a soft studio environment map (generated once at start) gives glass, steel and gold their reflections without real-time lights.
+- **Merge wireframe** now traces the real building's edges, drawn bottom-up, instead of a cylinder outline. The white flash is a flat-white copy of the model.
+- **Pieces spin with physics** now that they have no numbers to keep upright.
+- **Thumbnails are baked, not rendered at start-up**, so the game opens faster. `.glb` exports go to `art/models/` (not shipped with the game, to keep the download small).
+- **Instancing deferred.** With 3-4 draw calls per building and typically under 30 pieces on the table, a full table stays near 100 draw calls. Instancing would add complexity to the per-piece build-in and flash effects, so it waits for the polish pass, and only if real devices need it.
+- **Tall late tiers** (13+) can reach above the back rail. The camera ease-back for them is part of Phase 4 (Scene).

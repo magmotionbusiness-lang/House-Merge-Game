@@ -635,3 +635,31 @@ body {
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* ---------- tier thumbnails ---------- */
+.chip {
+  position: relative;
+}
+.chip img {
+  position: absolute;
+  width: 125%;
+  height: 125%;
+  left: -12.5%;
+  top: -22%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+}
+.chip-lg {
+  width: 50px;
+  height: 50px;
+}
+.chip-lg img {
+  width: 140%;
+  height: 140%;
+  left: -20%;
+  top: -35%;
+}
+.next-slot {
+  height: 54px;
+}

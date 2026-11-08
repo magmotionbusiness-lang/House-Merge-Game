@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { tier } from '../core/tiers';
-import { blobTexture, blueprintTexture, capTexture, dashTexture, dotTexture, hazardTexture } from './textures';
+import { blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { animateMaterials } from '../models/materials';
+import { createModel, modelSize, tickAnims, wireframe, type ModelAnims } from '../models';
 import { ParticleFx, type Effect } from './fx';
 
 const W = CONFIG.tableWidth;
@@ -14,12 +17,13 @@ const toWorld = (x: number, y: number, h = 0) => new THREE.Vector3(x, h, -y);
 
 export interface PieceView {
   tier: number;
-  group: THREE.Group;
-  body: THREE.Mesh;
-  side: THREE.MeshStandardMaterial;
+  group: THREE.Group; // positioned on the table
+  body: THREE.Group; // the building model (scaled to world size)
+  anims: ModelAnims;
   radius: number;
   height: number;
   flash: number;
+  flashObj: THREE.Object3D | null;
   pop: number; // seconds since spawn-pop started; <0 = no pop
   build: number; // seconds into the merge build-in sequence; <0 = none
   wire: THREE.LineSegments | null;
@@ -68,9 +72,6 @@ export class SceneView {
     opacity: 0.55,
   });
   private blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-  private pieceGeo = new Map<number, THREE.BufferGeometry>();
-  private wireGeo = new Map<number, THREE.BufferAttribute>();
-  private capMat = new Map<number, THREE.MeshStandardMaterial>();
   readonly fx: ParticleFx;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -92,6 +93,11 @@ export class SceneView {
     sun.target.position.set(0, 0, -L / 2);
     this.scene.add(sun, sun.target);
 
+    // Soft studio reflections so glass, steel and gold read as glossy toys.
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.55;
+    pmrem.dispose();
     this.buildTable();
     this.fx = new ParticleFx(this.scene, (e) => this.effects.push(e));
 
@@ -247,97 +253,72 @@ export class SceneView {
 
   // ---------------------------------------------------------------- pieces
 
-  private pieceGeometry(tierId: number) {
-    let geo = this.pieceGeo.get(tierId);
-    if (!geo) {
-      const t = tier(tierId);
-      const r = pieceRadius(tierId);
-      const h = Math.max(0.035, t.height * CONFIG.heightScale);
-      const taper = tierId >= 11 ? 0.8 : 1;
-      geo = new THREE.CylinderGeometry(r * taper, r, h, 32);
-      geo.translate(0, h / 2, 0);
-      // The underside is never visible: drop it to save a draw call per piece.
-      geo.groups = geo.groups.filter((g) => g.materialIndex !== 2);
-      this.pieceGeo.set(tierId, geo);
-    }
-    return geo;
-  }
-
-  /** Blueprint wireframe: base ring, uprights, top ring and a cross, in drawing order. */
-  private wireAttribute(tierId: number, r: number, h: number) {
-    let attr = this.wireGeo.get(tierId);
-    if (!attr) {
-      const rt = r * (tierId >= 11 ? 0.8 : 1) * 1.05;
-      const rb = r * 1.05;
-      const pts: number[] = [];
-      const seg = 28;
-      const ring = (rad: number, y: number) => {
-        for (let i = 0; i < seg; i++) {
-          const a0 = (i / seg) * Math.PI * 2;
-          const a1 = ((i + 1) / seg) * Math.PI * 2;
-          pts.push(Math.cos(a0) * rad, y, Math.sin(a0) * rad, Math.cos(a1) * rad, y, Math.sin(a1) * rad);
-        }
-      };
-      ring(rb, 0.002);
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        pts.push(Math.cos(a) * rb, 0.002, Math.sin(a) * rb, Math.cos(a) * rt, h, Math.sin(a) * rt);
-      }
-      ring(rt, h);
-      pts.push(-rt, h, 0, rt, h, 0, 0, h, -rt, 0, h, rt);
-      attr = new THREE.Float32BufferAttribute(pts, 3);
-      this.wireGeo.set(tierId, attr);
-    }
-    return attr;
-  }
-
   createPiece(tierId: number): PieceView {
-    const t = tier(tierId);
     const r = pieceRadius(tierId);
-    const h = Math.max(0.035, t.height * CONFIG.heightScale);
-    const side = new THREE.MeshStandardMaterial({
-      color: t.color,
-      roughness: 0.45,
-      metalness: t.era >= 3 ? 0.15 : 0,
-      emissive: new THREE.Color(tierId === 18 ? '#bfe9ff' : '#000000'),
-      emissiveIntensity: tierId === 18 ? 0.6 : 1,
-    });
-    let top = this.capMat.get(tierId);
-    if (!top) {
-      top = new THREE.MeshStandardMaterial({ map: capTexture(tierId, t.color), roughness: 0.4 });
-      this.capMat.set(tierId, top);
-    }
-    const body = new THREE.Mesh(this.pieceGeometry(tierId), [side, top]);
+    const { height } = modelSize(tierId);
+    const { group: body, anims } = createModel(tierId);
     const group = new THREE.Group();
     // Cheap blob shadow instead of a real-time shadow map (much faster on phones).
     const blob = new THREE.Mesh(this.blobGeo, this.blobMat);
-    const bs = r * 2.5 + h * 0.6;
+    const bs = r * 2.6 + Math.min(height, 0.3) * 0.5;
     blob.scale.set(bs, 1, bs);
-    blob.position.set(r * 0.2 + h * 0.25, 0.0015, -h * 0.15);
+    blob.position.set(r * 0.2 + Math.min(height, 0.3) * 0.2, 0.0015, -Math.min(height, 0.3) * 0.12);
     blob.renderOrder = 1;
     group.add(blob, body);
     this.scene.add(group);
-    return { tier: tierId, group, body, side, radius: r, height: h, flash: 0, pop: -1, build: -1, wire: null };
+    return { tier: tierId, group, body, anims, radius: r, height, flash: 0, flashObj: null, pop: -1, build: -1, wire: null };
   }
 
   removePiece(p: PieceView) {
     this.scene.remove(p.group);
-    p.side.dispose();
     this.dropWire(p);
+    this.dropFlash(p);
   }
 
   private dropWire(p: PieceView) {
     if (!p.wire) return;
-    p.group.remove(p.wire);
+    p.body.remove(p.wire);
     p.wire.geometry.dispose();
     (p.wire.material as THREE.Material).dispose();
     p.wire = null;
+  }
+
+  /** White silhouette flash: a clone of the model drawn in flat white, fading out. */
+  private startFlash(p: PieceView, dur: number) {
+    this.dropFlash(p);
+    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 1, depthWrite: false });
+    const ghost = p.body.clone();
+    ghost.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) m.material = mat;
+      if ((o as THREE.LineSegments).isLineSegments) o.visible = false;
+    });
+    ghost.scale.multiplyScalar(1.03);
+    ghost.renderOrder = 6;
+    p.group.add(ghost);
+    p.flashObj = ghost;
+    p.flash = dur;
+  }
+
+  private dropFlash(p: PieceView) {
+    if (!p.flashObj) return;
+    p.group.remove(p.flashObj);
+    let mat: THREE.Material | null = null;
+    p.flashObj.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) mat = m.material as THREE.Material;
+    });
+    (mat as THREE.Material | null)?.dispose();
+    p.flashObj = null;
+    p.flash = 0;
   }
 
   /** The two merging pieces slide into their midpoint and vanish. */
   converge(a: PieceView, b: PieceView, x: number, y: number) {
     const starts = [a, b].map((v) => v.group.position.clone());
     const target = toWorld(x, y);
+    this.startFlash(a, BUILD_CONVERGE + 0.02);
+    this.startFlash(b, BUILD_CONVERGE + 0.02);
     let t = 0;
     this.effects.push({
       update: (dt) => {
@@ -347,8 +328,6 @@ export class SceneView {
         [a, b].forEach((v, i) => {
           v.group.position.lerpVectors(starts[i], target, e);
           v.group.scale.setScalar(1 - 0.25 * e);
-          const k = e;
-          v.side.emissive.setRGB(k, k, k);
         });
         return u < 1;
       },
@@ -359,10 +338,10 @@ export class SceneView {
     });
   }
 
-  /** Greybox pieces stay upright so their numbers read; `tilt` is a small aiming wobble. */
-  placePiece(p: PieceView, x: number, y: number, tilt = 0) {
+  /** `yaw` is the physics spin on the table; `tilt` is a small aiming wobble. */
+  placePiece(p: PieceView, x: number, y: number, tilt = 0, yaw = 0) {
     p.group.position.set(x, 0, -y);
-    p.group.rotation.z = tilt;
+    p.group.rotation.set(0, yaw, tilt);
   }
 
   /** Squash-and-stretch pop: 0.6 -> 1.18 -> 0.95 -> 1.0 over 0.32 s. */
@@ -397,12 +376,15 @@ export class SceneView {
         p.group.scale.set(1, 1, 1);
       }
     }
-    if (p.flash > 0) {
+    if (p.flashObj) {
       p.flash = Math.max(0, p.flash - dt);
-      const k = p.flash / 0.16;
-      p.side.emissive.setRGB(k, k, k);
-      if (p.flash === 0) p.side.emissive.set(p.tier === 18 ? '#bfe9ff' : '#000000');
+      p.flashObj.traverse((o) => {
+        const m = o as THREE.Mesh;
+        if (m.isMesh) (m.material as THREE.MeshBasicMaterial).opacity = Math.min(1, p.flash / 0.12);
+      });
+      if (p.flash === 0) this.dropFlash(p);
     }
+    tickAnims(p.anims, this.time);
   }
 
   private animateBuild(p: PieceView, dt: number) {
@@ -416,26 +398,30 @@ export class SceneView {
     p.group.visible = true;
     if (!p.wire) {
       const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', this.wireAttribute(p.tier, p.radius, p.height));
+      geo.setAttribute('position', wireframe(p.tier));
       const mat = new THREE.LineBasicMaterial({ color: '#e6f6ff', transparent: true, opacity: 1, depthTest: false });
       p.wire = new THREE.LineSegments(geo, mat);
       p.wire.renderOrder = 5;
-      p.group.add(p.wire);
+      p.body.add(p.wire);
     }
-    const count = this.wireAttribute(p.tier, p.radius, p.height).count;
+    const count = wireframe(p.tier).count;
     const wireU = clamp01((t - BUILD_CONVERGE) / (BUILD_WIRE - BUILD_CONVERGE));
     p.wire.geometry.setDrawRange(0, Math.max(2, Math.floor((wireU * count) / 2) * 2));
     const fillU = clamp01((t - BUILD_WIRE) / (BUILD_FILL - BUILD_WIRE));
-    p.body.scale.y = Math.max(0.001, easeOut(fillU));
-    p.body.visible = fillU > 0;
+    // Fill solid from the bottom up; the wireframe (a child of the body) is kept at full height.
+    const d = modelSize(p.tier).diameter;
+    const fy = Math.max(0.001, easeOut(fillU));
+    p.body.scale.set(d, d * fy, d);
+    p.wire.scale.set(1, 1 / fy, 1);
+    for (const c of p.body.children) if (c !== p.wire) c.visible = fillU > 0;
     const pop = this.popScale(t - BUILD_CONVERGE);
     p.group.scale.set(pop, 1, pop);
-    if (before < BUILD_WIRE && t >= BUILD_WIRE) p.flash = 0.16;
+    if (before < BUILD_WIRE && t >= BUILD_WIRE) this.startFlash(p, 0.16);
     (p.wire.material as THREE.LineBasicMaterial).opacity = 1 - clamp01((t - BUILD_FILL) / (BUILD_END - BUILD_FILL));
     if (t >= BUILD_END) {
       p.build = -1;
-      p.body.scale.y = 1;
-      p.body.visible = true;
+      p.body.scale.setScalar(d);
+      for (const c of p.body.children) c.visible = true;
       p.group.scale.set(1, 1, 1);
       this.dropWire(p);
     }
@@ -520,6 +506,7 @@ export class SceneView {
   update(dt: number) {
     this.adaptQuality(dt);
     this.time += dt;
+    animateMaterials(this.time);
     this.effects = this.effects.filter((e) => {
       const alive = e.update(dt);
       if (!alive) e.dispose();
