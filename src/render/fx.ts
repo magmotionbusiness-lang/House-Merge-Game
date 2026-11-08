@@ -66,7 +66,7 @@ export class ParticleFx {
     return m;
   }
   private solid(color: string) {
-    return this.mat('s' + color, () => new THREE.MeshStandardMaterial({ color, roughness: 0.6 }));
+    return this.mat('s' + color, () => new THREE.MeshLambertMaterial({ color }));
   }
   private glow(color: string) {
     return this.mat(

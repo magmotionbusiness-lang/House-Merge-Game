@@ -120,3 +120,21 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 ## Phase 5.1: Camera angle (playtest feedback)
 
 - **The table lies flatter and sits lower:** the camera tilt went from 55° to 47°, and 5% of the screen height is kept free above the back rail. More of the painted site shows above the table, and the contract tickets no longer overlap the back of the table. 42° was also tried, but it made the back row too small to read. Both values live in `src/core/config.ts` (`cameraTilt`, `topGap`).
+
+## Phase 5.2: HD rendering and a clean first impression (playtest feedback)
+
+- **Why it looked pixelated:**
+  - **Resolution got stuck low:** the adaptive resolution reacted to the hitches of start-up (when models were built) and dropped to 1x, then never recovered.
+  - **No anti-aliasing:** edge smoothing was off on Retina screens.
+  - **Low-resolution textures:** the textures were 128 px per surface.
+- **True 1080p:** the game now renders at least 1080 physical pixels across (about 2.8x on an iPhone), capped at the screen's own density.
+- **Edge smoothing (MSAA) always on.** Apple's tile-based GPUs resolve it almost for free.
+- **Quality floor and recovery:** adaptive resolution never drops below 2x. It ignores the first seconds and screen transitions, uses a trimmed 2 s average so single hitches don't count, and steps back up after 6 s of smooth frames.
+- **HD textures:** every canvas texture is drawn at 2x (building atlas 1024 px with 256 px per surface; blueprint sheet 2048 px wide), with 16x anisotropic filtering so the tilted table stays sharp to the back rail.
+- **Loading screen:** it is part of the page itself, so it appears instantly, before the game code finishes downloading. It shows the painted site, the builder logo floating, and a progress bar. While it shows, every building, outline, wireframe and merge effect is built and its shaders are compiled, one per frame, so the game never stutters afterwards.
+- **Title and transitions:**
+  - **Title:** the camera floats in a higher "showcase" view with a slow sway, and the title buttons pop in one after another.
+  - **Play:** the menu card drops away, the camera swoops down into the play view, and the HUD slides in from the top and bottom in a staggered sequence.
+  - **Home:** the camera glides back up.
+  - **Reduced motion:** the system's "Reduce Motion" setting turns the HUD entrance and the logo float off.
+- **The painted backdrop is 941 x 1672 px**, a little under an iPhone's 1170 x 2532. A higher-resolution export of the same painting would make it as sharp as the 3D.

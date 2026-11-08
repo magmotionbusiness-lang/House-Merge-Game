@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 
+/** Texture supersampling: canvases are drawn at this multiple of their logical size. */
+const HD = 2;
+
 function canvas(w: number, h: number) {
   const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
+  c.width = w * HD;
+  c.height = h * HD;
   const ctx = c.getContext('2d')!;
+  ctx.scale(HD, HD);
   return { c, ctx };
 }
 
@@ -13,9 +17,9 @@ function canvas(w: number, h: number) {
 export function blueprintTexture(): THREE.Texture {
   const W = CONFIG.tableWidth;
   const L = CONFIG.tableLength;
-  const px = 768;
-  const { c, ctx } = canvas(px, Math.round((px * L) / W));
-  const H = c.height;
+  const px = 1024;
+  const H = Math.round((px * L) / W);
+  const { c, ctx } = canvas(px, H);
   ctx.fillStyle = '#1d4e89';
   ctx.fillRect(0, 0, px, H);
 
@@ -141,7 +145,7 @@ export function blueprintTexture(): THREE.Texture {
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
+  tex.anisotropy = 16;
   return tex;
 }
 

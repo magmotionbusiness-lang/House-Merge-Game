@@ -26,15 +26,20 @@ export type MatKey =
 const INK = 'rgba(40,30,25,0.55)';
 const INK_SOFT = 'rgba(40,30,25,0.28)';
 
+/** Building textures are drawn at 2x their logical size for crisp HD detail. */
+const HD = 2;
+
 function canvasTex(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void, srgb = true) {
   const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  draw(c.getContext('2d')!);
+  c.width = w * HD;
+  c.height = h * HD;
+  const ctx = c.getContext('2d')!;
+  ctx.scale(HD, HD);
+  draw(ctx);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = 16;
   return t;
 }
 
@@ -273,8 +278,8 @@ function toonRamp() {
  * building's textured and plain parts share a single material and draw call.
  * A per-vertex `atlas` rect tells the shader which cell to tile.
  */
-const CELL = 128;
-const ATLAS_SIZE = 512;
+const CELL = 256;
+const ATLAS_SIZE = 1024;
 type Cell = [col: number, row: number];
 export const ATLAS_CELLS: Partial<Record<MatKey, Cell>> = {
   matte: [0, 0],
@@ -292,7 +297,7 @@ export const ATLAS_CELLS: Partial<Record<MatKey, Cell>> = {
 export function atlasRect(mat: MatKey): [number, number, number, number] | null {
   const cell = ATLAS_CELLS[mat];
   if (!cell) return null;
-  const inset = 3;
+  const inset = 4;
   const u = (cell[0] * CELL + inset) / ATLAS_SIZE;
   // Canvas rows go down; texture v goes up (flipY).
   const v = 1 - ((cell[1] + 1) * CELL - inset) / ATLAS_SIZE;
@@ -330,7 +335,7 @@ function buildAtlas(emissive: boolean) {
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
+  t.anisotropy = 16;
   return t;
 }
 

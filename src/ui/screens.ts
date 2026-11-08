@@ -78,12 +78,26 @@ export class Screens {
     this.current = null;
   }
 
+  /** Animates the current screen out, then runs `then` (used when play starts). */
+  leave(then: () => void) {
+    const cur = this.current;
+    this.current = null;
+    if (!cur) {
+      then();
+      return;
+    }
+    cur.classList.add('leaving');
+    cur.style.pointerEvents = 'none';
+    window.setTimeout(() => cur.remove(), 320);
+    window.setTimeout(then, 120);
+  }
+
   // ---------------------------------------------------------------- title
 
   title() {
     const card = el('div', 'title-card');
     const logo = el('img', 'title-logo') as HTMLImageElement;
-    logo.src = `${import.meta.env.BASE_URL}icon-512.png`;
+    logo.src = `${import.meta.env.BASE_URL}logo.webp`;
     logo.alt = '';
     const name = el('h1', 'title-name');
     name.innerHTML = 'BLUEPRINT<br>MERGE';

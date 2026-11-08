@@ -702,10 +702,7 @@ body {
 }
 
 /* ---------- painted backdrop ---------- */
-html,
-body {
-  background: #2f6fd0;
-}
+
 #bg {
   position: absolute;
   inset: 0;
@@ -1351,4 +1348,77 @@ body {
 .settings .btn.big {
   width: 100%;
   margin-top: 14px;
+}
+
+/* ---------- transitions: screens out, HUD in ---------- */
+.screen.leaving {
+  animation: screen-out 0.3s ease forwards;
+}
+.screen.leaving > * {
+  animation: card-out 0.3s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+@keyframes screen-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes card-out {
+  to {
+    transform: translateY(24px) scale(0.9);
+    opacity: 0;
+  }
+}
+#hud.enter .top-left {
+  animation: hud-drop 0.6s 0.25s cubic-bezier(0.25, 1.4, 0.45, 1) both;
+}
+#hud.enter .tickets {
+  animation: hud-drop 0.6s 0.4s cubic-bezier(0.25, 1.4, 0.45, 1) both;
+}
+#hud.enter .top-right {
+  animation: hud-drop 0.6s 0.32s cubic-bezier(0.25, 1.4, 0.45, 1) both;
+}
+#hud.enter .hud-bottom {
+  animation: hud-rise 0.6s 0.45s cubic-bezier(0.25, 1.4, 0.45, 1) both;
+}
+@keyframes hud-drop {
+  from {
+    transform: translateY(-140%);
+    opacity: 0;
+  }
+}
+@keyframes hud-rise {
+  from {
+    transform: translateY(160%);
+    opacity: 0;
+  }
+}
+/* Title: buttons arrive one after another. */
+.title-card .menu > * {
+  animation: card-in 0.45s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+.title-card .menu > :nth-child(1) {
+  animation-delay: 0.18s;
+}
+.title-card .menu > :nth-child(2) {
+  animation-delay: 0.26s;
+}
+.title-card .menu > :nth-child(3) {
+  animation-delay: 0.34s;
+}
+.title-logo {
+  animation: logo-float 3s ease-in-out 0.6s infinite;
+}
+@keyframes logo-float {
+  50% {
+    transform: translateY(-6px) rotate(-1.5deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #hud.enter .top-left,
+  #hud.enter .tickets,
+  #hud.enter .top-right,
+  #hud.enter .hud-bottom,
+  .title-logo {
+    animation: none;
+  }
 }

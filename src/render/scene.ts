@@ -84,12 +84,11 @@ export class SceneView {
   private tallTarget = 0;
 
   constructor(canvas: HTMLCanvasElement, onTint: (css: string) => void = () => undefined) {
-    // On Retina screens the pixel density hides jaggies, so skip costly MSAA there.
+    // MSAA is nearly free on iPhone/iPad GPUs (tile-based), so edges stay clean.
     // The canvas is transparent: the painted construction site shows through behind it.
-    const retina = window.devicePixelRatio >= 2;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: !retina, alpha: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setClearColor(0x000000, 0);
-    this.dpr = Math.min(window.devicePixelRatio, 2);
+    this.dpr = this.targetDpr(window.innerWidth);
     this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 0.95;
@@ -171,6 +170,9 @@ export class SceneView {
     this.height = height;
     this.hudTop = hudTop;
     this.hudBottom = hudBottom;
+    this.dpr = Math.max(Math.min(this.dpr, this.targetDpr(width)), this.minDpr());
+    if (this.dpr < this.targetDpr(width) && this.frameAvg <= 1 / 58) this.dpr = this.targetDpr(width);
+    this.renderer.setPixelRatio(this.dpr);
     this.renderer.setSize(width, height, false);
     this.camera.aspect = width / height;
     this.camera.fov = 35;
@@ -184,6 +186,7 @@ export class SceneView {
    * view (more when tall towers stand on the table).
    */
   private fitFor(headroom: number) {
+    this.fitting = true;
     const top = 1 - (2 * (this.hudTop + CONFIG.topGap * this.height)) / this.height;
     const bottom = -1 + (2 * this.hudBottom) / this.height;
     const xr = 0.9;
@@ -212,6 +215,7 @@ export class SceneView {
       const off = (maxY + minY) / 2 - (top + bottom) / 2;
       this.target.z -= off * 0.35 * this.dist;
     }
+    this.fitting = false;
     return { dist: this.dist, z: this.target.z };
   }
 
@@ -240,16 +244,39 @@ export class SceneView {
   }
 
 
+  /**
+   * Showcase camera for the title screen: higher, further back and gently
+   * swaying. `showK` blends between it (1) and the play camera (0).
+   */
+  private showK = 1;
+  private showFrom = 1;
+  private showTo = 1;
+  private showT = 1;
+  private showDur = 1.2;
+
+  /** Glide between the title showcase (true) and the play view (false). */
+  setShowcase(on: boolean, duration = 1.2) {
+    this.showFrom = this.showK;
+    this.showTo = on ? 1 : 0;
+    this.showT = 0;
+    this.showDur = duration;
+  }
+
   private placeCamera() {
-    const d = this.dist;
+    const k = this.fitting ? 0 : this.showK;
+    const tilt = this.tilt + THREE.MathUtils.degToRad(17) * k;
+    const d = this.dist * (1 + 0.28 * k);
+    const yaw = k * Math.sin(this.time * 0.35) * 0.1;
+    const ty = this.target.z - 0.15 * k;
     this.camera.position.set(
-      this.target.x,
-      this.target.y + Math.sin(this.tilt) * d,
-      this.target.z + Math.cos(this.tilt) * d,
+      this.target.x + Math.sin(yaw) * Math.cos(tilt) * d,
+      this.target.y + Math.sin(tilt) * d,
+      ty + Math.cos(yaw) * Math.cos(tilt) * d,
     );
-    this.camera.lookAt(this.target);
+    this.camera.lookAt(this.target.x, this.target.y, ty);
     this.camera.updateMatrixWorld();
   }
+  private fitting = false;
 
   /** Screen pixel -> table coordinates (or null if off the plane). */
   toTable(px: number, py: number): { x: number; y: number } | null {
@@ -552,6 +579,28 @@ export class SceneView {
     this.removePiece(p);
   }
 
+  /**
+   * Plays every effect once, out of sight, and compiles its shaders, so the
+   * first merge of the session is as smooth as the hundredth.
+   */
+  prewarmFx() {
+    const p = this.createPiece(6);
+    p.group.position.set(0, -40, 0);
+    p.build = 0.2;
+    this.animatePiece(p, 0.05);
+    this.startFlash(p, 0.1);
+    for (const era of [1, 2, 3, 4] as const) this.fx.merge(0, 0, era, '#ffffff', 2);
+    this.fx.impact(0, 0, 0.1, '#ffffff', 2);
+    this.fx.dust(0, 0, 0.1);
+    this.ring(0, 0, 0.1, '#ffffff');
+    // Nothing is rendered in between, so none of this is ever seen.
+    for (const e of this.effects) e.update(0.016);
+    this.renderer.compile(this.scene, this.camera);
+    for (const e of this.effects) e.dispose();
+    this.effects = [];
+    this.removePiece(p);
+  }
+
   quality() {
     const info = this.renderer.info.render;
     return `${this.dpr.toFixed(2)}x · ${info.calls} draws · ${info.triangles} tris`;
@@ -562,17 +611,67 @@ export class SceneView {
     this.camShake = Math.max(this.camShake, amount);
   }
 
+  /**
+   * Render resolution: at least 1080 physical pixels across (true 1080p on
+   * phones), never more than the screen has, and never above 3x.
+   */
+  private targetDpr(cssWidth: number) {
+    const dev = window.devicePixelRatio || 1;
+    return Math.min(dev, 3, Math.max(2, 1080 / Math.max(1, cssWidth)));
+  }
+
+  /** The lowest resolution allowed when frames run slow: never blurrier than 2x. */
+  private minDpr() {
+    return Math.min(window.devicePixelRatio || 1, 2);
+  }
+
+  private setDpr(d: number) {
+    if (Math.abs(d - this.dpr) < 0.01) return;
+    this.dpr = d;
+    this.renderer.setPixelRatio(d);
+    this.renderer.setSize(this.width, this.height, false);
+  }
+
+  /** Ignore frame times while loading or animating menus; only steady play counts. */
+  private qualityWarmup = 4;
+
+  /**
+   * Adaptive resolution with hysteresis: steps down 0.25x after 2 s of
+   * sustained slow frames (never below 2x), and back up after 6 s of fast ones.
+   * One-off hitches don't count: it uses a trimmed average of the window.
+   */
+  private frameTimes: number[] = [];
   private adaptQuality(dt: number) {
     if (dt <= 0 || dt > 0.25) return;
-    this.frameAvg += (dt - this.frameAvg) * 0.05;
-    this.frameClock += dt;
-    if (this.frameClock < 1) return;
-    this.frameClock = 0;
-    if (this.frameAvg > 1 / 54 && this.dpr > 1) {
-      this.dpr = Math.max(1, this.dpr - 0.25);
-      this.renderer.setPixelRatio(this.dpr);
-      this.renderer.setSize(this.width, this.height, false);
+    if (this.qualityWarmup > 0) {
+      this.qualityWarmup -= dt;
+      return;
     }
+    this.frameTimes.push(dt);
+    this.frameClock += dt;
+    if (this.frameClock < 2) return;
+    const sorted = this.frameTimes.sort((a, b) => a - b);
+    const trimmed = sorted.slice(0, Math.max(1, Math.floor(sorted.length * 0.9)));
+    const avg = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+    this.frameTimes = [];
+    this.frameClock = 0;
+    this.frameAvg = avg;
+    if (avg > 1 / 52) this.setDpr(Math.max(this.minDpr(), this.dpr - 0.25));
+    else if (avg < 1 / 58) {
+      this.fastWindows++;
+      if (this.fastWindows >= 3) {
+        this.fastWindows = 0;
+        this.setDpr(Math.min(this.targetDpr(this.width), this.dpr + 0.25));
+      }
+      return;
+    }
+    this.fastWindows = 0;
+  }
+  private fastWindows = 0;
+
+  /** Restart the quality warm-up (after loading or big transitions). */
+  settleQuality(seconds = 2) {
+    this.qualityWarmup = Math.max(this.qualityWarmup, seconds);
   }
 
   update(dt: number) {
@@ -580,6 +679,12 @@ export class SceneView {
     this.time += dt;
     animateMaterials(this.time);
     this.lighting.update(dt);
+    if (this.showT < 1) {
+      this.showT = Math.min(1, this.showT + dt / this.showDur);
+      const u = this.showT;
+      const e = u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+      this.showK = this.showFrom + (this.showTo - this.showFrom) * e;
+    }
     if (Math.abs(this.tallK - this.tallTarget) > 0.001) {
       this.tallK += (this.tallTarget - this.tallK) * Math.min(1, dt * 1.5);
       this.applyFit();
