@@ -139,3 +139,15 @@ export function capTexture(tierId: number, color: string): THREE.Texture {
   capCache.set(tierId, tex);
   return tex;
 }
+
+/** Soft radial shadow used under every piece. */
+export function blobTexture(): THREE.Texture {
+  const { c, ctx } = canvas(64, 64);
+  const g = ctx.createRadialGradient(32, 32, 4, 32, 32, 31);
+  g.addColorStop(0, 'rgba(0,10,30,0.85)');
+  g.addColorStop(0.5, 'rgba(0,10,30,0.4)');
+  g.addColorStop(1, 'rgba(0,10,30,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}

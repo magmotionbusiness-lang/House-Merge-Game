@@ -131,7 +131,6 @@ export class Game {
     for (const [a, b] of started) this.tryMerge(a, b);
 
     // Settling and the fail rule.
-    let allSettled = true;
     let danger = false;
     let worst = 0;
     for (const p of this.pieces.values()) {
@@ -139,7 +138,6 @@ export class Game {
       const speed = Math.hypot(v.x, v.y);
       p.still = speed < CONFIG.settleSpeed ? p.still + DT : 0;
       const settled = p.still >= CONFIG.settleTime;
-      if (!settled) allSettled = false;
       const pos = this.world.pos(p.b);
       const crossing = pos.y - p.radius < CONFIG.failY && this.time - p.born > 0.6;
       if (!crossing) p.over = 0;
@@ -154,23 +152,19 @@ export class Game {
       return;
     }
 
-    // Unlock the launcher once the table settles (or after a timeout).
+    // The next piece appears a moment after each shot. A release before it
+    // appears fires it the instant it does.
     if (this.launcher === null && this.time - this.lastLaunch >= CONFIG.nextBlankTime) {
       this.spawnLauncher();
-    }
-    const since = this.time - this.lastLaunch;
-    if (this.pendingLaunch && this.launcher && (allSettled || since >= CONFIG.unlockTimeout)) {
-      this.pendingLaunch = false;
-      this.launch();
+      if (this.pendingLaunch) {
+        this.pendingLaunch = false;
+        this.launch();
+      }
     }
   }
 
   private canLaunchNow() {
-    const since = this.time - this.lastLaunch;
-    if (!this.launcher) return false;
-    if (since >= CONFIG.unlockTimeout) return true;
-    for (const p of this.pieces.values()) if (p.still < CONFIG.settleTime) return false;
-    return true;
+    return this.launcher !== null;
   }
 
   private spawnLauncher() {
@@ -327,12 +321,6 @@ export class Game {
       const wobble = this.aim ? Math.sin(this.time * 18) * 0.06 : 0;
       this.view.placePiece(l.view, l.x, CONFIG.launchY, wobble);
       this.view.animatePiece(l.view, dt);
-      const locked = !this.canLaunchNow();
-      l.view.side.opacity = locked ? 0.55 : 1;
-      if (l.view.side.transparent !== locked) {
-        l.view.side.transparent = locked;
-        l.view.side.needsUpdate = true;
-      }
       this.view.setAim(l.x, CONFIG.launchY + l.view.radius, this.aimEnd(l));
     } else {
       this.view.setAim(0, 0, null);

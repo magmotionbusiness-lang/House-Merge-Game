@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { tier } from '../core/tiers';
-import { blueprintTexture, capTexture, dashTexture, dotTexture, hazardTexture } from './textures';
+import { blobTexture, blueprintTexture, capTexture, dashTexture, dotTexture, hazardTexture } from './textures';
 
 const W = CONFIG.tableWidth;
 const L = CONFIG.tableLength;
@@ -48,12 +48,24 @@ export class SceneView {
   private hudBottom = 0;
   private width = 1;
   private height = 1;
+  // Adaptive resolution: drop the pixel ratio when frames run slow (older iPhones).
+  private dpr = 1;
+  private frameAvg = 1 / 60;
+  private frameClock = 0;
+  private blobMat = new THREE.MeshBasicMaterial({
+    map: blobTexture(),
+    transparent: true,
+    depthWrite: false,
+    opacity: 0.55,
+  });
+  private blobGeo = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  private burstGeo = new THREE.BoxGeometry(0.014, 0.014, 0.014);
+  private burstMats = new Map<string, THREE.MeshStandardMaterial>();
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.dpr = Math.min(window.devicePixelRatio, 2);
+    this.renderer.setPixelRatio(this.dpr);
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 0.95;
 
@@ -65,17 +77,6 @@ export class SceneView {
     const sun = new THREE.DirectionalLight('#fff1d6', 2.2);
     sun.position.set(-1.2, 3, 0.6);
     sun.target.position.set(0, 0, -L / 2);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
-    const sc = sun.shadow.camera;
-    sc.left = -1.3;
-    sc.right = 1.3;
-    sc.top = 1.6;
-    sc.bottom = -1.6;
-    sc.near = 0.5;
-    sc.far = 8;
-    sun.shadow.bias = -0.0008;
-    sun.shadow.radius = 4;
     this.scene.add(sun, sun.target);
 
     this.buildTable();
@@ -108,7 +109,6 @@ export class SceneView {
       new THREE.MeshStandardMaterial({ color: '#c79a5c', roughness: 0.9 }),
     );
     ground.position.set(0, -0.06, -L / 2);
-    ground.receiveShadow = true;
     this.scene.add(ground);
 
     const base = new THREE.Mesh(
@@ -116,8 +116,6 @@ export class SceneView {
       new THREE.MeshStandardMaterial({ color: '#7a5634', roughness: 0.7 }),
     );
     base.position.set(0, -0.031, -L / 2);
-    base.receiveShadow = true;
-    base.castShadow = true;
     this.scene.add(base);
 
     const sheet = new THREE.Mesh(
@@ -125,7 +123,6 @@ export class SceneView {
       new THREE.MeshStandardMaterial({ map: blueprintTexture(), roughness: 0.85 }),
     );
     sheet.position.set(0, 0, -L / 2);
-    sheet.receiveShadow = true;
     this.scene.add(sheet);
 
     const steel = new THREE.MeshStandardMaterial({ color: '#8d99a8', roughness: 0.35, metalness: 0.6 });
@@ -133,8 +130,6 @@ export class SceneView {
     const addRail = (geo: THREE.BufferGeometry, x: number, z: number, mat: THREE.Material = steel) => {
       const m = new THREE.Mesh(geo, mat);
       m.position.set(x, RAIL_H / 2, z);
-      m.castShadow = true;
-      m.receiveShadow = true;
       this.scene.add(m);
     };
     addRail(railGeo(RAIL_W, L + RAIL_W * 2), -W / 2 - RAIL_W / 2, -L / 2);
@@ -146,7 +141,6 @@ export class SceneView {
       yellow, yellow, yellow, yellow, hazard, yellow,
     ]);
     back.position.set(0, RAIL_H * 0.8, -L - RAIL_W * 0.7);
-    back.castShadow = true;
     this.scene.add(back);
   }
 
@@ -157,7 +151,6 @@ export class SceneView {
       new THREE.MeshStandardMaterial({ color: '#ff7a1a', roughness: 0.5 }),
     );
     c.position.y = 0.0225;
-    c.castShadow = true;
     g.add(c);
     g.position.copy(toWorld(x, y));
     return g;
@@ -257,10 +250,14 @@ export class SceneView {
     const top = new THREE.MeshStandardMaterial({ map: capTexture(tierId, t.color), roughness: 0.4 });
     const body = new THREE.Mesh(geo, [side, top, side]);
     body.userData.tier = tierId;
-    body.castShadow = true;
-    body.receiveShadow = true;
     const group = new THREE.Group();
-    group.add(body);
+    // Cheap blob shadow instead of a real-time shadow map (much faster on phones).
+    const blob = new THREE.Mesh(this.blobGeo, this.blobMat);
+    const bs = r * 2.5 + h * 0.6;
+    blob.scale.set(bs, 1, bs);
+    blob.position.set(r * 0.2 + h * 0.25, 0.0015, -h * 0.15);
+    blob.renderOrder = 1;
+    group.add(blob, body);
     this.scene.add(group);
     return { group, body, side, radius: r, height: h, flash: 0, pop: -1 };
   }
@@ -274,7 +271,7 @@ export class SceneView {
 
   /** Greybox pieces stay upright so their numbers read; `tilt` is a small aiming wobble. */
   placePiece(p: PieceView, x: number, y: number, tilt = 0) {
-    p.group.position.copy(toWorld(x, y));
+    p.group.position.set(x, 0, -y);
     p.group.rotation.z = tilt;
   }
 
@@ -371,8 +368,12 @@ export class SceneView {
   }
 
   burst(x: number, y: number, color: string, count: number, power: number) {
-    const geo = new THREE.BoxGeometry(0.014, 0.014, 0.014);
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+    const geo = this.burstGeo;
+    let mat = this.burstMats.get(color);
+    if (!mat) {
+      mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+      this.burstMats.set(color, mat);
+    }
     const parts: { m: THREE.Mesh; v: THREE.Vector3; s: number }[] = [];
     for (let i = 0; i < count; i++) {
       const m = new THREE.Mesh(geo, mat);
@@ -403,8 +404,6 @@ export class SceneView {
       },
       dispose: () => {
         for (const p of parts) this.scene.remove(p.m);
-        geo.dispose();
-        mat.dispose();
       },
     });
   }
@@ -413,7 +412,21 @@ export class SceneView {
     this.camShake = Math.max(this.camShake, amount);
   }
 
+  private adaptQuality(dt: number) {
+    if (dt <= 0 || dt > 0.25) return;
+    this.frameAvg += (dt - this.frameAvg) * 0.05;
+    this.frameClock += dt;
+    if (this.frameClock < 1.5) return;
+    this.frameClock = 0;
+    if (this.frameAvg > 1 / 50 && this.dpr > 1) {
+      this.dpr = Math.max(1, this.dpr - 0.25);
+      this.renderer.setPixelRatio(this.dpr);
+      this.renderer.setSize(this.width, this.height, false);
+    }
+  }
+
   update(dt: number) {
+    this.adaptQuality(dt);
     this.time += dt;
     this.effects = this.effects.filter((e) => {
       const alive = e.update(dt);

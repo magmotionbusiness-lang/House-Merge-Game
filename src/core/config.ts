@@ -21,8 +21,7 @@ export const CONFIG = {
 
   settleSpeed: 0.04, // widths/s
   settleTime: 0.25,
-  unlockTimeout: 1.5,
-  nextBlankTime: 0.3,
+  nextBlankTime: 0.25,
   failHoldTime: 2,
 
   mergeImpulse: 0.9,
