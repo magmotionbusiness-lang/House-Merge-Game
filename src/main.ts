@@ -12,6 +12,7 @@ import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
 import { Music } from './audio/music';
+import { setTheme, themeForDistrict } from './core/themes';
 import { onSettings, progress } from './game/settings';
 import { claimLogin, dailySeed, dayKey } from './core/meta';
 import { validateDistrict, type District, type LevelDef } from './core/levels';
@@ -102,10 +103,13 @@ async function boot() {
     return null;
   };
   const startLevel = (level: LevelDef, district: District) => {
+    // The intro already shows the district's theme buildings.
+    setTheme(themeForDistrict(district.id));
     screens!.levelIntro(level, district, () => startWithDust(() => game!.start({ kind: 'level', level, time: district.time })));
   };
   game = new Game(view, hud, canvas, {
     onTension: (k) => music.setTension(k),
+    onTheme: () => music.changeTrack(),
     onMerge: (tierId, combo) => {
       if (tierId >= 10 || combo >= 3) music.duck(0.35, 0.45);
     },

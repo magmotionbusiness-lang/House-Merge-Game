@@ -68,3 +68,15 @@ describe('spawn', () => {
     expect(seqA).toEqual(seqB);
   });
 });
+
+describe('map themes', () => {
+  it('every theme names all 18 tiers and the order loops', async () => {
+    const { THEMES, THEME_ORDER, nextTheme, themeForDistrict, tierName } = await import('../src/core/themes');
+    for (const id of THEME_ORDER) expect(THEMES[id].names).toHaveLength(MAX_TIER);
+    expect(nextTheme(THEME_ORDER[THEME_ORDER.length - 1])).toBe(THEME_ORDER[0]);
+    expect(themeForDistrict(1)).toBe('site');
+    expect(themeForDistrict(2)).toBe('beach');
+    expect(tierName(8, 'beach')).toBe('Overwater Bungalow');
+    expect(tierName(1, 'site')).toBe(TIERS[0].name);
+  });
+});

@@ -8,7 +8,8 @@ import '@fontsource/architects-daughter/latin-400.css';
 import * as THREE from 'three';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { MAX_TIER, tier } from './core/tiers';
+import { MAX_TIER } from './core/tiers';
+import { THEME_ORDER, THEMES, tierName, type ThemeId } from './core/themes';
 import { modelSize, modelTemplate } from './models';
 
 const SIZE = 256;
@@ -40,10 +41,10 @@ function framingBox(obj: THREE.Object3D) {
   return box;
 }
 
-function renderThumb(renderer: THREE.WebGLRenderer, tierId: number, tiltDeg = 42) {
+function renderThumb(renderer: THREE.WebGLRenderer, tierId: number, theme: ThemeId, tiltDeg = 42) {
   const scene = new THREE.Scene();
   lights(scene, renderer);
-  const model = modelTemplate(tierId).clone();
+  const model = modelTemplate(tierId, theme).clone();
   scene.add(model);
   const box = framingBox(model);
   const center = box.getCenter(new THREE.Vector3());
@@ -59,10 +60,10 @@ function renderThumb(renderer: THREE.WebGLRenderer, tierId: number, tiltDeg = 42
 }
 
 /** Triangles and draw calls for one instance of the tier. */
-function stats(tierId: number) {
+function stats(tierId: number, theme: ThemeId) {
   let tris = 0;
   let draws = 0;
-  modelTemplate(tierId).traverse((o) => {
+  modelTemplate(tierId, theme).traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh) return;
     draws++;
@@ -80,7 +81,7 @@ function loadImg(src: string) {
   });
 }
 
-async function lineup(thumbs: string[], trueScale: string) {
+async function lineup(thumbs: string[], trueScale: string, theme: ThemeId) {
   const cols = 6;
   const cell = 190;
   const pad = 24;
@@ -98,7 +99,7 @@ async function lineup(thumbs: string[], trueScale: string) {
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = '#fff';
   ctx.font = '900 40px "Big Shoulders Display"';
-  ctx.fillText('BLUEPRINT MERGE · TIER LINEUP', pad, 50);
+  ctx.fillText(`BLUEPRINT MERGE · ${THEMES[theme].name.toUpperCase()} LINEUP`, pad, 50);
   const imgs = await Promise.all(thumbs.map(loadImg));
   const grid = (y0: number, gray: boolean, label: string) => {
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
@@ -113,7 +114,7 @@ async function lineup(thumbs: string[], trueScale: string) {
       ctx.filter = 'none';
       ctx.fillStyle = '#fff';
       ctx.font = '900 20px "Big Shoulders Display"';
-      ctx.fillText(`${i + 1}. ${tier(i + 1).name.toUpperCase()}`, x + 8, y + cell + 4);
+      ctx.fillText(`${i + 1}. ${tierName(i + 1, theme).toUpperCase()}`, x + 8, y + cell + 4);
     });
   };
   grid(header, false, 'Colour');
@@ -127,7 +128,7 @@ async function lineup(thumbs: string[], trueScale: string) {
 }
 
 /** All tiers in a row at true relative scale, seen from the game camera angle. */
-function trueScaleRow(): string {
+function trueScaleRow(theme: ThemeId): string {
   const w = 1600;
   const h = 520;
   const renderer = makeRenderer(w, h);
@@ -136,7 +137,7 @@ function trueScaleRow(): string {
   let x = 0;
   const gap = 0.05;
   for (let i = 1; i <= MAX_TIER; i++) {
-    const m = modelTemplate(i).clone();
+    const m = modelTemplate(i, theme).clone();
     const d = modelSize(i).diameter;
     m.scale.setScalar(d);
     m.position.x = x + d / 2;
@@ -158,7 +159,7 @@ function trueScaleRow(): string {
 
 async function exportGlb(tierId: number): Promise<string> {
   const exporter = new GLTFExporter();
-  const buf = (await exporter.parseAsync(modelTemplate(tierId), { binary: true })) as ArrayBuffer;
+  const buf = (await exporter.parseAsync(modelTemplate(tierId, 'site'), { binary: true })) as ArrayBuffer;
   let bin = '';
   const bytes = new Uint8Array(buf);
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
@@ -168,17 +169,22 @@ async function exportGlb(tierId: number): Promise<string> {
 async function main() {
   await document.fonts.ready;
   await Promise.all([document.fonts.load('900 20px "Big Shoulders Display"'), document.fonts.load('22px "Architects Daughter"')]);
+  const only = new URLSearchParams(location.search).get('theme');
+  const themes = THEME_ORDER.filter((t) => !only || t === only);
   const renderer = makeRenderer(SIZE, SIZE);
-  const thumbs: string[] = [];
+  const out: Record<string, { thumbs: string[]; sheet: string }> = {};
   const glbs: string[] = [];
-  const st: { tier: number; name: string; tris: number; draws: number }[] = [];
-  for (let i = 1; i <= MAX_TIER; i++) {
-    thumbs.push(renderThumb(renderer, i));
-    glbs.push(await exportGlb(i));
-    st.push({ tier: i, name: tier(i).name, ...stats(i) });
+  const st: { theme: string; tier: number; name: string; tris: number; draws: number }[] = [];
+  for (const theme of themes) {
+    const thumbs: string[] = [];
+    for (let i = 1; i <= MAX_TIER; i++) {
+      thumbs.push(renderThumb(renderer, i, theme));
+      if (theme === 'site') glbs.push(await exportGlb(i));
+      st.push({ theme, tier: i, name: tierName(i, theme), ...stats(i, theme) });
+    }
+    out[theme] = { thumbs, sheet: await lineup(thumbs, trueScaleRow(theme), theme) };
   }
-  const sheet = await lineup(thumbs, trueScaleRow());
-  (window as unknown as { __bake: unknown }).__bake = { thumbs, glbs, sheet, stats: st };
+  (window as unknown as { __bake: unknown }).__bake = { themes: out, glbs, stats: st };
 }
 
 main().catch((e) => {

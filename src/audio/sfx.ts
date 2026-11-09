@@ -303,6 +303,24 @@ export class Sfx {
     this.tone(70, 0.4, { gain: 0.3, freqEnd: 45, when: 0.5 });
   }
 
+  /**
+   * A new map theme arrives: a long rising whoosh, a sparkling glissando and a
+   * big major chord with a sub drop, the biggest "something new" sound in the game.
+   */
+  themeChange() {
+    if (!this.ok) return;
+    this.noise(0.9, { gain: 0.14, freq: 250, freqEnd: 7000, q: 0.8 });
+    for (let i = 0; i < 14; i++)
+      this.tone(523 * Math.pow(2, MAJOR[i % MAJOR.length] / 12 + Math.floor(i / MAJOR.length)), 0.18, { gain: 0.05, type: 'triangle', when: 0.15 + i * 0.035, wet: 0.6 });
+    for (const n of [0, 4, 7, 12]) {
+      this.tone(392 * Math.pow(2, n / 12) * 0.997, 1.1, { gain: 0.07, type: 'sawtooth', when: 0.7, attack: 0.02, wet: 0.5 });
+      this.tone(392 * Math.pow(2, n / 12) * 1.003, 1.1, { gain: 0.05, type: 'triangle', when: 0.7, wet: 0.5 });
+    }
+    this.bell(1568, 0.08, 0.72);
+    this.tone(80, 0.6, { gain: 0.32, freqEnd: 40, when: 0.7 });
+    this.noise(1.2, { gain: 0.08, filter: 'highpass', freq: 6000, when: 0.72, wet: 0.7 });
+  }
+
   /** The next piece clicking into the launcher. */
   reload() {
     if (!this.ok) return;

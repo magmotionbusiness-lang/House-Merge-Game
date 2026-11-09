@@ -20,8 +20,15 @@ import { build as t15 } from './tier15';
 import { build as t16 } from './tier16';
 import { build as t17 } from './tier17';
 import { build as t18 } from './tier18';
+import { BEACH } from './beach';
+import { ALPINE } from './alpine';
+import { SWEET } from './sweet';
+import { NEON } from './neon';
+import { currentTheme, type ThemeId } from '../core/themes';
 
-const BUILDERS = [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, t17, t18];
+type Build = (H: number, color: string) => THREE.Group;
+const SITE: Build[] = [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, t17, t18];
+const LINEUPS: Record<ThemeId, Build[]> = { site: SITE, beach: BEACH, alpine: ALPINE, sweet: SWEET, neon: NEON };
 
 /** World size of a tier's model: footprint diameter and target visual height. */
 export function modelSize(tierId: number) {
@@ -31,24 +38,25 @@ export function modelSize(tierId: number) {
   return { diameter, height, unitHeight: height / diameter };
 }
 
-const templates = new Map<number, THREE.Group>();
+const templates = new Map<string, THREE.Group>();
 
-/** The shared model for a tier, in model units (footprint 1 across). Clone it per piece. */
-export function modelTemplate(tierId: number): THREE.Group {
-  let g = templates.get(tierId);
+/** The shared model for a tier in a theme (default: the current one), in model units (footprint 1 across). Clone it per piece. */
+export function modelTemplate(tierId: number, theme: ThemeId = currentTheme().id): THREE.Group {
+  const key = `${theme}:${tierId}`;
+  let g = templates.get(key);
   if (!g) {
-    const build = BUILDERS[tierId - 1];
+    const build = LINEUPS[theme][tierId - 1];
     if (!build) throw new Error(`No model for tier ${tierId}`);
     g = build(modelSize(tierId).unitHeight, tier(tierId).color);
-    g.name = `tier${String(tierId).padStart(2, '0')}`;
-    templates.set(tierId, g);
+    g.name = `${theme}-tier${String(tierId).padStart(2, '0')}`;
+    templates.set(key, g);
   }
   return g;
 }
 
 /** A new instance (geometry and materials shared) scaled to world size. */
-export function createModel(tierId: number) {
-  const g = modelTemplate(tierId).clone();
+export function createModel(tierId: number, theme: ThemeId = currentTheme().id) {
+  const g = modelTemplate(tierId, theme).clone();
   g.scale.setScalar(modelSize(tierId).diameter);
   const anims: { obj: THREE.Object3D; anim: Anim; base: THREE.Vector3; phase: number }[] = [];
   g.traverse((o) => {
@@ -87,14 +95,15 @@ export function tickAnims(anims: ModelAnims, time: number) {
 }
 
 /** Blueprint wireframe (crease edges) of a tier, segments sorted bottom-up so it "draws in". */
-const wires = new Map<number, THREE.BufferAttribute>();
-export function wireframe(tierId: number): THREE.BufferAttribute {
-  let attr = wires.get(tierId);
+const wires = new Map<string, THREE.BufferAttribute>();
+export function wireframe(tierId: number, theme: ThemeId = currentTheme().id): THREE.BufferAttribute {
+  const key = `${theme}:${tierId}`;
+  let attr = wires.get(key);
   if (attr) return attr;
   const segs: number[][] = [];
   const tmp = new THREE.Vector3();
   const tmp2 = new THREE.Vector3();
-  const tpl = modelTemplate(tierId);
+  const tpl = modelTemplate(tierId, theme);
   tpl.updateMatrixWorld(true);
   tpl.traverse((o) => {
     const m = o as THREE.Mesh;
@@ -114,7 +123,7 @@ export function wireframe(tierId: number): THREE.BufferAttribute {
   const step = Math.max(1, Math.ceil(segs.length / 900));
   const flat = segs.filter((_, i) => i % step === 0).flat();
   attr = new THREE.Float32BufferAttribute(flat, 3);
-  wires.set(tierId, attr);
+  wires.set(key, attr);
   return attr;
 }
 

@@ -13,9 +13,7 @@ const W = CONFIG.tableWidth;
 const L = CONFIG.tableLength;
 export const RAIL_W = 0.045;
 export const RAIL_H = 0.05;
-const STEEL = '#8d99a8';
-
-function railBeam(b: Builder, length: number, along: 'x' | 'z', x: number, z: number) {
+function railBeam(b: Builder, length: number, along: 'x' | 'z', x: number, z: number, STEEL: string) {
   const rot = along === 'x' ? 0 : Math.PI / 2;
   b.box(length, 0.012, RAIL_W, 'matte', STEEL, { x, z, ry: rot });
   b.box(length, RAIL_H - 0.024, 0.014, 'matte', shade(STEEL, 0.85), { x, z, y: 0.012, ry: rot });
@@ -27,11 +25,12 @@ function railBeam(b: Builder, length: number, along: 'x' | 'z', x: number, z: nu
   }
 }
 
-export function buildRails(scene: THREE.Scene) {
+/** Rails in a theme's colour (steel on the site, driftwood at the beach, candy pink in Sweet Town...). */
+export function buildRails(scene: THREE.Scene, steel = '#8d99a8') {
   const rails = new Builder();
-  railBeam(rails, L + RAIL_W * 2, 'z', -W / 2 - RAIL_W / 2, -L / 2);
-  railBeam(rails, L + RAIL_W * 2, 'z', W / 2 + RAIL_W / 2, -L / 2);
-  railBeam(rails, W, 'x', 0, RAIL_W / 2);
+  railBeam(rails, L + RAIL_W * 2, 'z', -W / 2 - RAIL_W / 2, -L / 2, steel);
+  railBeam(rails, L + RAIL_W * 2, 'z', W / 2 + RAIL_W / 2, -L / 2, steel);
+  railBeam(rails, W, 'x', 0, RAIL_W / 2, steel);
   const g = rails.finish();
   scene.add(g);
   return g;

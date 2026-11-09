@@ -303,3 +303,33 @@ Feedback: from about tier 11 the board clogs. Each new tier is bigger, two of th
 - **Daily** contracts refill like Endless, so delivery keeps the daily board breathing too.
 
 Measured with `scripts/endless-sim.ts` (greedy bot, 24 runs, 600-shot cap). Delivery on: best tier median 9, 542 shots on average. Delivery off: median 9, 370 shots. The bot survives about 46% longer, and many runs hit the cap. The headless Sim mirrors delivery, and the campaign shot limits were re-tuned with 300 runs per level (`npm run balance -- --runs 300 --write`).
+
+## Phase 7.5: Map themes and a cleaner Heat glow (playtest feedback)
+
+Feedback: past a certain level the Heat glow washed a yellowish layer over the whole screen, which looked unpolished. It should be a flashy, pulsing stroke around the board that never covers it. And after a few minutes the eye gets used to the board. Block Blast keeps changing its theme (food, sweets, metal...), so this game should change map themes too, with house-themed lineups.
+
+**Heat glow → a neon stroke around the board.**
+- The full-screen layers are gone: the rainbow "aurora", the orange Fever flames, the inset combo glow and the board tint.
+- In their place is one shader stroke on top of the rails: a solid neon tube, a white-hot centre line and a soft halo fading outward over the scenery. Lights chase around the loop.
+- Each Heat level sets its look: off, cyan, green, orange, pink, then rainbow at Legendary. Chase lights get more numerous and faster with each level.
+- Fever makes flames flicker along the stroke. Big combos, deliveries, Clean Site, a new best and theme changes flash it.
+- It is drawn with normal (premultiplied) blending, not additive, so it stays saturated over the bright daytime backdrop and never turns the screen white or yellow.
+
+**Map themes.** Five themes in a loop:
+
+| Theme | Lineup |
+|---|---|
+| Construction Site | Brick → Space Elevator |
+| Tropical Beach | Sandcastle → Overwater Bungalow → Paradise Spire |
+| Alpine Peaks | Woodpile → Log Cabin → Luxury Log Cabin → Chalet → Mountain Villa → Summit Observatory |
+| Sweet Town | Sugar Cube → Gingerbread House → Layer Cake Manor → Rainbow Spire |
+| Neon City | Power Cell → Glass House → Holo Villa → Orbital Tower |
+
+- **What changes:** every theme has its own 18 procedural buildings, building names, rail colour, back-beam stripes, table frame and backdrop.
+- **What never changes:** tier identity. The same tier keeps its colour (roof and base disc), rank badge, number and size in every theme, so the board stays readable.
+- **When:** a run stays in a theme for at least 2.5 minutes of play. After that, the next big moment carries it into the next theme: a board clear, a delivery, a combo of 3+ or a new top building. If none comes, the switch happens on any merge after 4.5 minutes. Because the switch rides on a moment the player earned, it feels like a reward.
+- **The transition:** "Welcome to Tropical Beach" bursts in above the board with the theme's tagline. Confetti in the theme's colours rains across the whole screen, the board stroke flashes five times and the screen flashes. The backdrop crossfades and the rails restyle. Every building, from the front back, spins down, swaps to its new-theme equivalent where it stands and pops back up with sparkles. A rising whoosh into a big chord plays, and the music crossfades into the next track.
+- **Smoothness:** half a minute before a switch is possible, the next theme's 18 models, wireframes and backdrop are built in the background, two items a frame, so the switch itself never stalls.
+- **Modes:** Endless starts on the site and runs are saved with their theme. The Daily opens in a theme chosen by date. Campaign districts each have a home theme (district 1 site, 2 beach, 3 alpine, and so on) and do not switch inside a level. The collection book and My Skyline keep the site lineup.
+- **Backdrops:** painted art per theme is planned. The user supplies it, in the same style as the construction-site painting. Until then each theme has a stylised backdrop painted in code: palms and sea, snowy peaks and pines, candy hills and lollipops, a night skyline with a neon grid. Dropping in the art is a one-line change in `themes.ts`.
+- **Thumbnails** are baked per theme (`public/thumbs/<theme>/`), with a lineup sheet per theme in `docs/`.

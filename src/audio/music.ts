@@ -113,6 +113,16 @@ export class Music {
     this.fade('game', this.volume.game, 1.2);
   }
 
+  /** A new map theme: crossfade into the next track so the soundtrack changes with the scenery. */
+  changeTrack() {
+    if (this.want !== 'game') return;
+    this.fade('game', 0, 0.5, () => {
+      if (this.want !== 'game') return;
+      this.nextTrack();
+      this.fade('game', this.volume.game, 1.2);
+    });
+  }
+
   /** Big moments duck the music briefly so the effect cuts through. */
   duck(amount = 0.3, seconds = 0.4) {
     if (!this.ctx || this.want !== 'game') return;

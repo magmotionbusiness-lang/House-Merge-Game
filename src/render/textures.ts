@@ -170,11 +170,11 @@ export function dotTexture(): THREE.Texture {
   return tex;
 }
 
-export function hazardTexture(): THREE.Texture {
+export function hazardTexture(a = '#f5c400', b = '#1b1b1b'): THREE.Texture {
   const { c, ctx } = canvas(128, 16);
-  ctx.fillStyle = '#f5c400';
+  ctx.fillStyle = a;
   ctx.fillRect(0, 0, 128, 16);
-  ctx.fillStyle = '#1b1b1b';
+  ctx.fillStyle = b;
   for (let x = -16; x < 144; x += 16) {
     ctx.beginPath();
     ctx.moveTo(x, 16);

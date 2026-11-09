@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import { FrameGlow } from './frame';
 import { CONFIG } from '../core/config';
 import { ERA_RING, tier } from '../core/tiers';
+import type { Theme } from '../core/themes';
 import { badgeTexture, blobTexture, blueprintTexture, dashTexture, dotTexture, hazardTexture } from './textures';
 import { Lighting, type TimeOfDay } from './lighting';
 import { buildRails, RAIL_H, RAIL_W } from './site';
@@ -31,7 +33,12 @@ export interface PieceView {
   held?: { from: { x: number; y: number }; to: { x: number; y: number }; t: number; done: () => void; cable: THREE.Line };
   /** Crane Lift drag: the building hovers on a cable at this table position. */
   carry?: { x: number; y: number; cable: THREE.Line; lift: number };
+  /** Theme change: the building spins down, swaps to the new theme's model and pops back up. */
+  morph?: { t: number; swapped: boolean; color: string };
 }
+
+const MORPH_OUT = 0.16;
+const MORPH_END = 0.46;
 
 // Merge build-in timeline (seconds): twins converge, blueprint wireframe draws in,
 // then the solid fills from the bottom up with a squash-and-stretch pop.
@@ -99,7 +106,7 @@ export class SceneView {
     this.renderer.toneMappingExposure = 0.95;
 
     this.buildTable();
-    buildRails(this.scene);
+    this.rails = buildRails(this.scene);
     this.lighting = new Lighting(this.scene, this.sheetMat, () => undefined, onTint);
     this.fx = new ParticleFx(this.scene, (e) => this.effects.push(e));
 
@@ -125,6 +132,82 @@ export class SceneView {
     for (const sx of [-1, 1]) this.scene.add(this.cone(sx * (W / 2 - 0.025), CONFIG.failY));
   }
 
+  private rails: THREE.Group;
+  private frameMat = new THREE.MeshLambertMaterial({ color: '#7a5634' });
+  private beamMat = new THREE.MeshLambertMaterial({ map: hazardTexture() });
+  private beamSolid = new THREE.MeshLambertMaterial({ color: '#f5c400' });
+
+  /** Restyles the table for a map theme: rails, wooden frame and the striped back beam. */
+  applyTheme(t: Theme) {
+    this.scene.remove(this.rails);
+    this.rails.traverse((o) => (o as THREE.Mesh).isMesh && (o as THREE.Mesh).geometry.dispose());
+    this.rails = buildRails(this.scene, t.rail);
+    this.frameMat.color.set(t.frame);
+    this.beamMat.map?.dispose();
+    this.beamMat.map = hazardTexture(t.beam[0], t.beam[1]);
+    this.beamMat.needsUpdate = true;
+    this.beamSolid.color.set(t.beam[0]);
+  }
+
+  /**
+   * Every building on the board changes into its equivalent in the new theme,
+   * one after another from the front: spin down, swap, pop back up with sparkles.
+   */
+  restyle(pieces: PieceView[], color: string, instant = false) {
+    if (instant) {
+      for (const p of pieces) {
+        p.morph = undefined;
+        this.swapModel(p);
+        p.body.scale.setScalar(modelSize(p.tier).diameter);
+      }
+      return;
+    }
+    const sorted = [...pieces].sort((a, b) => b.group.position.z - a.group.position.z);
+    sorted.forEach((p, i) => (p.morph = { t: -0.05 - i * 0.045, swapped: false, color }));
+  }
+
+  private swapModel(p: PieceView) {
+    const { group: body, anims } = createModel(p.tier);
+    p.group.remove(p.body);
+    p.body = body;
+    p.anims = anims;
+    p.group.add(body);
+  }
+
+  private animateMorph(p: PieceView, dt: number) {
+    const m = p.morph!;
+    if (p.build >= 0) return; // let a merge finish first
+    m.t += dt;
+    if (m.t < 0) return;
+    const d = modelSize(p.tier).diameter;
+    if (!m.swapped && m.t >= MORPH_OUT) {
+      m.swapped = true;
+      this.swapModel(p);
+      const x = p.group.position.x;
+      const y = -p.group.position.z;
+      this.fx.dust(x, y, p.radius * 1.3, '#ffffff', 5);
+      this.tmpColor.set(m.color);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        this.fx.spark(x, y, p.height * 0.5, this.tmpColor, 0.6, Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.5);
+      }
+    }
+    if (m.t < MORPH_OUT) {
+      const u = m.t / MORPH_OUT;
+      p.body.scale.set(d * (1 - u * 0.85), d * (1 - u * u * 0.95), d * (1 - u * 0.85));
+      p.body.rotation.y = u * u * Math.PI;
+    } else if (m.t < MORPH_END) {
+      const u = (m.t - MORPH_OUT) / (MORPH_END - MORPH_OUT);
+      const s = this.popScale(u * 0.32) * easeOut(Math.min(1, u * 1.6));
+      p.body.scale.set(d * s, d * s * (1 + (1 - u) * 0.25), d * s);
+      p.body.rotation.y = -Math.PI * (1 - easeOut(u));
+    } else {
+      p.body.scale.setScalar(d);
+      p.body.rotation.y = 0;
+      p.morph = undefined;
+    }
+  }
+
   private buildTable() {
     // Soft contact shadow so the table sits on the painted ground.
     const shadow = new THREE.Mesh(
@@ -134,10 +217,7 @@ export class SceneView {
     shadow.position.set(0.05, -0.07, -L / 2 - 0.04);
     this.scene.add(shadow);
 
-    const base = new THREE.Mesh(
-      new THREE.BoxGeometry(W + RAIL_W * 2 + 0.06, 0.06, L + RAIL_W * 2 + 0.06),
-      new THREE.MeshLambertMaterial({ color: '#7a5634' }),
-    );
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W + RAIL_W * 2 + 0.06, 0.06, L + RAIL_W * 2 + 0.06), this.frameMat);
     base.position.set(0, -0.031, -L / 2);
     this.scene.add(base);
 
@@ -146,8 +226,8 @@ export class SceneView {
     this.scene.add(sheet);
 
     // Heavier back beam with hazard tape facing the player.
-    const hazard = new THREE.MeshLambertMaterial({ map: hazardTexture() });
-    const yellow = new THREE.MeshLambertMaterial({ color: '#f5c400' });
+    const hazard = this.beamMat;
+    const yellow = this.beamSolid;
     const back = new THREE.Mesh(new THREE.BoxGeometry(W + RAIL_W * 2, RAIL_H * 1.6, RAIL_W * 1.4), [
       yellow, yellow, yellow, yellow, hazard, yellow,
     ]);
@@ -564,6 +644,7 @@ export class SceneView {
       }
     }
     if (p.build >= 0) this.animateBuild(p, dt);
+    if (p.morph) this.animateMorph(p, dt);
     if (p.pop >= 0) {
       p.pop += dt;
       const s = this.popScale(p.pop);
@@ -747,45 +828,48 @@ export class SceneView {
   // ---------------------------------------------------------------- heat
 
   private heat = 0;
-  private heatGlow: THREE.Mesh[] = [];
-  private heatMat = new THREE.MeshBasicMaterial({ color: '#6fd6ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
-  private sheetTarget = new THREE.Color('#ffffff');
+  private frame: FrameGlow | null = null;
   private tmpColor = new THREE.Color();
 
-  /**
-   * Heat level 0-5: the board shifts colour, the rails glow, and ambient
-   * sparkles rise over the table, more with each level.
-   */
-  setHeat(level: number, color: string) {
-    this.heat = level;
-    if (!this.heatGlow.length) {
-      // Glowing strips along the top of both side rails and the front rail.
-      const mk = (w: number, d: number, x: number, z: number) => {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.008, d), this.heatMat);
-        m.position.set(x, RAIL_H + 0.004, z);
-        m.renderOrder = 4;
-        this.scene.add(m);
-        this.heatGlow.push(m);
-      };
-      mk(RAIL_W * 0.7, L + RAIL_W, -W / 2 - RAIL_W / 2, -L / 2);
-      mk(RAIL_W * 0.7, L + RAIL_W, W / 2 + RAIL_W / 2, -L / 2);
-      mk(W, RAIL_W * 0.7, 0, RAIL_W / 2);
-    }
-    this.heatMat.color.set(color);
-    const tints = ['#ffffff', '#eef9ff', '#e6fff4', '#fff0e2', '#ffeaf8', '#fff6dc'];
-    this.sheetTarget.set(tints[Math.min(level, tints.length - 1)]);
+  private ensureFrame() {
+    if (this.frame) return this.frame;
+    const y = RAIL_H + 0.004;
+    const yb = RAIL_H * 1.6 + 0.004;
+    const xl = -W / 2 - RAIL_W / 2;
+    const xr = W / 2 + RAIL_W / 2;
+    const zf = RAIL_W / 2;
+    const zb = -L - RAIL_W * 0.7;
+    // Clockwise seen from above (front, right, back, left) so the halo faces outward.
+    this.frame = new FrameGlow([
+      [xl, y, zf],
+      [xr, y, zf],
+      [xr, y, zb + 0.08],
+      [xr, yb, zb],
+      [xl, yb, zb],
+      [xl, y, zb + 0.08],
+    ]);
+    this.scene.add(this.frame.mesh);
+    return this.frame;
   }
 
-  private pulseT = -1;
-  private pulseCount = 3;
-  private pulseColor = new THREE.Color();
+  /**
+   * Heat level 0-5: a neon stroke around the board lights up and grows
+   * livelier, and ambient sparkles rise over the table from level 3. Nothing
+   * is drawn over the playing area itself.
+   */
+  setHeat(level: number, _color?: string) {
+    this.heat = level;
+    this.ensureFrame().setHeat(level);
+  }
 
-  /** The board edges flash and pulse (deliveries, clean site): space freed feels like an achievement. */
+  /** Fever (hot streak): flames flicker along the board stroke. */
+  setFever(on: boolean) {
+    this.ensureFrame().setFever(on);
+  }
+
+  /** The board edges flash and pulse (deliveries, clean site, big combos, theme changes). */
   edgePulse(color: string, count = 3) {
-    if (!this.heatGlow.length) this.setHeat(this.heat, `#${this.heatMat.color.getHexString()}`);
-    this.pulseT = 0;
-    this.pulseCount = count;
-    this.pulseColor.set(color).lerp(new THREE.Color('#ffffff'), 0.35);
+    this.ensureFrame().pulse(color, count);
   }
 
   /** A delivered building rises on the crane cable and flies off the top of the screen. */
@@ -819,46 +903,22 @@ export class SceneView {
   }
 
   private tickHeat(dt: number) {
-    // Edge pulse overrides the heat glow while it plays.
-    if (this.pulseT >= 0) {
-      this.pulseT += dt;
-      const dur = 0.32 * this.pulseCount;
-      const u = this.pulseT / dur;
-      if (u >= 1) this.pulseT = -1;
-      else {
-        this.heatMat.color.copy(this.pulseColor);
-        this.heatMat.opacity = 0.95 * Math.abs(Math.sin(u * Math.PI * this.pulseCount)) * (1 - u * 0.3);
-        if (this.heat > 0) this.sheetMat.color.lerp(this.sheetTarget, Math.min(1, dt * 1.5));
-        return;
-      }
-      this.heatMat.color.set(this.heatColorFor(this.heat));
-    }
-    if (this.heat <= 0) {
-      this.heatMat.opacity = 0;
-      return;
-    }
-    // Rails breathe; at Legendary they cycle through the rainbow.
-    this.heatMat.opacity = Math.min(0.9, 0.25 + this.heat * 0.12) * (0.75 + 0.25 * Math.sin(this.time * 4));
-    if (this.heat >= 5) this.heatMat.color.setHSL((this.time * 0.15) % 1, 0.9, 0.6);
-    this.sheetMat.color.lerp(this.sheetTarget, Math.min(1, dt * 1.5));
+    this.ensureFrame().tick(dt, this.time);
     // Ambient sparkles drifting up over the board from heat 3.
     if (this.heat >= 3) {
       const rate = (this.heat - 2) * 10;
       let n = rate * dt + Math.random() * 0.999;
       while (n-- >= 1) {
-        this.tmpColor.copy(this.heatMat.color);
+        this.heatColor();
+        if (this.heat >= 5) this.tmpColor.setHSL(Math.random(), 0.9, 0.65);
         this.fx.spark((Math.random() - 0.5) * W, CONFIG.failY + Math.random() * (L - CONFIG.failY), 0.02, this.tmpColor, 1.2 + Math.random(), 0, 0, 0.08 + Math.random() * 0.1);
       }
     }
   }
 
-  private heatColorFor(level: number) {
-    return ['#6fd6ff', '#6fd6ff', '#5cffb0', '#ff9a3d', '#ff5ec4', '#ffd84d'][Math.min(level, 5)];
-  }
-
   /** The current heat colour (for sparks). */
   heatColor() {
-    return this.tmpColor.copy(this.heatMat.color);
+    return this.ensureFrame().color(this.tmpColor);
   }
 
   /** Comet trail behind a fast-moving shot. */

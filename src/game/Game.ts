@@ -15,6 +15,9 @@ import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
 import { booster, boosterPrice, type BoosterId } from '../core/boosters';
 import { HEAT_COLORS, heatFor, heatProgress } from '../core/heat';
+import { isThemeId, nextTheme, setTheme, THEME_MAX_TIME, THEME_MIN_TIME, THEME_ORDER, themeForDistrict, THEMES, tierName, type ThemeId } from '../core/themes';
+import { prepareBackdrop, showBackdrop } from '../render/backdrops';
+import { modelTemplate, wireframe } from '../models';
 
 export type PlayMode =
   | { kind: 'endless' }
@@ -50,6 +53,8 @@ export interface RunSave {
   built: number[];
   uses: Partial<Record<BoosterId, number>>;
   launched: number;
+  theme?: ThemeId;
+  themeTime?: number;
 }
 
 const RUN_KEY = 'bm.run';
@@ -64,6 +69,8 @@ export function savedRun(): RunSave | null {
 }
 
 export interface GameEvents {
+  /** A new map theme arrived mid-run (not on quiet restores). */
+  onTheme?(id: ThemeId): void;
   onEnd(r: EndResult): void;
   onMerge?(tier: number, combo: number): void;
   onTension?(k: number): void;
@@ -170,6 +177,10 @@ export class Game {
   private carry: { piece: Piece; pointer: number | null; ox: number; oy: number; x: number; y: number; ok: boolean; moved: boolean } | null = null;
   private boosterUses: Partial<Record<BoosterId, number>> = {};
   private outOfShotsAt = -1;
+  // Map themes: how long the run has been in this one (seconds of play) and next theme's warm-up queue.
+  private themeId: ThemeId = 'site';
+  private themeTime = 0;
+  private themePrep: (() => void)[] = [];
 
   constructor(
     private view: SceneView,
@@ -178,6 +189,9 @@ export class Game {
     private events: GameEvents,
   ) {
     this.bindInput();
+    this.hud.onGlow = (c) => {
+      if (!settings.calm) this.view.edgePulse(c, 2);
+    };
     onSettings((st) => {
       this.mode = st.aim;
       this.sfx.setVolume(st.sfxVolume);
@@ -214,6 +228,8 @@ export class Game {
       built: [...this.builtThisRun],
       uses: this.boosterUses,
       launched: this.launchedCount,
+      theme: this.themeId,
+      themeTime: Math.round(this.themeTime),
     };
     store.set(RUN_KEY, JSON.stringify(save));
   }
@@ -250,6 +266,8 @@ export class Game {
     this.boosterUses = r.uses ?? {};
     this.refreshPrices();
     this.launchedCount = r.launched;
+    if (isThemeId(r.theme)) this.switchTheme(r.theme, true);
+    this.themeTime = r.themeTime ?? 0;
     this.heatUp(heatFor(this.score), true);
     this.hud.setHeat(this.heat, heatProgress(this.score));
     this.refreshHud();
@@ -281,6 +299,9 @@ export class Game {
     this.pieces.clear();
     if (this.launcher) this.view.removePiece(this.launcher.view);
     this.launcher = null;
+    this.switchTheme(this.startTheme(), true);
+    this.themeTime = 0;
+    this.themePrep = [];
     // The Daily Blueprint deals the same sequence to everyone that day.
     this.rng = new Rng(this.playMode.kind === 'daily' ? this.playMode.seed : Date.now());
     this.builtThisRun = new Set();
@@ -322,7 +343,7 @@ export class Game {
     this.heat = 0;
     this.view.setHeat(0, HEAT_COLORS[0]);
     this.hud.setHeat(0, 0);
-    this.hud.setFever(false);
+    this.view.setFever(false);
     this.lastShot = null;
     this.hud.setStreak(0);
     this.spawnLauncher();
@@ -364,6 +385,8 @@ export class Game {
       steps++;
     }
     if (steps === 3) this.acc = Math.min(this.acc, DT);
+    // Build the next theme's models a few per frame ahead of the switch (never a hitch).
+    for (let i = 0; i < 2 && this.themePrep.length; i++) this.themePrep.shift()!();
     this.syncViews(dt, this.acc / DT);
     this.view.update(dt);
     this.view.render();
@@ -375,6 +398,7 @@ export class Game {
   private fixedStep() {
     this.time += DT;
     this.combo.update(this.time);
+    if (this.running && !this.over && this.playMode.kind !== 'level') this.tickTheme();
     if (this.over) {
       this.world.step();
       return;
@@ -464,8 +488,8 @@ export class Game {
     this.mergesSinceShot = 0;
     this.lastShot = null;
     this.hud.setStreak(this.streak);
-    // Fever: a hot streak sets the screen edges ablaze until it breaks.
-    this.hud.setFever(this.streak >= 4 && !settings.calm);
+    // Fever: a hot streak sets the board's stroke ablaze until it breaks.
+    this.view.setFever(this.streak >= 4 && !settings.calm);
     this.saveRun();
   }
 
@@ -683,6 +707,7 @@ export class Game {
       // Clearing the site (one building left) is the big jackpot, like a full board clear.
       if (this.playMode.kind !== 'level' && this.launchedCount > 6 && this.pieces.size <= 1) this.cleanSite(at.x, at.y);
       if (combo >= 3) {
+        this.bigMoment();
         this.sfx.praise(combo - 3);
         this.view.fx.merge(at.x, at.y, 3, t.color, power + 1);
         if (!settings.calm) this.hud.glow(t.color);
@@ -705,6 +730,8 @@ export class Game {
     }
 
     this.contractBuilt(nt, n);
+    // A new top building this run, or a long stay in one theme, can carry the run into the next theme.
+    if ((nt === this.highestRun && nt >= 6) || this.themeTime >= THEME_MAX_TIME) this.bigMoment();
 
     if (nt > this.highestEver) {
       this.highestEver = nt;
@@ -719,6 +746,66 @@ export class Game {
   }
 
   /** Credits a newly built tier to the contracts; pays coins and refills (endless) or wins (level). */
+  // ------------------------------------------------------------ map themes
+
+  /** The theme a round opens in: the site for Endless, the district's theme for levels, the day's for the Daily. */
+  private startTheme(): ThemeId {
+    const m = this.playMode;
+    if (m.kind === 'level') return themeForDistrict(Number(m.level.id.split('-')[0]) || 1);
+    if (m.kind === 'daily') return THEME_ORDER[m.seed % THEME_ORDER.length];
+    return 'site';
+  }
+
+  private tickTheme() {
+    const before = this.themeTime;
+    this.themeTime += DT;
+    // Half a minute before a switch can happen, start preparing the next theme in the background.
+    if (before < THEME_MIN_TIME - 30 && this.themeTime >= THEME_MIN_TIME - 30) {
+      const next = nextTheme(this.themeId);
+      this.themePrep.push(() => prepareBackdrop(next));
+      for (let t = 1; t <= MAX_TIER; t++)
+        this.themePrep.push(() => {
+          modelTemplate(t, next);
+          wireframe(t, next);
+        });
+    }
+  }
+
+  /**
+   * A big moment (board clear, delivery, big combo, heat level, new top tier).
+   * After a couple of minutes in one theme, the next big moment carries the run
+   * into the next theme, so the switch itself feels earned.
+   */
+  private bigMoment() {
+    if (this.playMode.kind === 'level' || !this.running || this.over) return;
+    if (this.themeTime >= THEME_MIN_TIME) window.setTimeout(() => !this.over && this.running && this.themeTime >= THEME_MIN_TIME && this.switchTheme(nextTheme(this.themeId)), 1200);
+  }
+
+  /** Moves the run to a theme. Quiet: instantly (round start, resume). Otherwise with the full celebration. */
+  private switchTheme(id: ThemeId, quiet = false) {
+    const changed = id !== this.themeId;
+    this.themeId = id;
+    this.themeTime = 0;
+    setTheme(id);
+    const t = THEMES[id];
+    this.view.applyTheme(t);
+    showBackdrop(id, quiet);
+    this.hud.retheme();
+    const views = [...this.pieces.values()].map((p) => p.view);
+    if (this.launcher) views.push(this.launcher.view);
+    this.view.restyle(views, t.accent, quiet);
+    if (quiet || !changed) return;
+    this.hud.themeArrival(t, settings.calm);
+    if (!settings.calm) {
+      this.view.edgePulse(t.accent, 5);
+      this.hud.flash();
+      this.view.shake(0.012);
+    }
+    this.sfx.themeChange();
+    this.events.onTheme?.(id);
+    this.saveRun();
+  }
+
   private contractBuilt(tierId: number, piece?: Piece) {
     progress.addBuilt(tierId);
     this.builtThisRun.add(tierId);
@@ -758,7 +845,7 @@ export class Game {
    */
   private deliver(p: Piece) {
     p.delivering = true;
-    const name = tier(p.tier).name;
+    const name = tierName(p.tier);
     window.setTimeout(() => {
       if (p.dead || this.over) return;
       const at = { x: p.x, y: p.y };
@@ -769,6 +856,7 @@ export class Game {
       const sub = document.querySelector('.praise-combo');
       if (sub) sub.textContent = name.toUpperCase();
       this.sfx.deliver();
+      this.bigMoment();
       for (let i = 0; i < 14; i++) {
         const a = (i / 14) * Math.PI * 2;
         this.view.fx.spark(at.x, at.y, 0.05, this.view.heatColor().set('#fff3b0'), 0.7, Math.cos(a) * 0.6, Math.sin(a) * 0.6, 0.4);
@@ -782,13 +870,11 @@ export class Game {
     const bonus = 500 * Math.max(1, this.highestRun);
     this.addScore(bonus);
     this.hud.praise(5, '#ffd84d', 'Clean site!');
+    this.bigMoment();
     this.view.edgePulse('#ffd84d', 5);
     this.hud.floatText(this.view.toScreen(x, y, 0.2).x, this.view.toScreen(x, y, 0.2).y - 40, `+${bonus.toLocaleString('en-US')}`, true, 6);
     for (let i = 0; i < 3; i++) this.view.fx.merge(x + (i - 1) * 0.25, y, 3, '#ffd84d', 3);
-    if (!settings.calm) {
-      this.hud.glow('#ffd84d');
-      this.hud.flash();
-    }
+    if (!settings.calm) this.hud.flash();
     this.sfx.wonder();
     this.events.onMerge?.(12, 5);
   }

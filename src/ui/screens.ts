@@ -6,6 +6,7 @@ import { dailyNumber, dailyShareText, dayKey, FUN_FACTS, LOGIN_REWARDS, loginSta
 import { MAX_TIER } from '../core/tiers';
 import { ICONS } from './icons';
 import { thumbUrl } from './hud';
+import { tierName } from '../core/themes';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag);
@@ -218,7 +219,7 @@ export class Screens {
       const cell = el('button', `book-cell ${has ? '' : 'locked'}`);
       cell.style.setProperty('--c', info.color);
       const img = el('img') as HTMLImageElement;
-      img.src = thumbUrl(t);
+      img.src = thumbUrl(t, 'site');
       img.alt = has ? info.name : 'Locked';
       cell.append(img, el('div', 'book-name', has ? info.name : '???'), el('div', 'book-num', String(t)));
       cell.onclick = () => (has ? this.buildingCard(t, counts[t] ?? 0) : undefined);
@@ -232,7 +233,7 @@ export class Screens {
     const info = tier(t);
     const card = el('div', 'panel building-card');
     const img = el('img', 'bc-img') as HTMLImageElement;
-    img.src = thumbUrl(t);
+    img.src = thumbUrl(t, 'site');
     card.append(
       el('div', 'eyebrow', `Tier ${t} · ${ERA_NAME[info.era]}`),
       img,
@@ -271,7 +272,7 @@ export class Screens {
           b.style.setProperty('--w', `${46 + t * 7}px`);
           b.setAttribute('aria-label', tier(t).name);
           const img = el('img') as HTMLImageElement;
-          img.src = thumbUrl(t);
+          img.src = thumbUrl(t, 'site');
           img.alt = '';
           b.append(img);
           b.onclick = () => {
@@ -312,7 +313,7 @@ export class Screens {
   /** Endless: share a score and the top building as a challenge. */
   private scoreShare(r: EndResult) {
     const b = button('Challenge a friend', 'small', async () => {
-      const top = r.highest ? ` and built a ${tier(r.highest).name}` : '';
+      const top = r.highest ? ` and built a ${tierName(r.highest)}` : '';
       const text = `I scored ${r.score.toLocaleString('en-US')} in Blueprint Merge${top}. Can you beat it? 🏗️`;
       try {
         if (navigator.share) await navigator.share({ text, url: location.origin });
@@ -390,7 +391,7 @@ export class Screens {
       const row = el('div', 'intro-row');
       const img = el('img') as HTMLImageElement;
       img.src = thumbUrl(c.tier);
-      row.append(img, el('span', '', `Build ${c.count} × ${tier(c.tier).name}`));
+      row.append(img, el('span', '', `Build ${c.count} × ${tierName(c.tier)}`));
       list.append(row);
     }
     card.append(list);
@@ -524,7 +525,7 @@ export class Screens {
       const img = el('img') as HTMLImageElement;
       img.src = thumbUrl(r.highest);
       const t = tier(r.highest);
-      top.append(img, el('span', '', `${t.name} · ${ERA_NAME[t.era]}`));
+      top.append(img, el('span', '', `${tierName(r.highest)} · ${ERA_NAME[t.era]}`));
       info.append(top);
     }
     if (r.coins > 0) {

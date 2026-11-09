@@ -2,6 +2,7 @@ import type { Contract } from '../core/contracts';
 import { BOOSTERS, type BoosterId } from '../core/boosters';
 import { ERA_RING, MAX_TIER, tier } from '../core/tiers';
 import { ICONS } from './icons';
+import { currentTheme, tierName, type Theme, type ThemeId } from '../core/themes';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag);
@@ -10,8 +11,9 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
   return e;
 };
 
-/** Baked 3D thumbnail for a tier (see `npm run models:bake`). */
-export const thumbUrl = (tierId: number) => `${import.meta.env.BASE_URL}thumbs/tier-${String(tierId).padStart(2, '0')}.png`;
+/** Baked 3D thumbnail for a tier in a theme, the current one by default (see `npm run models:bake`). */
+export const thumbUrl = (tierId: number, theme: ThemeId = currentTheme().id) =>
+  `${import.meta.env.BASE_URL}thumbs/${theme === 'site' ? '' : `${theme}/`}tier-${String(tierId).padStart(2, '0')}.png`;
 
 function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
   const c = el('div', `chip chip-${size}`);
@@ -21,10 +23,10 @@ function chip(tierId: number | null, size: 'sm' | 'lg' = 'sm') {
   } else {
     const t = tier(tierId);
     c.style.setProperty('--c', t.color);
-    c.title = t.name;
+    c.title = tierName(tierId);
     const img = document.createElement('img');
     img.src = thumbUrl(tierId);
-    img.alt = t.name;
+    img.alt = tierName(tierId);
     img.draggable = false;
     c.append(img);
     const n = el('span', 'num', String(tierId));
@@ -151,19 +153,15 @@ export class Hud {
 
   private heatBar = el('div', 'heat-bar');
   private heatFill = el('div', 'heat-fill');
-  private feverEl = el('div', 'fever');
-  private auroraEl = el('div', 'aurora');
 
   /** Heat meter under the score: always shows how close the next level is. */
   setHeat(level: number, progress: number) {
     if (!this.heatBar.isConnected) {
       this.heatBar.append(this.heatFill);
       this.score.closest('.score-box')?.append(this.heatBar);
-      this.root.prepend(this.auroraEl, this.feverEl);
     }
     this.heatBar.dataset.level = String(level);
     this.heatFill.style.width = `${Math.round(progress * 100)}%`;
-    this.auroraEl.classList.toggle('on', level >= 5);
   }
 
   /** Level-up banner in the strip above the board. */
@@ -178,11 +176,8 @@ export class Hud {
     this.heatBar.classList.add('level-up');
   }
 
-  /** Fever: flames lick the screen edges while a hot streak lasts. */
-  setFever(on: boolean) {
-    if (!this.feverEl.isConnected) this.root.prepend(this.feverEl);
-    this.feverEl.classList.toggle('on', on);
-  }
+  /** Big-moment glow handler: the game flashes the stroke around the board (never a screen overlay). */
+  onGlow?: (color: string) => void;
 
   /** A streak ended: a little "streak lost" note so the player knows why the multiplier went. */
   streakLost(n: number) {
@@ -234,10 +229,11 @@ export class Hud {
   private ticket(c: Contract) {
     const t = el('div', 'ticket');
     t.dataset.id = String(c.id);
-    t.title = `Build ${c.count} ${tier(c.tier).name}`;
+    t.title = `Build ${c.count} ${tierName(c.tier)}`;
+    t.dataset.tier = String(c.tier);
     const img = document.createElement('img');
     img.src = thumbUrl(c.tier);
-    img.alt = tier(c.tier).name;
+    img.alt = tierName(c.tier);
     const reward = el('div', 't-reward');
     reward.append(el('span', 'mini-coin'), el('span', '', String(c.reward)));
     t.append(el('div', 't-tape'), img, el('div', 't-prog'), reward, el('div', 't-stamp', 'DONE'));
@@ -336,7 +332,7 @@ export class Hud {
 
   /** "New Building!" card: the piece spins on a pedestal, then flies into its evolution-bar slot. */
   showNewBuilding(tierId: number) {
-    this.showToast('New Building!', tier(tierId).name, tierId);
+    this.showToast('New Building!', tierName(tierId), tierId);
     const card = this.toast.querySelector('.chip') as HTMLElement | null;
     card?.classList.add('spin');
     window.setTimeout(() => {
@@ -373,7 +369,10 @@ export class Hud {
   }
 
   /** NEXT, plus a smaller chip for the piece after it (three pieces visible in all). */
+  private lastNext: [number | null, number | null] = [null, null];
+
   setNext(tierId: number | null, after: number | null = null) {
+    this.lastNext = [tierId, after];
     this.nextSlot.replaceChildren();
     this.afterSlot.replaceChildren();
     if (tierId !== null) {
@@ -406,14 +405,58 @@ export class Hud {
   }
 
   private praiseEl = el('div', 'praise');
-  private glowEl = el('div', 'combo-glow');
+
+  /** Swaps every building picture (NEXT, THEN, contract tickets, evolution bar) to the current theme. */
+  retheme() {
+    this.setNext(...this.lastNext);
+    for (const t of Array.from(this.tickets.children) as HTMLElement[]) {
+      const id = Number(t.dataset.tier);
+      const img = t.querySelector('img');
+      if (img && id) {
+        img.src = thumbUrl(id);
+        img.alt = tierName(id);
+      }
+    }
+    const unlocked = this.unlocked;
+    const highest = this.highest;
+    this.unlocked = -1;
+    this.setProgress(unlocked, highest);
+  }
+
+  /**
+   * A new map theme arrives: its name bursts in over the top of the board and
+   * confetti in the theme's colours rains across the whole screen.
+   */
+  themeArrival(t: Theme, calm = false) {
+    const banner = el('div', 'theme-banner');
+    banner.style.setProperty('--accent', t.accent);
+    banner.append(el('div', 'tb-kicker', 'Welcome to'), el('div', 'tb-name', t.name), el('div', 'tb-tag', t.tagline));
+    this.root.append(banner);
+    window.setTimeout(() => banner.remove(), 2600);
+    const n = calm ? 0 : 90;
+    const layer = el('div', 'confetti');
+    for (let i = 0; i < n; i++) {
+      const p = el('i');
+      p.style.setProperty('--x', `${Math.random() * 100}%`);
+      p.style.setProperty('--dx', `${(Math.random() - 0.5) * 140}px`);
+      p.style.setProperty('--r', `${(Math.random() - 0.5) * 1440}deg`);
+      p.style.setProperty('--d', `${1.6 + Math.random() * 1.4}s`);
+      p.style.setProperty('--delay', `${Math.random() * 0.5}s`);
+      p.style.setProperty('--w', `${6 + Math.random() * 8}px`);
+      p.style.background = t.confetti[i % t.confetti.length];
+      if (i % 4 === 0) p.style.borderRadius = '50%';
+      layer.append(p);
+    }
+    if (n) this.root.append(layer);
+    window.setTimeout(() => layer.remove(), 3600);
+  }
 
   /**
    * Praise word for a combo: it grows and changes colour as the chain gets
    * longer, punches in with an elastic bounce and floats away.
    */
   praise(combo: number, color: string, special?: string) {
-    if (!this.praiseEl.isConnected) this.root.append(this.glowEl, this.praiseEl);
+    if (!this.praiseEl.isConnected) this.root.append(this.praiseEl);
     const words = ['', '', 'Nice!', 'Great!', 'Awesome!', 'Amazing!', 'Incredible!', 'Unbelievable!'];
     const word = special ?? words[Math.min(combo, words.length - 1)];
     this.praiseEl.replaceChildren(el('div', 'praise-word', word), el('div', 'praise-combo', special ? '' : `COMBO ×${combo}`));
@@ -427,13 +470,9 @@ export class Hud {
     this.praiseEl.classList.add('go');
   }
 
-  /** A coloured glow pulsing in from the screen edges on big combos. */
+  /** A coloured flash around the board edges on big combos. */
   glow(color: string) {
-    if (!this.glowEl.isConnected) this.root.append(this.glowEl, this.praiseEl);
-    this.glowEl.style.setProperty('--tint', color);
-    this.glowEl.classList.remove('go');
-    void this.glowEl.offsetWidth;
-    this.glowEl.classList.add('go');
+    this.onGlow?.(color);
   }
 
   floatText(x: number, y: number, text: string, big = false, combo = 1) {

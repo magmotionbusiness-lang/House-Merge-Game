@@ -15,6 +15,8 @@ A portrait, mobile-first 3D flick-to-merge game. Slide building pieces up a blue
 
 ## Status
 
+**Map themes**: a run travels through five themes (Construction Site, Tropical Beach, Alpine Peaks, Sweet Town, Neon City). Each has its own backdrop, rails and 18-building lineup; the switch happens on a big moment after a couple of minutes. Campaign districts each have a home theme, and the Daily picks one by date.
+
 Phase 7 of 10: **Meta and retention** done (Daily Blueprint, login calendar, collection book, My Skyline), plus music and the merge "dopamine" pass. Phase 6: 45 campaign levels tuned by a balancing bot, plus four coin boosters. Phase 5: title, campaign map, pause, settings, contracts, coins, level complete and fail screens. Phase 4: painted construction-site backdrop, time-of-day tint, camera ease-back. Phase 3 **Models**: All 18 tiers are procedural 3D buildings, from Brick to Space Elevator. See `docs/tier-lineup.png` for the full ladder and `DECISIONS.md` for the reasoning behind each phase.
 
 Add `?debug` to the URL to show frame rate, render resolution and draw calls.
@@ -43,7 +45,8 @@ To install on iPhone: open the site in Safari → Share → **Add to Home Screen
 | `src/core` | Pure rules: tier ladder (`tiers.ts`), spawn RNG, scoring, combo, tuning config. Runs headless. |
 | `src/physics` | Rapier 2D table world (the game is simulated on the table plane and drawn in 3D). |
 | `src/render` | Three.js scene, camera fit, procedural textures, merge effects, the construction site (`site.ts`) and time-of-day lighting (`lighting.ts`). |
-| `src/models` | One file per tier (`tier01.ts` … `tier18.ts`) building the model in code, plus the modelling kit and shared materials. |
+| `src/models` | One file per tier (`tier01.ts` … `tier18.ts`) for the construction site, one file per theme lineup (`beach.ts`, `alpine.ts`, `sweet.ts`, `neon.ts`), plus the modelling kit (`kit.ts`, `themekit.ts`) and shared materials. |
+| `src/core/themes.ts` | Map themes: names, building names per tier, rail and confetti colours, backdrop art, switch timing. |
 | `src/audio` | Procedural Web Audio sound effects (`sfx.ts`) and the music player with the shuffled playlist (`music.ts`). |
 | `scripts/bake.mjs` | Bakes thumbnails (`public/thumbs`), `.glb` exports (`art/models`) and the lineup sheet. |
 | `src/ui` | DOM HUD: score, NEXT card, evolution bar, combo stamp, game-over card. |
@@ -57,6 +60,10 @@ All balancing data lives in `src/core/tiers.ts` and `src/core/config.ts`.
 ## Editing a building
 
 Each tier lives in `src/models/tierNN.ts`. Models are built in "model units": the footprint is 1 unit across and the base sits at y = 0. After changing a model, run `npm run models:bake` so the HUD thumbnails and the lineup sheet match. The bake fails if a tier goes over its triangle budget.
+
+## Theme backdrops
+
+Each theme can use a painted backdrop like the construction site (`public/bg/site.webp`, portrait, about 940 × 1670). Put the image in `public/bg` (for example `public/bg/beach.webp`) and set `art: 'bg/beach.webp'` for that theme in `src/core/themes.ts`. Until then the game paints a stylised backdrop in code (`src/render/backdrops.ts`). Keep the important scenery in the top third and down the sides: the board covers the middle and bottom.
 
 ## Adding levels
 
