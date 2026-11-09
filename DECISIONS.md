@@ -273,3 +273,21 @@ Playtest feedback: it was hard to tell what the pieces were and which ranked hig
 | Difficulty "recipes" (the 2026 teardown found ones that manufacture losses) | Only **helpful** recipes, never harmful ones: in Endless, new players (first 3 runs) and crowded boards get a better chance of a piece matching one near the front. Pieces are never dealt to cause a loss; the brief's fairness rule stands, and trust is the long-term asset |
 
 Also fixed: going Back from the daily-reward calendar reopened it in a loop; it now greets once per session.
+
+## Phase 7.3: Heat, the run gets flashier as it goes (playtest feedback)
+
+Block Blast escalates its presentation over a session: early clears are modest, while later ones are louder and more colourful, so the reward keeps growing without ever pulling the player out of play. Blueprint Merge now has **Heat**, six levels driven by the run's score (0, 600, 2,500, 8,000, 22,000, 60,000). Each level permanently adds a layer for the rest of the run:
+
+| Heat | Name | What it adds |
+|---|---|---|
+| 1 | Warming up! | Rails start glowing; comet trails behind every shot |
+| 2 | On a roll! | Each merge also throws a ring of coloured sparks; an octave shimmer joins the merge chord; the board tint warms |
+| 3 | On fire! | Sparkles drift up over the board continuously; bigger merge bursts and a harder camera punch |
+| 4 | Unstoppable! | A sub thump and a sizzle under every merge; denser sparkles |
+| 5 | Legendary! | Rainbow-cycling rails, a slow rainbow aurora over the screen, maximum bursts |
+
+- **Level-ups** get their own moment: a banner in the strip above the board ("On fire!", "HEAT LEVEL 3"), a screen glow, a rising sweep into a bright chord with a cymbal-like shimmer, confetti bursts across the board and a camera punch. The music ducks briefly so it cuts through.
+- **Anticipation:** a slim heat meter under the score always shows how close the next level is, in the next level's colour (rainbow at the top).
+- **Fever:** a streak of 4+ sets the screen edges ablaze with flickering flames, and shot trails turn fiery until the streak breaks.
+- **Never interrupting:** everything plays over the game. There are no pop-ups, no pauses and no taps needed. A resumed run restores its Heat silently.
+- **Performance:** trails and ambient sparkles share one pooled particle buffer (360 points, a single draw call), and the glows are CSS layers composited by the browser. Calm effects and Reduce Motion tone it down.

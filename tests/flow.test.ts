@@ -104,3 +104,22 @@ describe('meta: login calendar and daily', async () => {
     expect(t.split('\n')).toHaveLength(4);
   });
 });
+
+describe('heat levels', async () => {
+  const { heatFor, heatProgress, MAX_HEAT } = await import('../src/core/heat');
+  it('climbs with the score and never goes past the top', () => {
+    expect(heatFor(0)).toBe(0);
+    expect(heatFor(600)).toBe(1);
+    expect(heatFor(10_000_000)).toBe(MAX_HEAT);
+    let last = 0;
+    for (let s = 0; s < 100000; s += 500) {
+      expect(heatFor(s)).toBeGreaterThanOrEqual(last);
+      last = heatFor(s);
+    }
+  });
+  it('progress runs 0 to 1 within a level', () => {
+    expect(heatProgress(0)).toBe(0);
+    expect(heatProgress(300)).toBeCloseTo(0.5);
+    expect(heatProgress(10_000_000)).toBe(1);
+  });
+});

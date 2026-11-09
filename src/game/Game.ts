@@ -14,6 +14,7 @@ import { levelCoins, starsFor, type LevelDef } from '../core/levels';
 import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
 import { booster, boosterPrice, type BoosterId } from '../core/boosters';
+import { HEAT_COLORS, heatFor, heatProgress } from '../core/heat';
 
 export type PlayMode =
   | { kind: 'endless' }
@@ -124,6 +125,8 @@ export class Game {
   private lastShot: Piece | null = null;
   // Streak: consecutive shots that each caused at least one merge multiply the score.
   streak = 0;
+  /** Heat level (0-5): the run gets flashier as the score climbs. */
+  heat = 0;
   private mergesSinceShot = 0;
   private bestBeaten = false;
   private runsPlayed = store.num('bm.runs', 0);
@@ -245,6 +248,8 @@ export class Game {
     this.boosterUses = r.uses ?? {};
     this.refreshPrices();
     this.launchedCount = r.launched;
+    this.heatUp(heatFor(this.score), true);
+    this.hud.setHeat(this.heat, heatProgress(this.score));
     this.refreshHud();
   }
 
@@ -312,6 +317,10 @@ export class Game {
     this.mergesSinceShot = 0;
     this.bestBeaten = false;
     this.bestAtStart = this.best;
+    this.heat = 0;
+    this.view.setHeat(0, HEAT_COLORS[0]);
+    this.hud.setHeat(0, 0);
+    this.hud.setFever(false);
     this.lastShot = null;
     this.hud.setStreak(0);
     this.spawnLauncher();
@@ -453,6 +462,8 @@ export class Game {
     this.mergesSinceShot = 0;
     this.lastShot = null;
     this.hud.setStreak(this.streak);
+    // Fever: a hot streak sets the screen edges ablaze until it breaks.
+    this.hud.setFever(this.streak >= 4 && !settings.calm);
     this.saveRun();
   }
 
@@ -634,7 +645,7 @@ export class Game {
     const n = this.addPiece(nt, mx, my, (va.x + vb.x) / 2, (va.y + vb.y) / 2);
     n.view.build = 0;
     n.mergedAt = this.time;
-    const power = Math.min(3, nt / 6 + (combo - 1) * 0.3);
+    const power = Math.min(4.5, nt / 6 + (combo - 1) * 0.3 + this.heat * 0.35);
     // The twins slam together first (with a rising whoosh); the payoff lands on impact.
     this.sfx.mergeRise(combo);
     this.view.converge(a.view, b.view, mx, my, () => {
@@ -651,10 +662,17 @@ export class Game {
       }
       this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3, combo);
       this.hud.bumpScore();
-      this.sfx.merge(nt, combo);
+      this.sfx.merge(nt, combo, this.heat);
       // Escalating payoff: camera punch-in on every merge, praise words and a
       // colour burst as the chain grows.
-      if (!settings.calm) this.view.punch(0.9 + Math.min(2, (combo - 1) * 0.45) + Math.min(1, nt * 0.06));
+      if (!settings.calm) this.view.punch(0.9 + Math.min(2, (combo - 1) * 0.45) + Math.min(1, nt * 0.06) + this.heat * 0.15);
+      // Higher heat: every merge throws an extra ring of coloured sparks.
+      if (this.heat >= 2)
+        for (let i = 0; i < 6 + this.heat * 4; i++) {
+          const a = (i / (6 + this.heat * 4)) * Math.PI * 2;
+          const sp = 0.5 + Math.random() * 0.4;
+          this.view.fx.spark(at.x, at.y, 0.04, this.view.heatColor(), 0.6, Math.cos(a) * sp, Math.sin(a) * sp, 0.3 + Math.random() * 0.4);
+        }
       if (chain) this.hud.praise(combo, t.color, 'Chain reaction!');
       else if (bank) this.hud.praise(combo, t.color, 'Bank shot!');
       else if (combo >= 2) this.hud.praise(combo, t.color);
@@ -786,7 +804,25 @@ export class Game {
       this.best = this.score;
       store.set('bm.best', this.best);
     }
+    const h = heatFor(this.score);
+    if (h > this.heat) this.heatUp(h);
+    this.hud.setHeat(this.heat, heatProgress(this.score));
     this.refreshHud();
+  }
+
+  /** A new heat level: banner, fanfare and a burst, and the board gets flashier for the rest of the run. */
+  private heatUp(level: number, quiet = false) {
+    this.heat = level;
+    this.view.setHeat(level, HEAT_COLORS[level]);
+    if (quiet) return;
+    window.setTimeout(() => {
+      if (this.over) return;
+      this.hud.heatUp(level, HEAT_COLORS[level]);
+      this.sfx.heatUp(level);
+      this.events.onMerge?.(12, 5);
+      for (let i = 0; i < 2 + level; i++) this.view.fx.merge((Math.random() - 0.5) * 0.7, CONFIG.failY + 0.4 + Math.random() * 1, 3, HEAT_COLORS[level], 2 + level * 0.4);
+      if (!settings.calm) this.view.punch(2 + level * 0.4);
+    }, 700);
   }
 
   private refreshHud() {
@@ -860,6 +896,9 @@ export class Game {
       const y = p.py + (p.y - p.py) * alpha;
       this.view.placePiece(p.view, x, y); // buildings always face the player
       this.view.animatePiece(p.view, dt);
+      // Comet trail behind fast shots once the run heats up (fiery during a streak).
+      if (p.shot && p.speed > 1.5 && dt > 0 && (this.heat >= 1 || this.streak >= 2))
+        this.view.trail(x, y, this.streak >= 4 ? '#ff7a2a' : HEAT_COLORS[Math.max(1, this.heat)]);
       fastest = Math.max(fastest, p.speed);
     }
     this.sfx.slide(this.paused || this.over ? 0 : fastest);

@@ -255,7 +255,7 @@ export class Sfx {
    * Each combo step raises the whole thing one note up the major scale, so
    * chains play an ascending melody; bigger tiers add weight and a boom.
    */
-  merge(tierId: number, combo: number) {
+  merge(tierId: number, combo: number, heat = 0) {
     if (!this.ok) return;
     const step = MAJOR[Math.min(combo - 1, MAJOR.length - 1)];
     const root = 392 * Math.pow(2, step / 12); // G4 upward
@@ -278,6 +278,22 @@ export class Sfx {
       this.tone(root * 2 * Math.pow(2, n / 12), 0.16, { gain: 0.07, type: 'triangle', when: 0.04 + i * 0.035, wet: 0.6 }),
     );
     if (combo >= 2) this.stamp(0.02);
+    // Heat layers: an octave shimmer from heat 2, a sub thump and a sizzle from heat 4.
+    if (heat >= 2) [12, 19, 24].forEach((n, i) => this.tone(root * 2 * Math.pow(2, n / 12), 0.3, { gain: 0.045, when: 0.09 + i * 0.03, wet: 0.7 }));
+    if (heat >= 4) {
+      this.tone(55, 0.3, { gain: 0.3, freqEnd: 40 });
+      this.noise(0.4, { gain: 0.06, filter: 'highpass', freq: 6000, wet: 0.5 });
+    }
+  }
+
+  /** Heat level up: a rising sweep into a bright chord and a cymbal-like shimmer. */
+  heatUp(level: number) {
+    if (!this.ok) return;
+    this.noise(0.5, { gain: 0.12, freq: 400, freqEnd: 5000, q: 0.9 });
+    const root = 392 * Math.pow(2, MAJOR[Math.min(level * 2, MAJOR.length - 1)] / 12);
+    [0, 4, 7, 12, 16].forEach((n, i) => this.tone(root * Math.pow(2, n / 12), 0.5, { gain: 0.09, type: 'triangle', when: 0.25 + i * 0.06, wet: 0.5 }));
+    this.noise(0.9, { gain: 0.09, filter: 'highpass', freq: 5000, when: 0.5, wet: 0.6 });
+    this.tone(70, 0.4, { gain: 0.3, freqEnd: 45, when: 0.5 });
   }
 
   /** The next piece clicking into the launcher. */

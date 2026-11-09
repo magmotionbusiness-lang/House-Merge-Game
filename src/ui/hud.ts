@@ -149,6 +149,41 @@ export class Hud {
     this.streakEl.classList.add('up');
   }
 
+  private heatBar = el('div', 'heat-bar');
+  private heatFill = el('div', 'heat-fill');
+  private feverEl = el('div', 'fever');
+  private auroraEl = el('div', 'aurora');
+
+  /** Heat meter under the score: always shows how close the next level is. */
+  setHeat(level: number, progress: number) {
+    if (!this.heatBar.isConnected) {
+      this.heatBar.append(this.heatFill);
+      this.score.closest('.score-box')?.append(this.heatBar);
+      this.root.prepend(this.auroraEl, this.feverEl);
+    }
+    this.heatBar.dataset.level = String(level);
+    this.heatFill.style.width = `${Math.round(progress * 100)}%`;
+    this.auroraEl.classList.toggle('on', level >= 5);
+  }
+
+  /** Level-up banner in the strip above the board. */
+  heatUp(level: number, color: string) {
+    const names = ['', 'Warming up!', 'On a roll!', 'On fire!', 'Unstoppable!', 'Legendary!'];
+    this.praise(5, color, names[level]);
+    const sub = this.praiseEl.querySelector('.praise-combo');
+    if (sub) sub.textContent = `HEAT LEVEL ${level}`;
+    this.glow(color);
+    this.heatBar.classList.remove('level-up');
+    void this.heatBar.offsetWidth;
+    this.heatBar.classList.add('level-up');
+  }
+
+  /** Fever: flames lick the screen edges while a hot streak lasts. */
+  setFever(on: boolean) {
+    if (!this.feverEl.isConnected) this.root.prepend(this.feverEl);
+    this.feverEl.classList.toggle('on', on);
+  }
+
   /** A streak ended: a little "streak lost" note so the player knows why the multiplier went. */
   streakLost(n: number) {
     const r = this.score.getBoundingClientRect();

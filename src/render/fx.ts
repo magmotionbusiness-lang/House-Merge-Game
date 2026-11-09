@@ -52,10 +52,74 @@ export class ParticleFx {
   });
   private glowGeo = new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2);
 
+  // A pooled particle field (one draw call) for comet trails and ambient sparkles.
+  private static readonly N = 360;
+  private sparkPos = new Float32Array(ParticleFx.N * 3);
+  private sparkCol = new Float32Array(ParticleFx.N * 3);
+  private sparkBase = new Float32Array(ParticleFx.N * 3);
+  private sparkVel = new Float32Array(ParticleFx.N * 3);
+  private sparkAge = new Float32Array(ParticleFx.N).fill(99);
+  private sparkLife = new Float32Array(ParticleFx.N).fill(1);
+  private sparkNext = 0;
+  private sparkGeo = new THREE.BufferGeometry();
+  private sparkPoints: THREE.Points;
+
   constructor(
     private scene: THREE.Scene,
     private add: (e: Effect) => void,
-  ) {}
+  ) {
+    this.sparkPos.fill(-50);
+    this.sparkGeo.setAttribute('position', new THREE.BufferAttribute(this.sparkPos, 3).setUsage(THREE.DynamicDrawUsage));
+    this.sparkGeo.setAttribute('color', new THREE.BufferAttribute(this.sparkCol, 3).setUsage(THREE.DynamicDrawUsage));
+    this.sparkPoints = new THREE.Points(
+      this.sparkGeo,
+      new THREE.PointsMaterial({
+        size: 0.05,
+        map: sparkleTexture(),
+        vertexColors: true,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true,
+      }),
+    );
+    this.sparkPoints.frustumCulled = false;
+    this.sparkPoints.renderOrder = 6;
+    scene.add(this.sparkPoints);
+  }
+
+  /** One glowing spark (table coords x, y at height h) that drifts and fades. */
+  spark(x: number, y: number, h: number, color: THREE.Color, life = 0.4, vx = 0, vy = 0, vh = 0) {
+    const i = this.sparkNext;
+    this.sparkNext = (i + 1) % ParticleFx.N;
+    this.sparkPos.set([x, h, -y], i * 3);
+    this.sparkBase.set([color.r, color.g, color.b], i * 3);
+    this.sparkVel.set([vx, vh, -vy], i * 3);
+    this.sparkAge[i] = 0;
+    this.sparkLife[i] = life;
+  }
+
+  /** Advances the spark field (called every frame). */
+  tick(dt: number) {
+    let any = false;
+    for (let i = 0; i < ParticleFx.N; i++) {
+      if (this.sparkAge[i] >= this.sparkLife[i]) continue;
+      any = true;
+      this.sparkAge[i] += dt;
+      const k = Math.max(0, 1 - this.sparkAge[i] / this.sparkLife[i]);
+      for (let c = 0; c < 3; c++) {
+        this.sparkPos[i * 3 + c] += this.sparkVel[i * 3 + c] * dt;
+        this.sparkCol[i * 3 + c] = this.sparkBase[i * 3 + c] * k;
+      }
+      if (k === 0) this.sparkPos[i * 3 + 1] = -50;
+    }
+    if (any || this.wasAny) {
+      this.sparkGeo.getAttribute('position').needsUpdate = true;
+      this.sparkGeo.getAttribute('color').needsUpdate = true;
+    }
+    this.wasAny = any;
+  }
+  private wasAny = false;
 
   private mat(key: string, make: () => THREE.Material) {
     let m = this.mats.get(key);

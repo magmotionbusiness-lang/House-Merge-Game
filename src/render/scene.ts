@@ -744,6 +744,69 @@ export class SceneView {
     this.punchT = 0;
   }
 
+  // ---------------------------------------------------------------- heat
+
+  private heat = 0;
+  private heatGlow: THREE.Mesh[] = [];
+  private heatMat = new THREE.MeshBasicMaterial({ color: '#6fd6ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  private sheetTarget = new THREE.Color('#ffffff');
+  private tmpColor = new THREE.Color();
+
+  /**
+   * Heat level 0-5: the board shifts colour, the rails glow, and ambient
+   * sparkles rise over the table, more with each level.
+   */
+  setHeat(level: number, color: string) {
+    this.heat = level;
+    if (!this.heatGlow.length) {
+      // Glowing strips along the top of both side rails and the front rail.
+      const mk = (w: number, d: number, x: number, z: number) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.008, d), this.heatMat);
+        m.position.set(x, RAIL_H + 0.004, z);
+        m.renderOrder = 4;
+        this.scene.add(m);
+        this.heatGlow.push(m);
+      };
+      mk(RAIL_W * 0.7, L + RAIL_W, -W / 2 - RAIL_W / 2, -L / 2);
+      mk(RAIL_W * 0.7, L + RAIL_W, W / 2 + RAIL_W / 2, -L / 2);
+      mk(W, RAIL_W * 0.7, 0, RAIL_W / 2);
+    }
+    this.heatMat.color.set(color);
+    const tints = ['#ffffff', '#eef9ff', '#e6fff4', '#fff0e2', '#ffeaf8', '#fff6dc'];
+    this.sheetTarget.set(tints[Math.min(level, tints.length - 1)]);
+  }
+
+  private tickHeat(dt: number) {
+    if (this.heat <= 0) {
+      this.heatMat.opacity = 0;
+      return;
+    }
+    // Rails breathe; at Legendary they cycle through the rainbow.
+    this.heatMat.opacity = Math.min(0.9, 0.25 + this.heat * 0.12) * (0.75 + 0.25 * Math.sin(this.time * 4));
+    if (this.heat >= 5) this.heatMat.color.setHSL((this.time * 0.15) % 1, 0.9, 0.6);
+    this.sheetMat.color.lerp(this.sheetTarget, Math.min(1, dt * 1.5));
+    // Ambient sparkles drifting up over the board from heat 3.
+    if (this.heat >= 3) {
+      const rate = (this.heat - 2) * 10;
+      let n = rate * dt + Math.random() * 0.999;
+      while (n-- >= 1) {
+        this.tmpColor.copy(this.heatMat.color);
+        this.fx.spark((Math.random() - 0.5) * W, CONFIG.failY + Math.random() * (L - CONFIG.failY), 0.02, this.tmpColor, 1.2 + Math.random(), 0, 0, 0.08 + Math.random() * 0.1);
+      }
+    }
+  }
+
+  /** The current heat colour (for sparks). */
+  heatColor() {
+    return this.tmpColor.copy(this.heatMat.color);
+  }
+
+  /** Comet trail behind a fast-moving shot. */
+  trail(x: number, y: number, color: string) {
+    this.tmpColor.set(color);
+    this.fx.spark(x + (Math.random() - 0.5) * 0.02, y - 0.02, 0.02 + Math.random() * 0.02, this.tmpColor, 0.35, 0, -0.1, 0.05);
+  }
+
   /** Brief screen-space kick for big moments. */
   shake(amount: number) {
     this.camShake = Math.max(this.camShake, amount);
@@ -816,6 +879,8 @@ export class SceneView {
     this.adaptQuality(dt);
     this.time += dt;
     animateMaterials(this.time);
+    this.fx.tick(dt);
+    this.tickHeat(dt);
     this.lighting.update(dt);
     if (this.showT < 1) {
       this.showT = Math.min(1, this.showT + dt / this.showDur);

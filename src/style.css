@@ -2339,3 +2339,100 @@ body:has(.screen.title) #splash {
   font-size: min(calc(40px * var(--s, 1)), 10.5vw);
   max-width: 94vw;
 }
+
+/* ================= Heat: the run gets flashier as it goes ================= */
+.heat-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -6px;
+  height: 7px;
+  border-radius: 4px;
+  border: 2px solid var(--hud-ink);
+  background: #e6dac4;
+  overflow: hidden;
+}
+.heat-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #6fd6ff, #5cffb0);
+  transition: width 0.35s ease;
+}
+.heat-bar[data-level='1'] .heat-fill {
+  background: linear-gradient(90deg, #5cffb0, #b9ff6a);
+}
+.heat-bar[data-level='2'] .heat-fill {
+  background: linear-gradient(90deg, #ffd84d, #ff9a3d);
+}
+.heat-bar[data-level='3'] .heat-fill {
+  background: linear-gradient(90deg, #ff9a3d, #ff5ec4);
+}
+.heat-bar[data-level='4'] .heat-fill,
+.heat-bar[data-level='5'] .heat-fill {
+  background: linear-gradient(90deg, #ff6b6b, #ffd84d, #6bff95, #6fd6ff, #c48bff);
+  background-size: 200% 100%;
+  animation: rainbow-run 1.4s linear infinite;
+}
+@keyframes rainbow-run {
+  to {
+    background-position: 200% 0;
+  }
+}
+.heat-bar.level-up {
+  animation: heat-pop 0.6s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes heat-pop {
+  40% {
+    transform: scaleY(1.9);
+    box-shadow: 0 0 14px #fff;
+  }
+}
+.fever {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.4s;
+  background:
+    radial-gradient(120% 22% at 50% 104%, rgba(255, 120, 20, 0.75), transparent 70%),
+    radial-gradient(20% 80% at -4% 70%, rgba(255, 80, 0, 0.55), transparent 70%),
+    radial-gradient(20% 80% at 104% 70%, rgba(255, 80, 0, 0.55), transparent 70%);
+  mix-blend-mode: screen;
+}
+.fever.on {
+  opacity: 1;
+  animation: fever-flicker 0.35s ease-in-out infinite alternate;
+}
+@keyframes fever-flicker {
+  to {
+    filter: brightness(1.25) saturate(1.2);
+    transform: scaleY(1.03);
+  }
+}
+.aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s;
+  background: linear-gradient(120deg, rgba(255, 107, 107, 0.16), rgba(255, 216, 77, 0.16), rgba(107, 255, 149, 0.16), rgba(111, 214, 255, 0.16), rgba(196, 139, 255, 0.16));
+  background-size: 300% 300%;
+  mix-blend-mode: screen;
+}
+.aurora.on {
+  opacity: 1;
+  animation: aurora 6s ease-in-out infinite alternate;
+}
+@keyframes aurora {
+  to {
+    background-position: 100% 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fever.on,
+  .aurora.on,
+  .heat-bar[data-level='4'] .heat-fill,
+  .heat-bar[data-level='5'] .heat-fill {
+    animation: none;
+  }
+}
