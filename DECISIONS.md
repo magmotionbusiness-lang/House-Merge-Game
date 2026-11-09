@@ -291,3 +291,15 @@ Block Blast escalates its presentation over a session: early clears are modest, 
 - **Fever:** a streak of 4+ sets the screen edges ablaze with flickering flames, and shot trails turn fiery until the streak breaks.
 - **Never interrupting:** everything plays over the game. There are no pop-ups, no pauses and no taps needed. A resumed run restores its Heat silently.
 - **Performance:** trails and ambient sparkles share one pooled particle buffer (360 points, a single draw call), and the glows are CSS layers composited by the browser. Calm effects and Reduce Motion tone it down.
+
+## Phase 7.4: Contract delivery, room to grow past the big tiers (playtest feedback)
+
+Feedback: from about tier 11 the board clogs. Each new tier is bigger, two of them rarely fit beside each other, and the board can't be cleared. Clearing the board in Block Blast feels great, with the edges glowing and pulsing, and that feeling was missing here.
+
+- **Delivery:** when a merge builds a building that an open contract asks for, the crane collects it. After a short beat (0.75 s, long enough to enjoy the merge) it is lifted off the board on a cable and flies away. The rails pulse three times in its colour, a "Delivered!" banner names the building, a rising chime plays and a ring of sparks marks the empty spot. Delivered buildings can't merge on the way out. This is the main way to clear space, and it rewards doing the contracts.
+- **Contracts sit at the top end:** Endless contracts ask for tiers around the player's best (best − 1 up to best + 2), so delivery removes the biggest footprints. A variant that asked for tiers below the best was tested and made things worse (median best tier 7 instead of 9), because it took away the pieces the player needed to climb.
+- **Slimmer big tiers:** footprints from tier 6 up grow more slowly (tier 18 is 0.25 of the table width instead of reaching it). Big buildings grow taller rather than wider, which keeps the "bigger = better" read.
+- **Clean Site** (board almost empty after a merge) now also pulses the edges, five gold pulses.
+- **Daily** contracts refill like Endless, so delivery keeps the daily board breathing too.
+
+Measured with `scripts/endless-sim.ts` (greedy bot, 24 runs, 600-shot cap). Delivery on: best tier median 9, 542 shots on average. Delivery off: median 9, 370 shots. The bot survives about 46% longer, and many runs hit the cap. The headless Sim mirrors delivery, and the campaign shot limits were re-tuned with 300 runs per level (`npm run balance -- --runs 300 --write`).

@@ -37,10 +37,13 @@ export function recordBuild(contracts: Contract[], tier: number): Contract[] {
 }
 
 /**
- * Endless mode: a fresh contract a little above what the player has reached,
- * so it is reachable this session but pulls them upward.
+ * Endless mode: a fresh contract for a tier a little *below* the player's
+ * best, so delivering it clears the mid-size clutter while the biggest
+ * buildings stay on the board to keep growing.
  */
 export function endlessContract(rng: Rng, highestReached: number, avoidTiers: number[] = []): Contract {
+  // Targets sit around the player's best: delivering a fresh top building
+  // clears the biggest footprint off the table, which is what frees space.
   const lo = Math.max(3, Math.min(highestReached, MAX_TIER - 1) - 1);
   const hi = Math.min(MAX_TIER, Math.max(lo + 1, highestReached + 2));
   let tier = lo;

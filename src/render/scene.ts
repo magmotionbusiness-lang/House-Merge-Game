@@ -776,7 +776,63 @@ export class SceneView {
     this.sheetTarget.set(tints[Math.min(level, tints.length - 1)]);
   }
 
+  private pulseT = -1;
+  private pulseCount = 3;
+  private pulseColor = new THREE.Color();
+
+  /** The board edges flash and pulse (deliveries, clean site): space freed feels like an achievement. */
+  edgePulse(color: string, count = 3) {
+    if (!this.heatGlow.length) this.setHeat(this.heat, `#${this.heatMat.color.getHexString()}`);
+    this.pulseT = 0;
+    this.pulseCount = count;
+    this.pulseColor.set(color).lerp(new THREE.Color('#ffffff'), 0.35);
+  }
+
+  /** A delivered building rises on the crane cable and flies off the top of the screen. */
+  deliver(p: PieceView) {
+    const start = p.group.position.clone();
+    const cable = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, p.height + 0.01, 0), new THREE.Vector3(0, 5, 0)]),
+      new THREE.LineBasicMaterial({ color: '#37474f' }),
+    );
+    p.group.add(cable);
+    let t = 0;
+    this.effects.push({
+      update: (dt) => {
+        t += dt;
+        const u = Math.min(1, t / 1.0);
+        const e = u * u * (3 - 2 * u);
+        p.group.position.set(start.x + Math.sin(t * 6) * 0.01 * (1 - u), start.y + e * e * 2.2, start.z - e * 0.6);
+        p.group.rotation.z = Math.sin(t * 5) * 0.08 * (1 - u);
+        const sc = 1 + Math.sin(Math.min(1, t / 0.25) * Math.PI) * 0.12;
+        p.group.scale.setScalar(sc * (1 - Math.max(0, u - 0.8) * 2));
+        if (Math.random() < 0.6) this.fx.spark(p.group.position.x, -p.group.position.z, p.group.position.y + 0.02, this.tmpColor.set('#fff3b0'), 0.5, 0, 0, -0.2);
+        return u < 1;
+      },
+      dispose: () => {
+        p.group.remove(cable);
+        cable.geometry.dispose();
+        (cable.material as THREE.Material).dispose();
+        this.removePiece(p);
+      },
+    });
+  }
+
   private tickHeat(dt: number) {
+    // Edge pulse overrides the heat glow while it plays.
+    if (this.pulseT >= 0) {
+      this.pulseT += dt;
+      const dur = 0.32 * this.pulseCount;
+      const u = this.pulseT / dur;
+      if (u >= 1) this.pulseT = -1;
+      else {
+        this.heatMat.color.copy(this.pulseColor);
+        this.heatMat.opacity = 0.95 * Math.abs(Math.sin(u * Math.PI * this.pulseCount)) * (1 - u * 0.3);
+        if (this.heat > 0) this.sheetMat.color.lerp(this.sheetTarget, Math.min(1, dt * 1.5));
+        return;
+      }
+      this.heatMat.color.set(this.heatColorFor(this.heat));
+    }
     if (this.heat <= 0) {
       this.heatMat.opacity = 0;
       return;
@@ -794,6 +850,10 @@ export class SceneView {
         this.fx.spark((Math.random() - 0.5) * W, CONFIG.failY + Math.random() * (L - CONFIG.failY), 0.02, this.tmpColor, 1.2 + Math.random(), 0, 0, 0.08 + Math.random() * 0.1);
       }
     }
+  }
+
+  private heatColorFor(level: number) {
+    return ['#6fd6ff', '#6fd6ff', '#5cffb0', '#ff9a3d', '#ff5ec4', '#ffd84d'][Math.min(level, 5)];
   }
 
   /** The current heat colour (for sparks). */

@@ -286,6 +286,13 @@ export class Sfx {
     }
   }
 
+  /** Delivery: the crane hoists a finished building away, a rising whoosh and a bright bell. */
+  deliver() {
+    if (!this.ok) return;
+    this.noise(0.7, { gain: 0.12, freq: 300, freqEnd: 3500, q: 1 });
+    [0, 7, 12, 19].forEach((n, i) => this.bell(523 * Math.pow(2, n / 12), 0.12, 0.1 + i * 0.08));
+  }
+
   /** Heat level up: a rising sweep into a bright chord and a cymbal-like shimmer. */
   heatUp(level: number) {
     if (!this.ok) return;

@@ -53,6 +53,8 @@ export class Sim {
   highest = 0;
   overflow = false;
   bestCombo = 0;
+  /** Contract builds are lifted off the board (true in the game). */
+  deliver = true;
   private lastMerge = -10;
   private combo = 0;
 
@@ -126,6 +128,8 @@ export class Sim {
         this.world.kick(o.b, dx * k, dy * k);
       }
     }
+    // Contract builds are delivered (lifted off the board), as in the game.
+    if (this.deliver && this.contracts.some((c) => c.tier === nt && !isComplete(c))) this.destroy(n);
     recordBuild(this.contracts, nt);
   }
 

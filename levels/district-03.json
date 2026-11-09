@@ -88,7 +88,7 @@
     {
       "id": "3-3",
       "name": "Market Square",
-      "shots": 18,
+      "shots": 26,
       "contracts": [
         {
           "tier": 7,
@@ -146,7 +146,7 @@
     {
       "id": "3-4",
       "name": "Behind the Scaffold",
-      "shots": 35,
+      "shots": 36,
       "contracts": [
         {
           "tier": 8,
@@ -194,7 +194,7 @@
     {
       "id": "3-5",
       "name": "Big Build: Townhouses",
-      "shots": 84,
+      "shots": 99,
       "contracts": [
         {
           "tier": 9,
@@ -283,7 +283,7 @@
     {
       "id": "3-7",
       "name": "Old Mansions",
-      "shots": 33,
+      "shots": 46,
       "contracts": [
         {
           "tier": 8,
@@ -336,7 +336,7 @@
     {
       "id": "3-8",
       "name": "Clock Tower Lane",
-      "shots": 44,
+      "shots": 43,
       "contracts": [
         {
           "tier": 8,
@@ -390,7 +390,7 @@
     {
       "id": "3-9",
       "name": "Canal Houses",
-      "shots": 51,
+      "shots": 54,
       "contracts": [
         {
           "tier": 9,
@@ -438,7 +438,7 @@
     {
       "id": "3-10",
       "name": "Big Build: Townhouse Row",
-      "shots": 52,
+      "shots": 93,
       "contracts": [
         {
           "tier": 9,
@@ -496,7 +496,7 @@
     {
       "id": "3-11",
       "name": "Breather",
-      "shots": 24,
+      "shots": 25,
       "contracts": [
         {
           "tier": 8,
@@ -526,7 +526,7 @@
     {
       "id": "3-12",
       "name": "Twin Rows",
-      "shots": 33,
+      "shots": 51,
       "contracts": [
         {
           "tier": 8,
@@ -584,7 +584,7 @@
     {
       "id": "3-13",
       "name": "Town Hall",
-      "shots": 45,
+      "shots": 59,
       "contracts": [
         {
           "tier": 9,
@@ -636,7 +636,7 @@
     {
       "id": "3-14",
       "name": "High Street",
-      "shots": 63,
+      "shots": 61,
       "contracts": [
         {
           "tier": 9,
@@ -684,7 +684,7 @@
     {
       "id": "3-15",
       "name": "Big Build: Apartments",
-      "shots": 64,
+      "shots": 73,
       "contracts": [
         {
           "tier": 10,

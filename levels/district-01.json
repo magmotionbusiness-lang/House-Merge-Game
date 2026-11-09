@@ -59,7 +59,7 @@
     {
       "id": "1-4",
       "name": "Neighbours",
-      "shots": 16,
+      "shots": 19,
       "contracts": [
         {
           "tier": 4,
@@ -126,7 +126,7 @@
     {
       "id": "1-7",
       "name": "Cabin Row",
-      "shots": 18,
+      "shots": 19,
       "contracts": [
         {
           "tier": 4,
@@ -137,7 +137,7 @@
     {
       "id": "1-8",
       "name": "Cottage Garden",
-      "shots": 20,
+      "shots": 22,
       "contracts": [
         {
           "tier": 5,
@@ -152,7 +152,7 @@
     {
       "id": "1-9",
       "name": "Two Cottages",
-      "shots": 17,
+      "shots": 18,
       "contracts": [
         {
           "tier": 5,
@@ -213,7 +213,7 @@
     {
       "id": "1-11",
       "name": "Breather",
-      "shots": 16,
+      "shots": 15,
       "contracts": [
         {
           "tier": 5,
@@ -236,7 +236,7 @@
     {
       "id": "1-12",
       "name": "Street Corner",
-      "shots": 21,
+      "shots": 26,
       "contracts": [
         {
           "tier": 6,
@@ -263,7 +263,7 @@
     {
       "id": "1-13",
       "name": "Big House",
-      "shots": 36,
+      "shots": 38,
       "contracts": [
         {
           "tier": 7,
@@ -291,7 +291,7 @@
     {
       "id": "1-14",
       "name": "House Pair",
-      "shots": 22,
+      "shots": 24,
       "contracts": [
         {
           "tier": 6,
@@ -324,7 +324,7 @@
     {
       "id": "1-15",
       "name": "Big Build: Mansion",
-      "shots": 59,
+      "shots": 63,
       "contracts": [
         {
           "tier": 8,

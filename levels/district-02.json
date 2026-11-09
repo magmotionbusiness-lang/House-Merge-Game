@@ -46,7 +46,7 @@
     {
       "id": "2-3",
       "name": "Block Party",
-      "shots": 16,
+      "shots": 19,
       "contracts": [
         {
           "tier": 6,
@@ -111,7 +111,7 @@
     {
       "id": "2-5",
       "name": "Big Build: Mansion",
-      "shots": 57,
+      "shots": 58,
       "contracts": [
         {
           "tier": 8,
@@ -215,7 +215,7 @@
     {
       "id": "2-8",
       "name": "Estate Agent",
-      "shots": 50,
+      "shots": 62,
       "contracts": [
         {
           "tier": 8,
@@ -259,7 +259,7 @@
     {
       "id": "2-9",
       "name": "Row Houses",
-      "shots": 91,
+      "shots": 97,
       "contracts": [
         {
           "tier": 9,
@@ -304,7 +304,7 @@
     {
       "id": "2-10",
       "name": "Big Build: Townhouses",
-      "shots": 84,
+      "shots": 89,
       "contracts": [
         {
           "tier": 9,
@@ -349,7 +349,7 @@
     {
       "id": "2-11",
       "name": "Breather",
-      "shots": 19,
+      "shots": 20,
       "contracts": [
         {
           "tier": 7,
@@ -419,7 +419,7 @@
     {
       "id": "2-13",
       "name": "Cul-de-sac",
-      "shots": 20,
+      "shots": 36,
       "contracts": [
         {
           "tier": 8,
@@ -468,7 +468,7 @@
     {
       "id": "2-14",
       "name": "Row Houses II",
-      "shots": 63,
+      "shots": 67,
       "contracts": [
         {
           "tier": 9,
@@ -508,7 +508,7 @@
     {
       "id": "2-15",
       "name": "Big Build: Apartments",
-      "shots": 86,
+      "shots": 90,
       "contracts": [
         {
           "tier": 10,

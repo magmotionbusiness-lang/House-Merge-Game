@@ -91,6 +91,8 @@ interface Piece {
   railHit: boolean;
   /** Launched by the player (rather than built or pre-placed). */
   shot: boolean;
+  /** Built for a contract: it's about to be lifted off the board, so it no longer merges. */
+  delivering: boolean;
   // Cached physics state (read once per step), plus the previous step for smooth rendering.
   x: number;
   y: number;
@@ -579,6 +581,7 @@ export class Game {
       mergedAt: -1,
       railHit: false,
       shot: false,
+      delivering: false,
       x,
       y,
       px: x,
@@ -601,7 +604,7 @@ export class Game {
   private tryMerge(ha: number, hb: number): boolean {
     const a = this.pieces.get(ha);
     const b = this.pieces.get(hb);
-    if (!a || !b || a.dead || b.dead || a.tier !== b.tier) return false;
+    if (!a || !b || a.dead || b.dead || a.tier !== b.tier || a.delivering || b.delivering) return false;
 
     const pa = this.world.pos(a.b);
     const pb = this.world.pos(b.b);
@@ -701,7 +704,7 @@ export class Game {
       }
     }
 
-    this.contractBuilt(nt);
+    this.contractBuilt(nt, n);
 
     if (nt > this.highestEver) {
       this.highestEver = nt;
@@ -716,9 +719,13 @@ export class Game {
   }
 
   /** Credits a newly built tier to the contracts; pays coins and refills (endless) or wins (level). */
-  private contractBuilt(tierId: number) {
+  private contractBuilt(tierId: number, piece?: Piece) {
     progress.addBuilt(tierId);
     this.builtThisRun.add(tierId);
+    // A building that fills a contract is delivered: lifted off the board,
+    // freeing its space (the merge game's version of clearing a line).
+    const counts = this.contracts.some((c) => c.tier === tierId && !isComplete(c));
+    if (counts && piece) this.deliver(piece);
     const done = recordBuild(this.contracts, tierId);
     this.hud.setContracts(this.contracts);
     for (const c of done) {
@@ -728,9 +735,9 @@ export class Game {
       this.hud.setCoins(progress.addCoins(c.reward));
       this.hud.contractDone(c.id, c.reward);
       this.sfx.contract();
-      if (this.playMode.kind === 'endless') {
+      if (this.playMode.kind !== 'level') {
         window.setTimeout(() => {
-          if (this.playMode.kind !== 'endless' || !this.contracts.includes(c)) return;
+          if (this.playMode.kind === 'level' || !this.contracts.includes(c)) return;
           const next = endlessContract(
             this.rng,
             Math.max(this.highestRun, 4),
@@ -744,11 +751,38 @@ export class Game {
     if (this.playMode.kind === 'level' && this.winAt < 0 && this.contracts.every(isComplete)) this.winAt = this.time + 1.4;
   }
 
+  /**
+   * Contract delivery: once its build-in has played, the crane lifts the
+   * building off the board and flies it away. Its space frees up, the board
+   * edges pulse and a "Delivered!" banner pays out.
+   */
+  private deliver(p: Piece) {
+    p.delivering = true;
+    const name = tier(p.tier).name;
+    window.setTimeout(() => {
+      if (p.dead || this.over) return;
+      const at = { x: p.x, y: p.y };
+      this.destroy(p, true);
+      this.view.deliver(p.view);
+      this.view.edgePulse(tier(p.tier).color);
+      this.hud.praise(4, tier(p.tier).color, 'Delivered!');
+      const sub = document.querySelector('.praise-combo');
+      if (sub) sub.textContent = name.toUpperCase();
+      this.sfx.deliver();
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * Math.PI * 2;
+        this.view.fx.spark(at.x, at.y, 0.05, this.view.heatColor().set('#fff3b0'), 0.7, Math.cos(a) * 0.6, Math.sin(a) * 0.6, 0.4);
+      }
+      this.refreshHud();
+    }, 750);
+  }
+
   /** Clean Site: the table is (almost) empty after a merge. A big bonus and celebration. */
   private cleanSite(x: number, y: number) {
     const bonus = 500 * Math.max(1, this.highestRun);
     this.addScore(bonus);
     this.hud.praise(5, '#ffd84d', 'Clean site!');
+    this.view.edgePulse('#ffd84d', 5);
     this.hud.floatText(this.view.toScreen(x, y, 0.2).x, this.view.toScreen(x, y, 0.2).y - 40, `+${bonus.toLocaleString('en-US')}`, true, 6);
     for (let i = 0; i < 3; i++) this.view.fx.merge(x + (i - 1) * 0.25, y, 3, '#ffd84d', 3);
     if (!settings.calm) {
@@ -1191,7 +1225,7 @@ export class Game {
       n.view.build = BUILD_CONVERGE_SKIP;
       this.view.fx.impact(x, y, n.radius, tier(t0 + 1).color, 1.5);
       this.sfx.merge(t0 + 1, 1);
-      this.contractBuilt(t0 + 1);
+      this.contractBuilt(t0 + 1, n);
       this.refreshHud();
     } else if (id === 'crane') {
       // Lift it: it follows the finger, with a footprint marker showing where it will land.
