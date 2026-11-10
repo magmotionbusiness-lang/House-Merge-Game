@@ -451,5 +451,5 @@ What makes Candy Crush's clear such a rush is that the reward keeps coming after
 
 1. **Shout:** the screen dims to a deep blue vignette and the theme's shout slams in word by word: "Master Builder!", "Beach Blast!", "Peak Power!", "Sugar Rush!" or "Neon Overdrive!". The board edges flash, with a sweeping chord and a sub drop. Input locks and nothing can fail any more.
 2. **Overtime bonus:** each leftover shot (up to 15) becomes a firework. It streaks from the launch line to a building with a sparkling trail, blows it up, and pays 100 + 25 per rocket in points plus 5 coins. The rockets speed up as they go, and each one's bell rings a step higher. The "Overtime bonus" counter ticks up, and the shot counter runs down to zero.
-3. **Finale:** "Wonderful!" (or "Brilliant!", "Fantastic!", ...) and "Level complete!". The builder jumps up from the bottom with a squash and stretch, surrounded by twinkling stars, and theme-coloured confetti rains down to a fanfare.
+3. **Finale:** "Wonderful!" (or "Brilliant!", "Fantastic!", ...) and "Level complete!" land in the middle of the screen while theme-coloured confetti rains down to a fanfare. (A jumping logo mascot was tried and removed at the user's request.)
 4. **Results:** the stars land one by one, each with its own rising chime.

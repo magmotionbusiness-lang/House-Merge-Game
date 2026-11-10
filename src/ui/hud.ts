@@ -402,25 +402,15 @@ export class Hud {
     b.classList.add('tick');
   }
 
-  /** Part 3: the builder jumps up cheering, confetti rains and the big words land. */
+  /** Part 3: the big words land and confetti rains. */
   celebrateFinale(word: string, accent: string, confetti: string[]) {
     const c = this.celebEl;
     if (!c) return;
     c.classList.add('finale');
-    const m = el('div', 'celeb-mascot');
-    const img = el('img') as HTMLImageElement;
-    img.src = `${import.meta.env.BASE_URL}logo.webp`;
-    img.alt = '';
-    m.append(img);
-    for (let i = 0; i < 8; i++) {
-      const s = el('i');
-      s.style.setProperty('--a', `${i * 45}deg`);
-      m.append(s);
-    }
     const words = el('div', 'celeb-final');
     words.append(el('div', 'cf-word', word), el('div', 'cf-sub', 'Level complete!'));
     words.style.setProperty('--accent', accent);
-    c.append(words, m);
+    c.append(words);
     const layer = el('div', 'confetti');
     for (let i = 0; i < 110; i++) {
       const p = el('i');
