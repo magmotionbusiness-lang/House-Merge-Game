@@ -942,6 +942,45 @@ export class SceneView {
     }
   }
 
+  private rocketMat: THREE.SpriteMaterial | null = null;
+
+  /**
+   * Level-clear bonus: a leftover shot becomes a firework that streaks from the
+   * launch line to a spot on the board, trailing sparkles, then calls `onHit`.
+   */
+  rocket(from: { x: number; y: number }, to: { x: number; y: number }, color: string, onHit: () => void) {
+    this.rocketMat ??= new THREE.SpriteMaterial({ map: dotTexture(), color: '#ffffff', blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false, transparent: true });
+    const head = new THREE.Sprite(this.rocketMat);
+    head.scale.setScalar(0.06);
+    head.renderOrder = 8;
+    this.scene.add(head);
+    const c = new THREE.Color(color);
+    const dur = 0.36;
+    let t = 0;
+    this.effects.push({
+      update: (dt) => {
+        t += dt;
+        const u = Math.min(1, t / dur);
+        const e = u * u * (3 - 2 * u);
+        const x = from.x + (to.x - from.x) * e;
+        const y = from.y + (to.y - from.y) * e;
+        const h = 0.03 + Math.sin(u * Math.PI) * 0.22;
+        head.position.copy(toWorld(x, y, h));
+        for (let i = 0; i < 2; i++) this.fx.spark(x + (Math.random() - 0.5) * 0.01, y, h, c, 0.35 + Math.random() * 0.2, (Math.random() - 0.5) * 0.1, -0.15, 0.05);
+        return u < 1;
+      },
+      dispose: () => {
+        this.scene.remove(head);
+        this.fx.impact(to.x, to.y, 0.06, color, 1);
+        for (let i = 0; i < 14; i++) {
+          const a = (i / 14) * Math.PI * 2;
+          this.fx.spark(to.x, to.y, 0.06, c, 0.7, Math.cos(a) * 0.7, Math.sin(a) * 0.7, 0.4);
+        }
+        onHit();
+      },
+    });
+  }
+
   /** A delivered building rises on the crane cable and flies off the top of the screen. */
   deliver(p: PieceView) {
     const start = p.group.position.clone();

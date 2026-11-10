@@ -369,6 +369,79 @@ export class Hud {
 
   private offerEl: HTMLElement | null = null;
 
+  private celebEl: HTMLElement | null = null;
+
+  /**
+   * Level cleared, part 1: the screen dims and the theme's shout slams in
+   * ("Sugar Rush!"), like Candy Crush's "Sugar Crush!".
+   */
+  celebrate(shout: string, accent: string) {
+    this.clearCelebration();
+    const c = el('div', 'celeb');
+    c.style.setProperty('--accent', accent);
+    const words = el('div', 'celeb-shout');
+    shout.split(' ').forEach((w, i) => {
+      const s = el('span', '', w);
+      s.style.animationDelay = `${i * 0.12}s`;
+      words.append(s);
+    });
+    c.append(el('div', 'celeb-dim'), words, el('div', 'celeb-bonus'));
+    this.root.append(c);
+    this.celebEl = c;
+    requestAnimationFrame(() => c.classList.add('in'));
+  }
+
+  /** Part 2: leftover shots turn into fireworks; the counter shows the bonus so far. */
+  celebrateBonus(rockets: number, coins: number) {
+    const b = this.celebEl?.querySelector('.celeb-bonus');
+    if (!b) return;
+    this.celebEl!.classList.add('bonus');
+    b.innerHTML = `<div class="cb-title">Overtime bonus</div><div class="cb-count">${rockets} × 🎆 · <span class="mini-coin"></span> +${coins}</div>`;
+    b.classList.remove('tick');
+    void (b as HTMLElement).offsetWidth;
+    b.classList.add('tick');
+  }
+
+  /** Part 3: the builder jumps up cheering, confetti rains and the big words land. */
+  celebrateFinale(word: string, accent: string, confetti: string[]) {
+    const c = this.celebEl;
+    if (!c) return;
+    c.classList.add('finale');
+    const m = el('div', 'celeb-mascot');
+    const img = el('img') as HTMLImageElement;
+    img.src = `${import.meta.env.BASE_URL}logo.webp`;
+    img.alt = '';
+    m.append(img);
+    for (let i = 0; i < 8; i++) {
+      const s = el('i');
+      s.style.setProperty('--a', `${i * 45}deg`);
+      m.append(s);
+    }
+    const words = el('div', 'celeb-final');
+    words.append(el('div', 'cf-word', word), el('div', 'cf-sub', 'Level complete!'));
+    words.style.setProperty('--accent', accent);
+    c.append(words, m);
+    const layer = el('div', 'confetti');
+    for (let i = 0; i < 110; i++) {
+      const p = el('i');
+      p.style.setProperty('--x', `${Math.random() * 100}%`);
+      p.style.setProperty('--dx', `${(Math.random() - 0.5) * 160}px`);
+      p.style.setProperty('--r', `${(Math.random() - 0.5) * 1440}deg`);
+      p.style.setProperty('--d', `${1.8 + Math.random() * 1.6}s`);
+      p.style.setProperty('--delay', `${Math.random() * 0.9}s`);
+      p.style.setProperty('--w', `${6 + Math.random() * 8}px`);
+      p.style.background = confetti[i % confetti.length];
+      if (i % 4 === 0) p.style.borderRadius = '50%';
+      layer.append(p);
+    }
+    c.append(layer);
+  }
+
+  clearCelebration() {
+    this.celebEl?.remove();
+    this.celebEl = null;
+  }
+
   /** "Free with an ad?" card when a booster is too expensive. Hides itself after a few seconds. */
   offerAdBooster(name: string, icon: string, onWatch: () => void) {
     this.offerEl?.remove();

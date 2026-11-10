@@ -1,40 +1,102 @@
 {
   "id": 1,
-  "name": "Backyard",
-  "time": "morning",
+  "name": "Construction Site",
+  "time": "noon",
   "levels": [
     {
       "id": "1-1",
-      "name": "First Shed",
-      "shots": 12,
+      "name": "Welcome to Construction Site",
+      "shots": 8,
       "contracts": [
         {
           "tier": 3,
           "count": 1
         }
+      ],
+      "start": [
+        [
+          2,
+          -0.33,
+          1.6
+        ],
+        [
+          2,
+          0.33,
+          1.6
+        ]
       ],
       "hint": "Drag to aim, let go to slide. Two matching pieces merge!"
     },
     {
       "id": "1-2",
-      "name": "Two Sheds",
-      "shots": 17,
-      "contracts": [
-        {
-          "tier": 3,
-          "count": 2
-        }
-      ],
-      "hint": "Aim at a matching piece to merge it."
-    },
-    {
-      "id": "1-3",
       "name": "Log Cabin",
-      "shots": 13,
+      "shots": 11,
       "contracts": [
         {
           "tier": 4,
           "count": 1
+        }
+      ],
+      "start": [
+        [
+          3,
+          -0.33,
+          1.6
+        ],
+        [
+          2,
+          0.33,
+          1.6
+        ],
+        [
+          1,
+          0,
+          1.6
+        ]
+      ],
+      "hint": "Aim at a matching piece to merge it. A glowing ring shows a merge."
+    },
+    {
+      "id": "1-3",
+      "name": "Log Cabin & Garden Shed",
+      "shots": 14,
+      "contracts": [
+        {
+          "tier": 4,
+          "count": 1
+        },
+        {
+          "tier": 3,
+          "count": 1
+        }
+      ],
+      "start": [
+        [
+          2,
+          -0.33,
+          1.6
+        ],
+        [
+          2,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ],
+      "hint": "Watch the NEXT card to plan your shot."
+    },
+    {
+      "id": "1-4",
+      "name": "Two Garden Sheds",
+      "shots": 9,
+      "contracts": [
+        {
+          "tier": 3,
+          "count": 2
         }
       ],
       "start": [
@@ -54,32 +116,136 @@
           1.6
         ]
       ],
-      "hint": "Watch the NEXT card to plan your shot."
+      "hint": "Every level has a shot limit. Finish early for more stars!"
     },
     {
-      "id": "1-4",
-      "name": "Neighbours",
-      "shots": 19,
+      "id": "1-5",
+      "name": "Log Cabin Lane",
+      "shots": 10,
       "contracts": [
         {
           "tier": 4,
           "count": 1
-        },
-        {
-          "tier": 3,
-          "count": 2
         }
+      ],
+      "start": [
+        [
+          3,
+          -0.33,
+          1.6
+        ],
+        [
+          2,
+          0.33,
+          1.6
+        ],
+        [
+          1,
+          0,
+          1.6
+        ]
       ]
     },
     {
-      "id": "1-5",
-      "name": "Big Build: Cottage",
-      "shots": 14,
+      "id": "1-6",
+      "name": "Cottage",
+      "shots": 10,
       "contracts": [
         {
           "tier": 5,
           "count": 1
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ],
+        [
+          1,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-7",
+      "name": "Cottage & Garden Shed",
+      "shots": 9,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        },
+        {
+          "tier": 3,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          2,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-8",
+      "name": "Two Log Cabins",
+      "shots": 10,
+      "contracts": [
+        {
+          "tier": 4,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
       ],
       "start": [
         [
@@ -96,12 +262,141 @@
           2,
           0,
           1.6
+        ],
+        [
+          1,
+          -0.17,
+          1.28
         ]
-      ],
-      "hint": "Big Build! Chain merges for bonus points."
+      ]
     },
     {
-      "id": "1-6",
+      "id": "1-9",
+      "name": "Cottage Square",
+      "shots": 10,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-10",
+      "name": "Cottage & Log Cabin",
+      "shots": 12,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        },
+        {
+          "tier": 4,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ],
+        [
+          2,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-11",
+      "name": "Big Build: House",
+      "shots": 15,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ],
+        [
+          2,
+          -0.17,
+          1.28
+        ],
+        [
+          1,
+          0.17,
+          1.28
+        ]
+      ],
+      "hint": "Big Build! Chain merges: build the smallest link and push it into the next."
+    },
+    {
+      "id": "1-12",
       "name": "Breather",
       "shots": 11,
       "contracts": [
@@ -124,44 +419,169 @@
       ]
     },
     {
-      "id": "1-7",
-      "name": "Cabin Row",
-      "shots": 19,
+      "id": "1-13",
+      "name": "Cottage",
+      "shots": 10,
       "contracts": [
         {
-          "tier": 4,
-          "count": 2
+          "tier": 5,
+          "count": 1
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ]
       ]
     },
     {
-      "id": "1-8",
-      "name": "Cottage Garden",
-      "shots": 22,
+      "id": "1-14",
+      "name": "Cottage & Log Cabin",
+      "shots": 12,
       "contracts": [
         {
           "tier": 5,
           "count": 1
         },
         {
-          "tier": 3,
-          "count": 2
+          "tier": 4,
+          "count": 1
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          3,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
       ]
     },
     {
-      "id": "1-9",
-      "name": "Two Cottages",
-      "shots": 18,
+      "id": "1-15",
+      "name": "Two Log Cabins",
+      "shots": 10,
+      "contracts": [
+        {
+          "tier": 4,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          3,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-16",
+      "name": "Cottage Lane",
+      "shots": 9,
       "contracts": [
         {
           "tier": 5,
-          "count": 2
+          "count": 1
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
       ],
       "start": [
         [
           4,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          2,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-17",
+      "name": "House",
+      "shots": 12,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
           -0.33,
           1.6
         ],
@@ -174,18 +594,74 @@
           3,
           0,
           1.6
+        ],
+        [
+          2,
+          -0.17,
+          1.28
         ]
       ]
     },
     {
-      "id": "1-10",
-      "name": "Big Build: House",
-      "shots": 21,
+      "id": "1-18",
+      "name": "House & Log Cabin",
+      "shots": 10,
       "contracts": [
         {
           "tier": 6,
           "count": 1
+        },
+        {
+          "tier": 4,
+          "count": 1
         }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-19",
+      "name": "Two Cottages",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -211,41 +687,21 @@
       ]
     },
     {
-      "id": "1-11",
-      "name": "Breather",
-      "shots": 15,
-      "contracts": [
-        {
-          "tier": 5,
-          "count": 1
-        }
-      ],
-      "start": [
-        [
-          4,
-          -0.33,
-          1.6
-        ],
-        [
-          4,
-          0.33,
-          1.6
-        ]
-      ]
-    },
-    {
-      "id": "1-12",
-      "name": "Street Corner",
-      "shots": 26,
+      "id": "1-20",
+      "name": "House Square",
+      "shots": 12,
       "contracts": [
         {
           "tier": 6,
           "count": 1
-        },
-        {
-          "tier": 4,
-          "count": 2
         }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -254,21 +710,296 @@
           1.6
         ],
         [
+          4,
+          0.33,
+          1.6
+        ],
+        [
           3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-21",
+      "name": "House & Cottage",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-22",
+      "name": "Big Build: Big House",
+      "shots": 20,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ],
+        [
+          2,
+          0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-23",
+      "name": "Breather",
+      "shots": 10,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
           0.33,
           1.6
         ]
       ]
     },
     {
-      "id": "1-13",
+      "id": "1-24",
+      "name": "House",
+      "shots": 12,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-25",
+      "name": "House & Cottage",
+      "shots": 18,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-26",
+      "name": "Two Cottages",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-27",
+      "name": "House Lane",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          -0.3,
+          1,
+          0.18,
+          0.045
+        ],
+        [
+          0.3,
+          1,
+          0.18,
+          0.045
+        ]
+      ],
+      "hint": "Scaffolds stop shots dead. Aim around them!"
+    },
+    {
+      "id": "1-28",
       "name": "Big House",
-      "shots": 38,
+      "shots": 17,
       "contracts": [
         {
           "tier": 7,
           "count": 1
         }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
       ],
       "start": [
         [
@@ -289,14 +1020,60 @@
       ]
     },
     {
-      "id": "1-14",
-      "name": "House Pair",
-      "shots": 24,
+      "id": "1-29",
+      "name": "Big House & Cottage",
+      "shots": 19,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "1-30",
+      "name": "Two Houses",
+      "shots": 11,
       "contracts": [
         {
           "tier": 6,
           "count": 2
         }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
       ],
       "start": [
         [
@@ -322,14 +1099,109 @@
       ]
     },
     {
-      "id": "1-15",
+      "id": "1-31",
+      "name": "Big House Square",
+      "shots": 25,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          -0.22,
+          0.92,
+          0.2,
+          0.045
+        ],
+        [
+          0.24,
+          1.05,
+          0.2,
+          0.045
+        ]
+      ]
+    },
+    {
+      "id": "1-32",
+      "name": "Big House & Cottage",
+      "shots": 15,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "1-33",
       "name": "Big Build: Mansion",
-      "shots": 63,
+      "shots": 34,
       "contracts": [
         {
           "tier": 8,
           "count": 1
         }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -357,8 +1229,7 @@
           0.17,
           1.28
         ]
-      ],
-      "hint": "Chain reaction! Build the smallest link and push it into the next."
+      ]
     }
   ]
 }

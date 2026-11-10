@@ -1,43 +1,62 @@
 {
   "id": 2,
-  "name": "Suburbs",
+  "name": "Tropical Beach",
   "time": "noon",
   "levels": [
     {
       "id": "2-1",
-      "name": "Welcome to the Suburbs",
-      "shots": 19,
+      "name": "Welcome to Tropical Beach",
+      "shots": 8,
+      "contracts": [
+        {
+          "tier": 4,
+          "count": 1
+        }
+      ],
+      "start": [
+        [
+          3,
+          -0.33,
+          1.6
+        ],
+        [
+          3,
+          0.33,
+          1.6
+        ]
+      ],
+      "hint": "Welcome to the beach! Bigger buildings, bigger rewards."
+    },
+    {
+      "id": "2-2",
+      "name": "Surf Shack",
+      "shots": 10,
       "contracts": [
         {
           "tier": 5,
           "count": 1
         }
       ],
-      "hint": "Every level has a shot limit. Finish early for more stars!"
-    },
-    {
-      "id": "2-2",
-      "name": "Fresh Paint",
-      "shots": 17,
-      "contracts": [
-        {
-          "tier": 6,
-          "count": 1
-        }
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
       ],
       "start": [
         [
-          5,
+          4,
           -0.33,
           1.6
         ],
         [
-          4,
+          3,
           0.33,
           1.6
         ],
         [
-          3,
+          2,
           0,
           1.6
         ]
@@ -45,31 +64,38 @@
     },
     {
       "id": "2-3",
-      "name": "Block Party",
-      "shots": 19,
+      "name": "Surf Shack & Tiki Hut",
+      "shots": 12,
       "contracts": [
-        {
-          "tier": 6,
-          "count": 1
-        },
         {
           "tier": 5,
           "count": 1
+        },
+        {
+          "tier": 4,
+          "count": 1
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
       ],
       "start": [
         [
-          4,
+          3,
           -0.33,
           1.6
         ],
         [
-          4,
+          3,
           0.33,
           1.6
         ],
         [
-          5,
+          4,
           0,
           1.6
         ]
@@ -77,75 +103,78 @@
     },
     {
       "id": "2-4",
-      "name": "Garage Sale",
-      "shots": 31,
+      "name": "Two Tiki Huts",
+      "shots": 10,
       "contracts": [
         {
-          "tier": 7,
-          "count": 1
+          "tier": 4,
+          "count": 2
         }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
       ],
       "start": [
         [
-          6,
+          3,
           -0.33,
           1.6
         ],
         [
-          5,
+          3,
           0.33,
           1.6
         ],
         [
-          4,
+          2,
           0,
           1.6
-        ],
-        [
-          3,
-          -0.17,
-          1.28
         ]
       ]
     },
     {
       "id": "2-5",
-      "name": "Big Build: Mansion",
-      "shots": 58,
+      "name": "Surf Shack Lane",
+      "shots": 10,
       "contracts": [
         {
-          "tier": 8,
+          "tier": 5,
           "count": 1
         }
       ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
       "start": [
         [
-          7,
+          4,
           -0.33,
           1.6
         ],
         [
-          6,
+          3,
           0.33,
           1.6
         ],
         [
-          5,
+          2,
           0,
           1.6
-        ],
-        [
-          4,
-          -0.17,
-          1.28
         ]
-      ],
-      "hint": "Chain reaction! Build the smallest link and push it into the next."
+      ]
     },
     {
       "id": "2-6",
-      "name": "Breather",
-      "shots": 15,
+      "name": "Beach Cottage",
+      "shots": 12,
       "contracts": [
         {
           "tier": 6,
@@ -153,11 +182,11 @@
         }
       ],
       "spawn": [
-        25,
-        30,
-        25,
-        14,
-        6
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -166,42 +195,56 @@
           1.6
         ],
         [
-          5,
+          4,
           0.33,
           1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ],
+        [
+          2,
+          -0.17,
+          1.28
         ]
       ]
     },
     {
       "id": "2-7",
-      "name": "Twin Houses",
-      "shots": 33,
+      "name": "Beach Cottage & Tiki Hut",
+      "shots": 11,
       "contracts": [
         {
-          "tier": 7,
-          "count": 2
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 4,
+          "count": 1
         }
       ],
       "spawn": [
-        25,
-        30,
-        25,
-        14,
-        6
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
-          6,
+          5,
           -0.33,
           1.6
         ],
         [
-          6,
+          3,
           0.33,
           1.6
         ],
         [
-          5,
+          3,
           0,
           1.6
         ],
@@ -214,8 +257,805 @@
     },
     {
       "id": "2-8",
-      "name": "Estate Agent",
-      "shots": 62,
+      "name": "Two Surf Shacks",
+      "shots": 12,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ],
+        [
+          2,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-9",
+      "name": "Beach Cottage Square",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          -0.22,
+          0.92,
+          0.2,
+          0.045
+        ],
+        [
+          0.24,
+          1.05,
+          0.2,
+          0.045
+        ]
+      ]
+    },
+    {
+      "id": "2-10",
+      "name": "Beach Cottage & Surf Shack",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-11",
+      "name": "Big Build: Stilt House",
+      "shots": 20,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ],
+        [
+          2,
+          0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-12",
+      "name": "Breather",
+      "shots": 10,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-13",
+      "name": "Beach Cottage",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-14",
+      "name": "Beach Cottage & Surf Shack",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-15",
+      "name": "Two Surf Shacks",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-16",
+      "name": "Beach Cottage Lane",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-17",
+      "name": "Stilt House",
+      "shots": 15,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-18",
+      "name": "Stilt House & Surf Shack",
+      "shots": 16,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          5,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-19",
+      "name": "Two Beach Cottages",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-20",
+      "name": "Stilt House Square",
+      "shots": 22,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          0,
+          1,
+          0.22,
+          0.045
+        ]
+      ]
+    },
+    {
+      "id": "2-21",
+      "name": "Stilt House & Beach Cottage",
+      "shots": 18,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-22",
+      "name": "Big Build: Overwater Bungalow",
+      "shots": 36,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ],
+        [
+          3,
+          0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-23",
+      "name": "Breather",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-24",
+      "name": "Stilt House",
+      "shots": 17,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-25",
+      "name": "Stilt House & Beach Cottage",
+      "shots": 25,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-26",
+      "name": "Two Beach Cottages",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-27",
+      "name": "Stilt House Lane",
+      "shots": 15,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-28",
+      "name": "Overwater Bungalow",
+      "shots": 24,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "2-29",
+      "name": "Overwater Bungalow & Beach Cottage",
+      "shots": 32,
       "contracts": [
         {
           "tier": 8,
@@ -227,11 +1067,11 @@
         }
       ],
       "spawn": [
-        25,
+        8,
+        18,
         30,
-        25,
-        14,
-        6
+        28,
+        16
       ],
       "start": [
         [
@@ -248,150 +1088,65 @@
           5,
           0,
           1.6
-        ],
-        [
-          4,
-          -0.17,
-          1.28
         ]
       ]
     },
     {
-      "id": "2-9",
-      "name": "Row Houses",
-      "shots": 97,
-      "contracts": [
-        {
-          "tier": 9,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        25,
-        30,
-        25,
-        14,
-        6
-      ],
-      "start": [
-        [
-          8,
-          -0.33,
-          1.6
-        ],
-        [
-          7,
-          0.33,
-          1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ],
-        [
-          4,
-          0.17,
-          1.28
-        ]
-      ]
-    },
-    {
-      "id": "2-10",
-      "name": "Big Build: Townhouses",
-      "shots": 89,
-      "contracts": [
-        {
-          "tier": 9,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        25,
-        30,
-        25,
-        14,
-        6
-      ],
-      "start": [
-        [
-          8,
-          -0.33,
-          1.6
-        ],
-        [
-          7,
-          0.33,
-          1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ],
-        [
-          4,
-          0.17,
-          1.28
-        ]
-      ]
-    },
-    {
-      "id": "2-11",
-      "name": "Breather",
-      "shots": 20,
+      "id": "2-30",
+      "name": "Two Stilt Houses",
+      "shots": 17,
       "contracts": [
         {
           "tier": 7,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        15,
-        25,
-        30,
-        20,
-        10
-      ],
-      "start": [
-        [
-          6,
-          -0.33,
-          1.6
-        ],
-        [
-          6,
-          0.33,
-          1.6
-        ]
-      ]
-    },
-    {
-      "id": "2-12",
-      "name": "Two Mansions",
-      "shots": 48,
-      "contracts": [
-        {
-          "tier": 8,
           "count": 2
         }
       ],
       "spawn": [
-        15,
-        25,
+        8,
+        18,
         30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-31",
+      "name": "Overwater Bungalow Square",
+      "shots": 42,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
         20,
-        10
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -400,46 +1155,50 @@
           1.6
         ],
         [
-          7,
+          6,
           0.33,
           1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          -0.3,
+          1,
+          0.18,
+          0.045
         ],
         [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
+          0.3,
+          1,
+          0.18,
+          0.045
         ]
       ]
     },
     {
-      "id": "2-13",
-      "name": "Cul-de-sac",
-      "shots": 36,
+      "id": "2-32",
+      "name": "Overwater Bungalow & Beach Cottage",
+      "shots": 24,
       "contracts": [
         {
           "tier": 8,
           "count": 1
         },
         {
-          "tier": 7,
+          "tier": 6,
           "count": 1
         }
       ],
       "spawn": [
-        15,
-        25,
+        8,
+        18,
         30,
-        20,
-        10
+        28,
+        16
       ],
       "start": [
         [
-          6,
+          7,
           -0.33,
           1.6
         ],
@@ -449,7 +1208,47 @@
           1.6
         ],
         [
+          6,
+          0,
+          1.6
+        ],
+        [
+          5,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "2-33",
+      "name": "Big Build: Bungalow Pier",
+      "shots": 70,
+      "contracts": [
+        {
+          "tier": 9,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          8,
+          -0.33,
+          1.6
+        ],
+        [
           7,
+          0.33,
+          1.6
+        ],
+        [
+          6,
           0,
           1.6
         ],
@@ -464,92 +1263,6 @@
           1.28
         ]
       ]
-    },
-    {
-      "id": "2-14",
-      "name": "Row Houses II",
-      "shots": 67,
-      "contracts": [
-        {
-          "tier": 9,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        15,
-        25,
-        30,
-        20,
-        10
-      ],
-      "start": [
-        [
-          8,
-          -0.33,
-          1.6
-        ],
-        [
-          7,
-          0.33,
-          1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ]
-      ]
-    },
-    {
-      "id": "2-15",
-      "name": "Big Build: Apartments",
-      "shots": 90,
-      "contracts": [
-        {
-          "tier": 10,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        5,
-        15,
-        30,
-        30,
-        20
-      ],
-      "start": [
-        [
-          9,
-          -0.33,
-          1.6
-        ],
-        [
-          8,
-          0.33,
-          1.6
-        ],
-        [
-          7,
-          0,
-          1.6
-        ],
-        [
-          6,
-          -0.17,
-          1.28
-        ],
-        [
-          5,
-          0.17,
-          1.28
-        ]
-      ],
-      "hint": "The biggest build in the Suburbs. Follow the chain!"
     }
   ]
 }

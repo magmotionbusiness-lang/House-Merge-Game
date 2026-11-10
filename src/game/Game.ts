@@ -188,6 +188,8 @@ export class Game {
   private freeBooster: BoosterId | null = null;
   private adBoosterUsed = false;
   private coinsDoubled = 0;
+  /** Level-clear celebration in progress (shout, bonus fireworks, finale). */
+  private celebration: { t: number; phase: 'shout' | 'bonus' | 'finale'; left: number; next: number; fired: number; inFlight: number; endAt: number } | null = null;
 
   constructor(
     private view: SceneView,
@@ -312,6 +314,8 @@ export class Game {
     this.freeBooster = null;
     this.adBoosterUsed = false;
     this.coinsDoubled = 0;
+    this.celebration = null;
+    this.hud.clearCelebration();
     // The Daily Blueprint deals the same sequence to everyone that day.
     this.rng = new Rng(this.playMode.kind === 'daily' ? this.playMode.seed : Date.now());
     this.builtThisRun = new Set();
@@ -459,9 +463,9 @@ export class Game {
       return;
     }
 
-    // Level won: let the celebration play, then show the results.
-    if (this.winAt >= 0 && this.time >= this.winAt) {
-      this.endRound(true, 'All contracts complete');
+    // Level won: the celebration plays (shout, bonus fireworks, finale), then the results.
+    if (this.celebration) {
+      this.tickCelebration(DT);
       return;
     }
 
@@ -838,6 +842,97 @@ export class Game {
     this.saveRun();
   }
 
+  // ------------------------------------------------------------ level-clear celebration
+
+  /**
+   * Every contract is done: Candy Crush's "Sugar Crush!" moment. The screen
+   * dims and the theme's shout lands, every leftover shot becomes a firework
+   * that blows up a building for bonus points and coins, then the builder
+   * jumps up cheering in a shower of confetti, and the results follow.
+   */
+  private startCelebration() {
+    if (this.celebration || this.over || this.playMode.kind !== 'level') return;
+    this.cancelBooster();
+    this.aim = null;
+    if (this.launcher) {
+      const l = this.launcher;
+      this.view.fx.dust(l.x, CONFIG.launchY, l.view.radius * 1.4, '#ffffff', 4);
+      this.view.removePiece(l.view);
+      this.launcher = null;
+    }
+    const t = THEMES[this.themeId];
+    const left = Math.min(15, Math.max(0, this.shotsLeft ?? 0));
+    this.celebration = { t: 0, phase: 'shout', left, next: 1.35, fired: 0, inFlight: 0, endAt: 0 };
+    this.hud.celebrate(t.shout, t.accent);
+    this.view.edgePulse(t.accent, 6);
+    if (!settings.calm) this.view.shake(0.012);
+    this.sfx.shout();
+    this.events.onMerge?.(12, 5);
+  }
+
+  private tickCelebration(dt: number) {
+    const c = this.celebration!;
+    c.t += dt;
+    const t = THEMES[this.themeId];
+    if (c.phase === 'shout' && c.t >= c.next) {
+      c.phase = c.left > 0 ? 'bonus' : 'finale';
+      c.next = c.t;
+      if (c.phase === 'finale') this.finale();
+    }
+    if (c.phase === 'bonus') {
+      if (c.left > 0 && c.t >= c.next) {
+        c.left--;
+        c.fired++;
+        c.inFlight++;
+        c.next = c.t + Math.max(0.14, 0.34 - c.fired * 0.025);
+        if (this.shotsLeft !== null) {
+          this.shotsLeft = Math.max(0, this.shotsLeft - 1);
+          this.hud.setShots(this.shotsLeft);
+        }
+        const k = c.fired;
+        const pool = [...this.pieces.values()].filter((p) => !p.delivering && !p.dead);
+        const target = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+        const to = target ? { x: target.x, y: target.y } : { x: (Math.random() - 0.5) * 0.7, y: CONFIG.failY + 0.3 + Math.random() * (L - CONFIG.failY - 0.5) };
+        const from = { x: (Math.random() - 0.5) * 0.5, y: CONFIG.launchY };
+        const colors = t.glow[4];
+        this.sfx.rocket(k - 1);
+        this.view.rocket(from, to, colors[k % colors.length], () => {
+          c.inFlight--;
+          const points = 100 + 25 * k;
+          this.addScore(points);
+          const sp = this.view.toScreen(to.x, to.y, 0.15);
+          this.hud.floatText(sp.x, sp.y, `+${points}`, true, 3);
+          this.coinsEarned += 5;
+          this.hud.setCoins(progress.addCoins(5));
+          this.hud.celebrateBonus(k, k * 5);
+          if (target && !target.dead) {
+            this.view.fx.merge(target.x, target.y, tier(target.tier).era, tier(target.tier).color, 0.8);
+            this.destroy(target);
+          }
+        });
+      }
+      if (c.left === 0 && c.inFlight === 0 && c.t >= c.next + 0.4) {
+        c.phase = 'finale';
+        this.finale();
+      }
+    }
+    if (c.phase === 'finale' && c.endAt > 0 && c.t >= c.endAt) {
+      this.celebration = null;
+      this.endRound(true, 'All contracts complete');
+    }
+  }
+
+  private finale() {
+    const c = this.celebration!;
+    const t = THEMES[this.themeId];
+    const words = ['Wonderful!', 'Brilliant!', 'Fantastic!', 'Superb!', 'Amazing!'];
+    this.hud.celebrateFinale(words[Math.floor(Math.random() * words.length)], t.accent, t.confetti);
+    this.view.edgePulse(t.accent, 6);
+    this.sfx.levelComplete();
+    window.setTimeout(() => this.sfx.fanfare(), 350);
+    c.endAt = c.t + 2.4;
+  }
+
   private contractBuilt(tierId: number, piece?: Piece) {
     progress.addBuilt(tierId);
     this.builtThisRun.add(tierId);
@@ -867,7 +962,10 @@ export class Game {
         }, 1400);
       }
     }
-    if (this.playMode.kind === 'level' && this.winAt < 0 && this.contracts.every(isComplete)) this.winAt = this.time + 1.4;
+    if (this.playMode.kind === 'level' && this.winAt < 0 && this.contracts.every(isComplete)) {
+      this.winAt = Infinity; // won: nothing can fail while the last merge plays out
+      window.setTimeout(() => this.startCelebration(), 700);
+    }
   }
 
   /**
@@ -1027,6 +1125,7 @@ export class Game {
       bestBefore: this.bestAtStart,
     });
     this.events.onTension?.(0);
+    window.setTimeout(() => this.hud.clearCelebration(), 400);
     this.runsPlayed++;
     store.set('bm.runs', this.runsPlayed);
   }
@@ -1163,7 +1262,7 @@ export class Game {
     const c = this.canvas;
     c.addEventListener('pointerdown', (e) => {
       this.sfx.unlock();
-      if (this.over || this.aim || !this.running || this.paused) return;
+      if (this.over || this.aim || !this.running || this.paused || this.celebration) return;
       if (this.targeting) {
         this.pickTarget(e);
         return;

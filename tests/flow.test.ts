@@ -6,6 +6,9 @@ import { boosterPrice } from '../src/core/boosters';
 import district1 from '../levels/district-01.json';
 import district2 from '../levels/district-02.json';
 import district3 from '../levels/district-03.json';
+import district4 from '../levels/district-04.json';
+import district5 from '../levels/district-05.json';
+const ALL = [district1, district2, district3, district4, district5] as District[];
 
 describe('contracts', () => {
   it('counts builds of the right tier and completes once', () => {
@@ -34,12 +37,13 @@ describe('contracts', () => {
 
 describe('levels', () => {
   it('every district is valid', () => {
-    for (const d of [district1, district2, district3]) expect(() => validateDistrict(d as District)).not.toThrow();
+    for (const d of ALL) expect(() => validateDistrict(d)).not.toThrow();
   });
-  it('each district has 15 levels with a Big Build every 5th', () => {
-    for (const d of [district1, district2, district3] as District[]) {
-      expect(d.levels).toHaveLength(15);
-      d.levels.forEach((l, i) => expect(l.name.startsWith('Big Build')).toBe((i + 1) % 5 === 0));
+  it('five districts of 33 levels with a Big Build every 11th', () => {
+    expect(ALL).toHaveLength(5);
+    for (const d of ALL) {
+      expect(d.levels).toHaveLength(33);
+      d.levels.forEach((l, i) => expect(l.name.startsWith('Big Build')).toBe((i + 1) % 11 === 0));
     }
   });
   it('rejects bad configs', () => {

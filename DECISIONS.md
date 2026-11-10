@@ -422,3 +422,34 @@ Our equivalents:
   It hides while a booster is being aimed and when out of reach in Sling mode. This makes good shots readable before they're taken, which helps new players and makes the best shots feel special.
 - **Score gains:** the score counts up instead of jumping. The score box pops with a gold glow that scales with the points. A gold "+N" bursts out just under it, beside the coin counter (clear of the contract tickets), and quick gains add up in one label.
 - **Edge sparkles:** every board-edge flash (combos, deliveries, board clears, theme changes, Heat) now also sends sparkles drifting off the rails in the same colour.
+
+## Phase 9a: The campaign as a Candy Crush-style map, 5 × 33 levels, and a level-clear celebration
+
+The user shared Candy Crush recordings: the saga map and a level being cleared.
+
+### The map (`src/ui/map.ts`)
+
+- **Layout:** a full-screen scrolling map. A winding road climbs from level 1 at the bottom through the five districts. Each district's painted backdrop crossfades in as you scroll into it.
+- **Road:** drawn as SVG in the theme's colours, with a dotted centre line. The beaten stretch glows gold.
+- **Level buttons:** glossy 3D buttons in the district's accent colour, with stars arched over them. Locked levels are grey with a padlock. The current level is bigger and pulses. Every 11th level is a landmark: a larger button with that level's 3D target building standing on it.
+- **Scenery:** the district's own buildings (baked 3D thumbnails) line the road on the open side of each bend, growing from tier 2 to 18 along the way, which sells the 3D world.
+- **Signs and gates:** each district starts with a sign (name, stars x/99). The districts are separated by star gates: a padlock, the next district's name and tagline, and a progress bar of stars.
+- **You are here:** the builder's portrait on a pin marks the current level.
+- **After a win:** "Next level" returns to the map. The builder hops along the road to the next level, the button pops open with a starburst, and the level card drops in.
+- **The level card:** hangs on two striped ribbons and swings to rest. It shows the district, "Level 12", the level's name, the best stars, the buildings to build (that district's 3D models), the shot limit and a pulsing Play button. Play starts the level directly; the old separate intro card is gone.
+
+### The campaign (`tools/make_levels.py`)
+
+- **Districts:** 5 themed districts (Construction Site, Tropical Beach, Alpine Peaks, Sweet Town, Neon City) of 33 levels each.
+- **Acts:** each district has three acts of 11: a breather, then single, paired and double contracts with and without scaffolds, up to a landmark Big Build on levels 11, 22 and 33. Every act starts a tier higher, every district starts higher too, and starting piles help less later on.
+- **Gates:** a district opens when the previous district's last level is beaten and the player has 40 / 85 / 130 / 180 stars in total, about 1.3 stars a level.
+- **Balancing:** the bot tuned all 165 shot limits (150 runs a level, five districts in parallel). The target win rate falls from 95% to about 75% through district 1 and to about 50% by the end of district 5, with a dip on each Big Build and a breather after it. Two scaffold layouts ("gate", "funnel") and later "pillars" proved too tight with big buildings (the table jammed in front of them), so they were dropped. Scaffold and landmark levels deal gentler spawns, and contract tiers are capped at 10 (9 with scaffolds). Every level is winnable; the hardest (5-32) the greedy bot wins 35% of the time.
+
+### The level clear
+
+What makes Candy Crush's clear such a rush is that the reward keeps coming after the goal: "Sugar Crush!", every leftover move turning into a free explosion, the score climbing on its own, then a cheering character and confetti before the stars. Ours:
+
+1. **Shout:** the screen dims to a deep blue vignette and the theme's shout slams in word by word: "Master Builder!", "Beach Blast!", "Peak Power!", "Sugar Rush!" or "Neon Overdrive!". The board edges flash, with a sweeping chord and a sub drop. Input locks and nothing can fail any more.
+2. **Overtime bonus:** each leftover shot (up to 15) becomes a firework. It streaks from the launch line to a building with a sparkling trail, blows it up, and pays 100 + 25 per rocket in points plus 5 coins. The rockets speed up as they go, and each one's bell rings a step higher. The "Overtime bonus" counter ticks up, and the shot counter runs down to zero.
+3. **Finale:** "Wonderful!" (or "Brilliant!", "Fantastic!", ...) and "Level complete!". The builder jumps up from the bottom with a squash and stretch, surrounded by twinkling stars, and theme-coloured confetti rains down to a fanfare.
+4. **Results:** the stars land one by one, each with its own rising chime.

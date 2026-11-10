@@ -7,6 +7,7 @@
  *   npm run balance                 report only (docs/balance.csv)
  *   npm run balance -- --write      also write the tuned shot limits into levels/*.json
  *   npm run balance -- --runs 1000  more runs per level (default 300)
+ *   npm run balance -- --district 2 one district only (run several in parallel)
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { initPhysics } from '../src/physics/world';
@@ -18,15 +19,20 @@ const args = process.argv.slice(2);
 const RUNS = Number(args[args.indexOf('--runs') + 1]) || 300;
 const WRITE = args.includes('--write');
 const MAX_SHOTS = 220;
-const files = ['levels/district-01.json', 'levels/district-02.json', 'levels/district-03.json'];
+const files = [1, 2, 3, 4, 5].map((d) => `levels/district-${String(d).padStart(2, '0')}.json`);
+const ONLY = args.includes('--district') ? Number(args[args.indexOf('--district') + 1]) : 0;
 
-/** Target win rate by position in the campaign: a gentle slope with sawtooth breathers. */
-function target(index: number, total: number, n: number): number {
-  if (index < 3) return 0.97;
-  let t = 0.95 - 0.33 * (index / (total - 1));
-  if (n % 5 === 0) t -= 0.05; // Big Build
-  if (n % 5 === 1 && n > 1) t += 0.12; // breather after a Big Build
-  return Math.min(0.97, Math.max(0.55, t));
+/**
+ * Target win rate: falls through each district (33 levels) and a little more
+ * with every district, with a dip on each Big Build (every 11th) and an easy
+ * breather after it.
+ */
+function target(district: number, n: number): number {
+  if (district === 1 && n <= 3) return 0.97;
+  let t = 0.95 - 0.2 * ((n - 1) / 32) - 0.06 * (district - 1);
+  if (n % 11 === 0) t -= 0.05; // Big Build
+  if (n % 11 === 1 && n > 1) t += 0.1; // breather after a Big Build
+  return Math.min(0.97, Math.max(0.5, t));
 }
 
 function quantile(sorted: number[], q: number) {
@@ -36,15 +42,14 @@ function quantile(sorted: number[], q: number) {
 
 await initPhysics();
 const districts = files.map((f) => validateDistrict(JSON.parse(readFileSync(f, 'utf8')) as District));
-const total = districts.reduce((a, d) => a + d.levels.length, 0);
 const rows: string[] = ['level,name,target_win_rate,shot_limit,win_rate,avg_shots_to_win,median_shots,p90_shots,overflow_rate,best_possible_win_rate'];
-let index = 0;
 const t0 = Date.now();
 
 for (const d of districts) {
+  if (ONLY && d.id !== ONLY) continue;
   d.levels.forEach((level: LevelDef, i) => {
     const n = i + 1;
-    const tgt = target(index++, total, n);
+    const tgt = target(d.id, n);
     const winsAt: number[] = [];
     let overflow = 0;
     for (let r = 0; r < RUNS; r++) {
@@ -73,6 +78,6 @@ for (const d of districts) {
 }
 
 mkdirSync('docs', { recursive: true });
-writeFileSync('docs/balance.csv', rows.join('\n') + '\n');
-if (WRITE) files.forEach((f, i) => writeFileSync(f, JSON.stringify(districts[i], null, 2) + '\n'));
+writeFileSync(ONLY ? `docs/balance-d${ONLY}.csv` : 'docs/balance.csv', rows.join('\n') + '\n');
+if (WRITE) files.forEach((f, i) => (!ONLY || districts[i].id === ONLY) && writeFileSync(f, JSON.stringify(districts[i], null, 2) + '\n'));
 console.log(`\n${RUNS} runs per level, ${((Date.now() - t0) / 1000).toFixed(0)} s. Wrote docs/balance.csv${WRITE ? ' and tuned shot limits' : ''}.`);

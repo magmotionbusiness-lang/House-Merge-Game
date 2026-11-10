@@ -24,8 +24,10 @@ import { validateDistrict, type District, type LevelDef } from './core/levels';
 import district1 from '../levels/district-01.json';
 import district2 from '../levels/district-02.json';
 import district3 from '../levels/district-03.json';
+import district4 from '../levels/district-04.json';
+import district5 from '../levels/district-05.json';
 
-const DISTRICTS: District[] = [district1, district2, district3].map((d) => validateDistrict(d as District));
+const DISTRICTS: District[] = [district1, district2, district3, district4, district5].map((d) => validateDistrict(d as District));
 
 /** Canvas textures draw with these fonts, so wait for them (but never block boot for long). */
 function loadFonts() {
@@ -125,17 +127,18 @@ async function boot() {
       view.settleQuality(2);
     }
   };
-  const levelAfter = (id: string): [LevelDef, District] | null => {
-    for (const d of DISTRICTS) {
-      const i = d.levels.findIndex((l) => l.id === id);
-      if (i >= 0 && i + 1 < d.levels.length) return [d.levels[i + 1], d];
-    }
-    return null;
-  };
+  /** The map's level card already showed the goal: Play starts the level straight away. */
   const startLevel = (level: LevelDef, district: District) => {
-    // The intro already shows the district's theme buildings.
     setTheme(themeForDistrict(district.id));
-    screens!.levelIntro(level, district, () => startWithDust(() => game!.start({ kind: 'level', level, time: district.time })));
+    startWithDust(() => game!.start({ kind: 'level', level, time: district.time }));
+  };
+  /** After a win: back to the map, where the builder hops on to the next level and its card drops in. */
+  const toMap = (hopFrom?: string) => {
+    game!.stop();
+    game!.setPaused(false);
+    setPlaying(false);
+    music.playHome();
+    screens!.levels({ hopFrom, autoOpen: !!hopFrom });
   };
   game = new Game(view, hud, canvas, {
     onTension: (k) => music.setTension(k),
@@ -144,9 +147,11 @@ async function boot() {
       if (tierId >= 10 || combo >= 3) music.duck(0.35, 0.45);
     },
     onEnd: (r) => {
-      const next = r.win && r.mode.kind === 'level' ? levelAfter(r.mode.level.id) : null;
+      const next = r.win && r.mode.kind === 'level' ? () => toMap((r.mode as { level: LevelDef }).level.id) : null;
       // Let the moment land before the results card slides in.
-      window.setTimeout(() => screens!.result(r, next ? () => startLevel(next[0], next[1]) : null), r.win ? 300 : 650);
+      window.setTimeout(() => screens!.result(r, next), r.win ? 300 : 650);
+      // Each star rings as it lands on the results card.
+      if (r.win) for (let i = 0; i < r.stars; i++) window.setTimeout(() => game!.sfx.star(i), 300 + 350 + i * 280);
     },
   });
   screens = new Screens(hudRoot.parentElement as HTMLElement, DISTRICTS, {
@@ -317,6 +322,7 @@ async function boot() {
   });
   (window as unknown as { __game: Game; __view: SceneView; __ads: unknown }).__game = game;
   (window as unknown as { __ads: unknown }).__ads = ads;
+  (window as unknown as { __screens: unknown }).__screens = screens;
   (window as unknown as { __view: SceneView }).__view = view;
   (window as unknown as { __music: Music }).__music = music;
 }

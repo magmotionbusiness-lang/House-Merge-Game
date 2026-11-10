@@ -1,6 +1,19 @@
-"""Generates levels/district-01..03.json from a compact design table.
-Shot limits start as placeholders; `npm run balance -- --write` tunes them with the bot."""
+"""Generates levels/district-01..05.json: five themed districts of 33 levels each.
+
+Each district runs in three acts of 11 levels. Every act climbs from a breather
+to a landmark Big Build (levels 11, 22 and 33), and every act starts one tier
+higher than the last. Later districts start higher, use scaffolds more often
+(with new layouts), deal richer pieces and give less help in the starting pile.
+
+Shot limits start as placeholders; `npm run balance -- --write` tunes them with
+the bot so the target win rate falls gently through each district.
+"""
 import json
+import math
+
+# Collider diameters (table widths) per tier, mirroring src/core/tiers.ts x footprintScale 1.3.
+FOOT = [0.08, 0.10, 0.12, 0.14, 0.16, 0.175, 0.19, 0.20, 0.21, 0.22, 0.225, 0.23, 0.235, 0.24, 0.24, 0.245, 0.25, 0.25]
+rad = lambda t: FOOT[t - 1] * 1.3 / 2
 
 # Back row then middle row. Duplicates go in the first two (far apart) slots.
 SLOTS = [(-0.33, 1.6), (0.33, 1.6), (0.0, 1.6), (-0.17, 1.28), (0.17, 1.28)]
@@ -8,80 +21,155 @@ OB = {
     'center': [[0.0, 1.0, 0.22, 0.045]],
     'sides': [[-0.3, 1.0, 0.18, 0.045], [0.3, 1.0, 0.18, 0.045]],
     'stagger': [[-0.22, 0.92, 0.2, 0.045], [0.24, 1.05, 0.2, 0.045]],
+    'gate': [[-0.29, 0.95, 0.26, 0.045], [0.29, 0.95, 0.26, 0.045]],
+    'pillars': [[-0.26, 0.9, 0.1, 0.045], [0.0, 1.05, 0.1, 0.045], [0.26, 0.9, 0.1, 0.045]],
+    'funnel': [[-0.33, 1.02, 0.2, 0.045], [0.0, 0.85, 0.14, 0.045], [0.33, 1.02, 0.2, 0.045]],
+}
+# 'gate', 'funnel' and 'pillars' proved too tight with big buildings (the pile jams in front of them).
+OB_ORDER = ['center', 'sides', 'stagger']
+
+THEMES = [
+    # id, name, base tier, building names (tiers 1-18)
+    (1, 'Construction Site', 3, ['Brick', 'Doghouse', 'Garden Shed', 'Log Cabin', 'Cottage', 'House', 'Big House', 'Mansion', 'Townhouses', 'Apartments', 'Apartment Block', 'Office Tower', 'Skyscraper', 'Twisted Tower', 'Megatower', 'Hero HQ', 'Sky Citadel', 'Space Elevator']),
+    (2, 'Tropical Beach', 4, ['Sandcastle', 'Beach Hut', 'Lifeguard Tower', 'Tiki Hut', 'Surf Shack', 'Beach Cottage', 'Stilt House', 'Overwater Bungalow', 'Bungalow Pier', 'Pool Villa', 'Seaside Apartments', 'Beach Resort', 'Palm Hotel', 'Sail Tower', 'Lagoon Resort', 'Coral Palace', 'Island Citadel', 'Paradise Spire']),
+    (3, 'Alpine Peaks', 5, ['Woodpile', 'Tent', "Hunter's Hut", 'A-Frame Cabin', 'Log Cabin', 'Big Log Cabin', 'Luxury Log Cabin', 'Chalet', 'Ski Lodge', 'Mountain Villa', 'Grand Chalet', 'Alpine Hotel', 'Cliff Villa', 'Peak Resort', 'Cable Car Station', 'Mountain Castle', 'Glacier Palace', 'Summit Observatory']),
+    (4, 'Sweet Town', 6, ['Sugar Cube', 'Cupcake Hut', 'Candy Kiosk', 'Gingerbread Cabin', 'Cookie Cottage', 'Gingerbread House', 'Donut House', 'Layer Cake Manor', 'Macaron Row', 'Ice Cream Parlour', 'Chocolate Block', 'Lollipop Tower', 'Candy Cane Tower', 'Soft-Serve Swirl', 'Wedding Cake Tower', 'Candy Castle', 'Sundae Citadel', 'Rainbow Spire']),
+    (5, 'Neon City', 6, ['Power Cell', 'Sleep Pod', 'Dome Hut', 'Cube Home', 'Smart Cottage', 'Glass House', 'Hover House', 'Holo Villa', 'Pod Stack', 'Ring Apartments', 'Arcology', 'Neon Tower', 'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower']),
+]
+MAX_CONTRACT = 10
+
+# Spawn weights for tiers 1-5 by "richness" (0 = default weights).
+SPAWN = [None, [28, 30, 24, 13, 5], [20, 28, 27, 17, 8], [12, 22, 30, 24, 12], [8, 18, 30, 28, 16], [5, 15, 30, 30, 20]]
+
+HINTS = {
+    (1, 1): 'Drag to aim, let go to slide. Two matching pieces merge!',
+    (1, 2): 'Aim at a matching piece to merge it. A glowing ring shows a merge.',
+    (1, 3): 'Watch the NEXT card to plan your shot.',
+    (1, 4): 'Every level has a shot limit. Finish early for more stars!',
+    (1, 11): 'Big Build! Chain merges: build the smallest link and push it into the next.',
+    (2, 1): 'Welcome to the beach! Bigger buildings, bigger rewards.',
+    (3, 1): 'Alpine Peaks: scaffolds everywhere. Aim around them!',
+    (4, 1): 'Sweet Town: tight gaps and sweet chains.',
+    (5, 1): 'Neon City: the final district. Every shot counts!',
 }
 
-# Later districts deal richer pieces (weights for tiers 1-5), so big builds stay a few minutes long.
-SPAWN = {
-    (2, 2): [25, 30, 25, 14, 6], (2, 3): [15, 25, 30, 20, 10],
-    (3, 1): [20, 28, 27, 17, 8], (3, 2): [12, 22, 30, 24, 12], (3, 3): [8, 18, 30, 28, 16],
-}
 
-def lvl(did, n, name, contracts, start=(), obstacles=None, hint=None, spawn=None):
-    l = {'id': f'{did}-{n}', 'name': name, 'shots': 99, 'contracts': [{'tier': t, 'count': c} for t, c in contracts]}
-    band = (did, (n - 1) // 5 + 1)
-    if spawn or band in SPAWN:
-        l['spawn'] = spawn or SPAWN[band]
-    if start:
-        l['start'] = [[t, *SLOTS[i]] for i, t in enumerate(start)]
-    if obstacles:
-        l['obstacles'] = OB[obstacles]
-    if hint:
-        l['hint'] = hint
-    return l
+def plural(name):
+    if name.endswith('s'):
+        return name
+    if name.endswith('y') and not name.endswith('ay'):
+        return name[:-1] + 'ies'
+    if name.endswith(('sh', 'ch')):
+        return name + 'es'
+    return name + 's'
 
-D1 = [
-    lvl(1, 1, 'First Shed', [(3, 1)], hint='Drag to aim, let go to slide. Two matching pieces merge!'),
-    lvl(1, 2, 'Two Sheds', [(3, 2)], hint='Aim at a matching piece to merge it.'),
-    lvl(1, 3, 'Log Cabin', [(4, 1)], start=(2, 2, 1), hint='Watch the NEXT card to plan your shot.'),
-    lvl(1, 4, 'Neighbours', [(4, 1), (3, 2)]),
-    lvl(1, 5, 'Big Build: Cottage', [(5, 1)], start=(3, 3, 2), hint='Big Build! Chain merges for bonus points.'),
-    lvl(1, 6, 'Breather', [(4, 1)], start=(3, 3)),
-    lvl(1, 7, 'Cabin Row', [(4, 2)]),
-    lvl(1, 8, 'Cottage Garden', [(5, 1), (3, 2)]),
-    lvl(1, 9, 'Two Cottages', [(5, 2)], start=(4, 4, 3)),
-    lvl(1, 10, 'Big Build: House', [(6, 1)], start=(4, 4, 3, 2)),
-    lvl(1, 11, 'Breather', [(5, 1)], start=(4, 4)),
-    lvl(1, 12, 'Street Corner', [(6, 1), (4, 2)], start=(5, 3)),
-    lvl(1, 13, 'Big House', [(7, 1)], start=(6, 5, 4)),
-    lvl(1, 14, 'House Pair', [(6, 2)], start=(5, 5, 4, 3)),
-    lvl(1, 15, 'Big Build: Mansion', [(8, 1)], start=(7, 6, 5, 4, 3), hint='Chain reaction! Build the smallest link and push it into the next.'),
-]
-D2 = [
-    lvl(2, 1, 'Welcome to the Suburbs', [(5, 1)], hint='Every level has a shot limit. Finish early for more stars!'),
-    lvl(2, 2, 'Fresh Paint', [(6, 1)], start=(5, 4, 3)),
-    lvl(2, 3, 'Block Party', [(6, 1), (5, 1)], start=(4, 4, 5)),
-    lvl(2, 4, 'Garage Sale', [(7, 1)], start=(6, 5, 4, 3)),
-    lvl(2, 5, 'Big Build: Mansion', [(8, 1)], start=(7, 6, 5, 4), hint='Chain reaction! Build the smallest link and push it into the next.'),
-    lvl(2, 6, 'Breather', [(6, 1)], start=(5, 5)),
-    lvl(2, 7, 'Twin Houses', [(7, 2)], start=(6, 6, 5, 4)),
-    lvl(2, 8, 'Estate Agent', [(8, 1), (6, 1)], start=(7, 5, 5, 4)),
-    lvl(2, 9, 'Row Houses', [(9, 1)], start=(8, 7, 6, 5, 4)),
-    lvl(2, 10, 'Big Build: Townhouses', [(9, 1)], start=(8, 7, 6, 5, 4)),
-    lvl(2, 11, 'Breather', [(7, 1)], start=(6, 6)),
-    lvl(2, 12, 'Two Mansions', [(8, 2)], start=(7, 7, 6, 5)),
-    lvl(2, 13, 'Cul-de-sac', [(8, 1), (7, 1)], start=(6, 6, 7, 5, 4)),
-    lvl(2, 14, 'Row Houses II', [(9, 1)], start=(8, 7, 6, 5)),
-    lvl(2, 15, 'Big Build: Apartments', [(10, 1)], start=(9, 8, 7, 6, 5), spawn=[5, 15, 30, 30, 20], hint='The biggest build in the Suburbs. Follow the chain!'),
-]
-D3 = [
-    lvl(3, 1, 'Scaffolding Up', [(6, 1)], start=(5, 4), obstacles='center', hint='Scaffolds stop shots dead. Aim around them!'),
-    lvl(3, 2, 'Narrow Lanes', [(7, 1)], start=(6, 5, 4), obstacles='center'),
-    lvl(3, 3, 'Market Square', [(7, 1), (6, 1)], start=(5, 5, 6, 4), obstacles='sides'),
-    lvl(3, 4, 'Behind the Scaffold', [(8, 1)], start=(7, 6, 5, 4), obstacles='center'),
-    lvl(3, 5, 'Big Build: Townhouses', [(9, 1)], start=(8, 7, 6, 5, 4), obstacles='sides'),
-    lvl(3, 6, 'Breather', [(7, 1)], start=(6, 6)),
-    lvl(3, 7, 'Old Mansions', [(8, 1), (7, 1)], start=(7, 6, 5), obstacles='stagger'),
-    lvl(3, 8, 'Clock Tower Lane', [(8, 2)], start=(7, 7, 6, 5), obstacles='stagger'),
-    lvl(3, 9, 'Canal Houses', [(9, 1)], start=(8, 7, 6, 5), obstacles='center'),
-    lvl(3, 10, 'Big Build: Townhouse Row', [(9, 1), (8, 1)], start=(8, 7, 6, 5), obstacles='sides'),
-    lvl(3, 11, 'Breather', [(8, 1)], start=(7, 7)),
-    lvl(3, 12, 'Twin Rows', [(8, 2), (7, 1)], start=(7, 7, 6, 5), obstacles='stagger'),
-    lvl(3, 13, 'Town Hall', [(9, 1), (7, 1)], start=(8, 6, 6, 5), obstacles='center'),
-    lvl(3, 14, 'High Street', [(9, 2)], start=(8, 8, 7, 6), obstacles='center', spawn=[5, 15, 30, 30, 20]),
-    lvl(3, 15, 'Big Build: Apartments', [(10, 1)], start=(9, 8, 7, 6, 5), obstacles='center', spawn=[5, 15, 30, 30, 20], hint='The tallest build in Old Town. Plan your merges!'),
-]
-for did, name, time, levels in [(1, 'Backyard', 'morning', D1), (2, 'Suburbs', 'noon', D2), (3, 'Old Town', 'golden', D3)]:
+
+def fit_start(tiers, obstacles):
+    """Places the starting pile in the slots, dropping pieces that would overlap (largest first)."""
+    tiers = [t for t in tiers if t >= 1]
+    while tiers:
+        pts = [(t, *SLOTS[i]) for i, t in enumerate(tiers)]
+        ok = True
+        for i, (t, x, y) in enumerate(pts):
+            if abs(x) + rad(t) > 0.5 or y + rad(t) > 1.8:
+                ok = False
+            for (t2, x2, y2) in pts[i + 1:]:
+                if math.hypot(x - x2, y - y2) < rad(t) + rad(t2) + 0.005:
+                    ok = False
+            for (ox, oy, w, h) in obstacles:
+                dx = max(abs(x - ox) - w / 2, 0)
+                dy = max(abs(y - oy) - h / 2, 0)
+                if math.hypot(dx, dy) < rad(t) + 0.01:
+                    ok = False
+        if ok:
+            return [[t, x, y] for (t, x, y) in pts]
+        tiers = tiers[:-1]
+    return []
+
+
+def district(did, theme, base, names):
+    nm = lambda t: names[t - 1]
+    levels = []
+    seen_ob = did > 1
+    ob_i = did  # rotate layouts, offset per district
+    for n in range(1, 34):
+        act = (n - 1) // 11  # 0, 1, 2
+        pos = (n - 1) % 11 + 1  # 1..11
+        t0 = base + act
+        # How many of the optional levels get scaffolds in this district.
+        ob_slots = {1: set(), 2: {9}, 3: {5, 9}, 4: {2, 5, 9}, 5: {2, 5, 9, 10}}[did]
+        if did == 1 and act == 2:
+            ob_slots = {5, 9}
+        # Starting piles help less as the district goes on.
+        help_ = 1 if act < 2 else 0
+        if pos == 1:
+            name, contracts, start = 'Breather' if n > 1 else f'Welcome to {theme}', [(t0, 1)], [t0 - 1, t0 - 1]
+        elif pos == 2:
+            name, contracts, start = f'{nm(t0 + 1)}', [(t0 + 1, 1)], [t0, t0 - 1, t0 - 2][: 2 + help_]
+        elif pos == 3:
+            name, contracts, start = f'{nm(t0 + 1)} & {nm(t0)}', [(t0 + 1, 1), (t0, 1)], [t0 - 1, t0 - 1, t0][: 2 + help_]
+        elif pos == 4:
+            name, contracts, start = f'Two {plural(nm(t0))}', [(t0, 2)], [t0 - 1, t0 - 1, t0 - 2]
+        elif pos == 5:
+            name, contracts, start = f'{nm(t0 + 1)} Lane', [(t0 + 1, 1)], [t0, t0 - 1, t0 - 2]
+        elif pos == 6:
+            name, contracts, start = f'{nm(t0 + 2)}', [(t0 + 2, 1)], [t0 + 1, t0, t0 - 1, t0 - 2][: 3 + help_]
+        elif pos == 7:
+            name, contracts, start = f'{nm(t0 + 2)} & {nm(t0)}', [(t0 + 2, 1), (t0, 1)], [t0 + 1, t0 - 1, t0 - 1, t0][: 3 + help_]
+        elif pos == 8:
+            name, contracts, start = f'Two {plural(nm(t0 + 1))}', [(t0 + 1, 2)], [t0, t0, t0 - 1, t0 - 2]
+        elif pos == 9:
+            name, contracts, start = f'{nm(t0 + 2)} Square', [(t0 + 2, 1)], [t0 + 1, t0, t0 - 1]
+        elif pos == 10:
+            # In the last act the second building is a size smaller (two big builds jam the table).
+            second = t0 + 1 if act < 2 else t0
+            name, contracts, start = f'{nm(t0 + 2)} & {nm(second)}', [(t0 + 2, 1), (second, 1)], [t0 + 1, t0, t0, t0 - 1]
+        else:
+            top = t0 + 3
+            name, contracts, start = f'Big Build: {nm(min(top, MAX_CONTRACT))}', [(top, 1)], [top - 1, top - 2, top - 3, top - 4, top - 5]
+        contracts = [(min(t, MAX_CONTRACT), c) for t, c in contracts]
+        # Big Builds keep a full chain so the landmark always has a path to it.
+        if pos == 11:
+            top = contracts[0][0]
+            start = [top - 1, top - 2, top - 3, top - 4, top - 5]
+        # Big buildings crowd the table: high-tier levels start with a smaller pile.
+        if pos != 11 and max(t for t, _ in contracts) >= 9:
+            start = start[:3]
+        obstacles = []
+        if pos in ob_slots:
+            key = OB_ORDER[ob_i % len(OB_ORDER)]
+            ob_i += 1
+            obstacles = OB[key]
+            start = start[:2]
+            # Scaffold levels top out a tier lower: the table jams in front of them otherwise.
+            capped = [(min(t, 9), c) for t, c in contracts]
+            if capped != contracts:
+                contracts = capped
+                name = f'{nm(contracts[0][0])} Scaffolds'
+        level = {'id': f'{did}-{n}', 'name': name, 'shots': 99, 'contracts': [{'tier': t, 'count': c} for t, c in contracts]}
+        richness = min(4, max(0, did - 1 + act + (1 if pos >= 6 else 0) - (1 if pos == 1 else 0)))
+        # Rich spawns jam the table in front of scaffolds and around big landmark piles.
+        if obstacles or pos == 11:
+            richness = min(richness, 2)
+        if SPAWN[richness]:
+            level['spawn'] = SPAWN[richness]
+        pile = fit_start(start, obstacles)
+        if pile:
+            level['start'] = pile
+        if obstacles:
+            level['obstacles'] = obstacles
+        hint = HINTS.get((did, n))
+        if obstacles and not seen_ob:
+            hint = 'Scaffolds stop shots dead. Aim around them!'
+            seen_ob = True
+        if hint:
+            level['hint'] = hint
+        levels.append(level)
+    return {'id': did, 'name': theme, 'time': 'noon', 'levels': levels}
+
+
+for did, theme, base, names in THEMES:
     with open(f'levels/district-{did:02d}.json', 'w') as f:
-        json.dump({'id': did, 'name': name, 'time': time, 'levels': levels}, f, indent=2)
+        json.dump(district(did, theme, base, names), f, indent=2)
         f.write('\n')
 print('ok')

@@ -71,3 +71,27 @@ export function starsFor(level: LevelDef, shotsUsed: number, bestCombo: number):
 export function levelCoins(_level: LevelDef, stars: number, contractCoins: number) {
   return contractCoins + stars * 25;
 }
+
+/** Stars needed (in total, across the campaign) to open each district. District 1 is always open. */
+export const DISTRICT_GATES = [0, 40, 85, 130, 180];
+
+export function totalStars(stars: Record<string, number>) {
+  return Object.values(stars).reduce((a, b) => a + b, 0);
+}
+
+/**
+ * A district opens once the previous one's last level is beaten and the
+ * player has collected enough stars in all.
+ */
+export function districtOpen(districts: District[], index: number, stars: Record<string, number>) {
+  if (index <= 0) return true;
+  const prev = districts[index - 1];
+  const last = prev.levels[prev.levels.length - 1];
+  return (stars[last.id] ?? 0) > 0 && totalStars(stars) >= (DISTRICT_GATES[index] ?? DISTRICT_GATES[DISTRICT_GATES.length - 1]);
+}
+
+/** A level is playable when its district is open and the level before it is beaten. */
+export function levelOpen(districts: District[], di: number, li: number, stars: Record<string, number>) {
+  if (!districtOpen(districts, di, stars)) return false;
+  return li === 0 || (stars[districts[di].levels[li - 1].id] ?? 0) > 0;
+}

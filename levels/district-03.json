@@ -1,12 +1,43 @@
 {
   "id": 3,
-  "name": "Old Town",
-  "time": "golden",
+  "name": "Alpine Peaks",
+  "time": "noon",
   "levels": [
     {
       "id": "3-1",
-      "name": "Scaffolding Up",
-      "shots": 12,
+      "name": "Welcome to Alpine Peaks",
+      "shots": 8,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        28,
+        30,
+        24,
+        13,
+        5
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ]
+      ],
+      "hint": "Alpine Peaks: scaffolds everywhere. Aim around them!"
+    },
+    {
+      "id": "3-2",
+      "name": "Big Log Cabin",
+      "shots": 11,
       "contracts": [
         {
           "tier": 6,
@@ -30,25 +61,25 @@
           4,
           0.33,
           1.6
-        ]
-      ],
-      "obstacles": [
+        ],
         [
+          3,
           0,
-          1,
-          0.22,
-          0.045
+          1.6
         ]
-      ],
-      "hint": "Scaffolds stop shots dead. Aim around them!"
+      ]
     },
     {
-      "id": "3-2",
-      "name": "Narrow Lanes",
-      "shots": 20,
+      "id": "3-3",
+      "name": "Big Log Cabin & Log Cabin",
+      "shots": 13,
       "contracts": [
         {
-          "tier": 7,
+          "tier": 6,
+          "count": 1
+        },
+        {
+          "tier": 5,
           "count": 1
         }
       ],
@@ -61,18 +92,83 @@
       ],
       "start": [
         [
-          6,
+          4,
           -0.33,
           1.6
         ],
         [
-          5,
+          4,
           0.33,
           1.6
         ],
         [
-          4,
+          5,
           0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-4",
+      "name": "Two Log Cabins",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 5,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          4,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          3,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-5",
+      "name": "Big Log Cabin Lane",
+      "shots": 13,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
           1.6
         ]
       ],
@@ -86,25 +182,105 @@
       ]
     },
     {
-      "id": "3-3",
-      "name": "Market Square",
-      "shots": 26,
+      "id": "3-6",
+      "name": "Luxury Log Cabin",
+      "shots": 15,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          3,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-7",
+      "name": "Luxury Log Cabin & Log Cabin",
+      "shots": 16,
       "contracts": [
         {
           "tier": 7,
           "count": 1
         },
         {
-          "tier": 6,
+          "tier": 5,
           "count": 1
         }
       ],
       "spawn": [
-        20,
-        28,
-        27,
-        17,
-        8
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          4,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ],
+        [
+          5,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-8",
+      "name": "Two Big Log Cabins",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
       ],
       "start": [
         [
@@ -118,14 +294,44 @@
           1.6
         ],
         [
-          6,
+          4,
           0,
           1.6
         ],
         [
-          4,
+          3,
           -0.17,
           1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-9",
+      "name": "Luxury Log Cabin Square",
+      "shots": 24,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
         ]
       ],
       "obstacles": [
@@ -144,9 +350,53 @@
       ]
     },
     {
-      "id": "3-4",
-      "name": "Behind the Scaffold",
-      "shots": 36,
+      "id": "3-10",
+      "name": "Luxury Log Cabin & Big Log Cabin",
+      "shots": 18,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-11",
+      "name": "Big Build: Chalet",
+      "shots": 37,
       "contracts": [
         {
           "tier": 8,
@@ -180,6 +430,348 @@
           4,
           -0.17,
           1.28
+        ],
+        [
+          3,
+          0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-12",
+      "name": "Breather",
+      "shots": 11,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-13",
+      "name": "Luxury Log Cabin",
+      "shots": 16,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-14",
+      "name": "Luxury Log Cabin & Big Log Cabin",
+      "shots": 18,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        },
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          6,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-15",
+      "name": "Two Big Log Cabins",
+      "shots": 12,
+      "contracts": [
+        {
+          "tier": 6,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        12,
+        22,
+        30,
+        24,
+        12
+      ],
+      "start": [
+        [
+          5,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          4,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-16",
+      "name": "Luxury Log Cabin Lane",
+      "shots": 24,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ]
+      ],
+      "obstacles": [
+        [
+          -0.22,
+          0.92,
+          0.2,
+          0.045
+        ],
+        [
+          0.24,
+          1.05,
+          0.2,
+          0.045
+        ]
+      ]
+    },
+    {
+      "id": "3-17",
+      "name": "Chalet",
+      "shots": 24,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-18",
+      "name": "Chalet & Big Log Cabin",
+      "shots": 29,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        },
+        {
+          "tier": 6,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          5,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          6,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-19",
+      "name": "Two Luxury Log Cabins",
+      "shots": 17,
+      "contracts": [
+        {
+          "tier": 7,
+          "count": 2
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          6,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          5,
+          0,
+          1.6
+        ],
+        [
+          4,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-20",
+      "name": "Chalet Square",
+      "shots": 43,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
         ]
       ],
       "obstacles": [
@@ -192,9 +784,53 @@
       ]
     },
     {
-      "id": "3-5",
-      "name": "Big Build: Townhouses",
-      "shots": 99,
+      "id": "3-21",
+      "name": "Chalet & Luxury Log Cabin",
+      "shots": 29,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        },
+        {
+          "tier": 7,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          6,
+          0,
+          1.6
+        ],
+        [
+          5,
+          -0.17,
+          1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-22",
+      "name": "Big Build: Ski Lodge",
+      "shots": 70,
       "contracts": [
         {
           "tier": 9,
@@ -234,24 +870,10 @@
           0.17,
           1.28
         ]
-      ],
-      "obstacles": [
-        [
-          -0.3,
-          1,
-          0.18,
-          0.045
-        ],
-        [
-          0.3,
-          1,
-          0.18,
-          0.045
-        ]
       ]
     },
     {
-      "id": "3-6",
+      "id": "3-23",
       "name": "Breather",
       "shots": 15,
       "contracts": [
@@ -281,9 +903,39 @@
       ]
     },
     {
-      "id": "3-7",
-      "name": "Old Mansions",
-      "shots": 46,
+      "id": "3-24",
+      "name": "Chalet",
+      "shots": 27,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          7,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-25",
+      "name": "Chalet & Luxury Log Cabin",
+      "shots": 43,
       "contracts": [
         {
           "tier": 8,
@@ -295,15 +947,15 @@
         }
       ],
       "spawn": [
-        12,
-        22,
+        8,
+        18,
         30,
-        24,
-        12
+        28,
+        16
       ],
       "start": [
         [
-          7,
+          6,
           -0.33,
           1.6
         ],
@@ -311,171 +963,71 @@
           6,
           0.33,
           1.6
-        ],
-        [
-          5,
-          0,
-          1.6
-        ]
-      ],
-      "obstacles": [
-        [
-          -0.22,
-          0.92,
-          0.2,
-          0.045
-        ],
-        [
-          0.24,
-          1.05,
-          0.2,
-          0.045
         ]
       ]
     },
     {
-      "id": "3-8",
-      "name": "Clock Tower Lane",
-      "shots": 43,
+      "id": "3-26",
+      "name": "Two Luxury Log Cabins",
+      "shots": 19,
       "contracts": [
         {
-          "tier": 8,
+          "tier": 7,
           "count": 2
         }
       ],
       "spawn": [
-        12,
-        22,
+        8,
+        18,
         30,
-        24,
-        12
+        28,
+        16
       ],
       "start": [
         [
-          7,
+          6,
           -0.33,
           1.6
         ],
         [
-          7,
+          6,
           0.33,
           1.6
         ],
         [
-          6,
+          5,
           0,
           1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ]
-      ],
-      "obstacles": [
-        [
-          -0.22,
-          0.92,
-          0.2,
-          0.045
-        ],
-        [
-          0.24,
-          1.05,
-          0.2,
-          0.045
         ]
       ]
     },
     {
-      "id": "3-9",
-      "name": "Canal Houses",
-      "shots": 54,
+      "id": "3-27",
+      "name": "Chalet Lane",
+      "shots": 41,
       "contracts": [
-        {
-          "tier": 9,
-          "count": 1
-        }
-      ],
-      "spawn": [
-        12,
-        22,
-        30,
-        24,
-        12
-      ],
-      "start": [
-        [
-          8,
-          -0.33,
-          1.6
-        ],
-        [
-          7,
-          0.33,
-          1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ]
-      ],
-      "obstacles": [
-        [
-          0,
-          1,
-          0.22,
-          0.045
-        ]
-      ]
-    },
-    {
-      "id": "3-10",
-      "name": "Big Build: Townhouse Row",
-      "shots": 93,
-      "contracts": [
-        {
-          "tier": 9,
-          "count": 1
-        },
         {
           "tier": 8,
           "count": 1
         }
       ],
       "spawn": [
-        12,
-        22,
-        30,
-        24,
-        12
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
-          8,
+          7,
           -0.33,
           1.6
         ],
         [
-          7,
+          6,
           0.33,
           1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
         ]
       ],
       "obstacles": [
@@ -494,12 +1046,12 @@
       ]
     },
     {
-      "id": "3-11",
-      "name": "Breather",
-      "shots": 25,
+      "id": "3-28",
+      "name": "Ski Lodge",
+      "shots": 49,
       "contracts": [
         {
-          "tier": 8,
+          "tier": 9,
           "count": 1
         }
       ],
@@ -512,7 +1064,7 @@
       ],
       "start": [
         [
-          7,
+          8,
           -0.33,
           1.6
         ],
@@ -520,21 +1072,61 @@
           7,
           0.33,
           1.6
+        ],
+        [
+          6,
+          0,
+          1.6
         ]
       ]
     },
     {
-      "id": "3-12",
-      "name": "Twin Rows",
-      "shots": 51,
+      "id": "3-29",
+      "name": "Ski Lodge & Luxury Log Cabin",
+      "shots": 64,
       "contracts": [
         {
-          "tier": 8,
-          "count": 2
+          "tier": 9,
+          "count": 1
         },
         {
           "tier": 7,
           "count": 1
+        }
+      ],
+      "spawn": [
+        8,
+        18,
+        30,
+        28,
+        16
+      ],
+      "start": [
+        [
+          8,
+          -0.33,
+          1.6
+        ],
+        [
+          6,
+          0.33,
+          1.6
+        ],
+        [
+          6,
+          0,
+          1.6
+        ]
+      ]
+    },
+    {
+      "id": "3-30",
+      "name": "Two Chalets",
+      "shots": 34,
+      "contracts": [
+        {
+          "tier": 8,
+          "count": 2
         }
       ],
       "spawn": [
@@ -564,6 +1156,36 @@
           5,
           -0.17,
           1.28
+        ]
+      ]
+    },
+    {
+      "id": "3-31",
+      "name": "Ski Lodge Square",
+      "shots": 136,
+      "contracts": [
+        {
+          "tier": 9,
+          "count": 1
+        }
+      ],
+      "spawn": [
+        20,
+        28,
+        27,
+        17,
+        8
+      ],
+      "start": [
+        [
+          8,
+          -0.33,
+          1.6
+        ],
+        [
+          7,
+          0.33,
+          1.6
         ]
       ],
       "obstacles": [
@@ -582,9 +1204,9 @@
       ]
     },
     {
-      "id": "3-13",
-      "name": "Town Hall",
-      "shots": 59,
+      "id": "3-32",
+      "name": "Ski Lodge & Luxury Log Cabin",
+      "shots": 53,
       "contracts": [
         {
           "tier": 9,
@@ -609,55 +1231,7 @@
           1.6
         ],
         [
-          6,
-          0.33,
-          1.6
-        ],
-        [
-          6,
-          0,
-          1.6
-        ],
-        [
-          5,
-          -0.17,
-          1.28
-        ]
-      ],
-      "obstacles": [
-        [
-          0,
-          1,
-          0.22,
-          0.045
-        ]
-      ]
-    },
-    {
-      "id": "3-14",
-      "name": "High Street",
-      "shots": 61,
-      "contracts": [
-        {
-          "tier": 9,
-          "count": 2
-        }
-      ],
-      "spawn": [
-        5,
-        15,
-        30,
-        30,
-        20
-      ],
-      "start": [
-        [
-          8,
-          -0.33,
-          1.6
-        ],
-        [
-          8,
+          7,
           0.33,
           1.6
         ],
@@ -665,26 +1239,13 @@
           7,
           0,
           1.6
-        ],
-        [
-          6,
-          -0.17,
-          1.28
-        ]
-      ],
-      "obstacles": [
-        [
-          0,
-          1,
-          0.22,
-          0.045
         ]
       ]
     },
     {
-      "id": "3-15",
-      "name": "Big Build: Apartments",
-      "shots": 73,
+      "id": "3-33",
+      "name": "Big Build: Mountain Villa",
+      "shots": 141,
       "contracts": [
         {
           "tier": 10,
@@ -692,11 +1253,11 @@
         }
       ],
       "spawn": [
-        5,
-        15,
-        30,
-        30,
-        20
+        20,
+        28,
+        27,
+        17,
+        8
       ],
       "start": [
         [
@@ -724,16 +1285,7 @@
           0.17,
           1.28
         ]
-      ],
-      "obstacles": [
-        [
-          0,
-          1,
-          0.22,
-          0.045
-        ]
-      ],
-      "hint": "The tallest build in Old Town. Plan your merges!"
+      ]
     }
   ]
 }

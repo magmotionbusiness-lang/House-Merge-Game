@@ -6,6 +6,7 @@ import { dailyNumber, dailyShareText, dayKey, FUN_FACTS, LOGIN_REWARDS, loginSta
 import { MAX_TIER } from '../core/tiers';
 import { ICONS } from './icons';
 import { thumbUrl } from './hud';
+import { CampaignMap } from './map';
 import { tierName } from '../core/themes';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
@@ -356,58 +357,22 @@ export class Screens {
 
   // ---------------------------------------------------------------- campaign
 
-  levels() {
-    const card = el('div', 'panel levels-panel');
-    const head = el('div', 'panel-head');
-    const back = button('Back', 'back-btn', () => this.title(), ICONS.back);
-    back.setAttribute('aria-label', 'Back to the title screen');
-    head.append(back, el('h2', '', 'Campaign'));
-    card.append(head);
-    const got = progress.stars();
-    let unlocked = true;
-    for (const d of this.districts) {
-      const sec = el('section', 'district');
-      const total = d.levels.reduce((a, l) => a + (got[l.id] ?? 0), 0);
-      const h = el('div', 'district-head');
-      h.append(el('h3', '', `${d.id}. ${d.name}`), el('span', 'district-stars', `★ ${total}/${d.levels.length * 3}`));
-      sec.append(h);
-      const grid = el('div', 'level-grid');
-      d.levels.forEach((l, i) => {
-        const s = got[l.id] ?? 0;
-        const tile = el('button', `level-tile ${unlocked ? '' : 'locked'} ${(i + 1) % 5 === 0 ? 'big' : ''}`);
-        tile.append(el('span', 'level-num', unlocked ? String(i + 1) : '🔒'), stars(s));
-        tile.title = l.name;
-        const playable = unlocked;
-        tile.onclick = () => {
-          onTap?.();
-          if (playable) this.h.playLevel(l, d);
-        };
-        grid.append(tile);
-        unlocked = unlocked && s > 0;
-      });
-      sec.append(grid);
-      card.append(sec);
-    }
-    card.append(el('p', 'note', 'More districts are under construction.'));
-    this.show(card);
-  }
-
-  /** Level intro: the contracts to build and the shot limit. */
-  levelIntro(level: LevelDef, district: District, start: () => void) {
-    const card = el('div', 'panel intro');
-    card.append(el('div', 'eyebrow', `${district.name} · Level ${level.id}`), el('h2', '', level.name));
-    const list = el('div', 'intro-contracts');
-    for (const c of level.contracts) {
-      const row = el('div', 'intro-row');
-      const img = el('img') as HTMLImageElement;
-      img.src = thumbUrl(c.tier);
-      row.append(img, el('span', '', `Build ${c.count} × ${tierName(c.tier)}`));
-      list.append(row);
-    }
-    card.append(list);
-    card.append(el('div', 'intro-shots', level.shots === null ? 'Unlimited shots' : `${level.shots} shots`));
-    card.append(button("Let's build", 'big green', start, ICONS.play));
-    this.show(card);
+  /**
+   * The campaign map. After a win, `hopFrom` is the level just beaten: the
+   * builder hops on to the next level and its card opens.
+   */
+  levels(opts: { hopFrom?: string; autoOpen?: boolean } = {}) {
+    const map = new CampaignMap({
+      districts: this.districts,
+      stars: progress.stars(),
+      onPlay: (l, d) => this.h.playLevel(l, d),
+      onBack: () => this.title(),
+      tap: () => onTap?.(),
+      hopFrom: opts.hopFrom,
+      autoOpen: opts.autoOpen,
+    });
+    this.show(map.root, 'map');
+    requestAnimationFrame(() => map.layout());
   }
 
   // ---------------------------------------------------------------- pause & settings

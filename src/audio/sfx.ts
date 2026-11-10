@@ -397,6 +397,34 @@ export class Sfx {
     this.noise(1.2, { gain: 0.08, filter: 'highpass', freq: 6000, when: 0.72, wet: 0.7 });
   }
 
+  /** Level cleared: a big shout chord with a sweep (the "Sugar Crush!" moment). */
+  shout() {
+    if (!this.ok) return;
+    this.noise(0.6, { gain: 0.14, freq: 300, freqEnd: 6000, q: 0.8 });
+    for (const n of [0, 4, 7, 12, 16]) this.tone(392 * Math.pow(2, n / 12), 1.0, { gain: 0.07, type: 'sawtooth', when: 0.18, attack: 0.02, wet: 0.5 });
+    this.tone(70, 0.6, { gain: 0.32, freqEnd: 40, when: 0.18 });
+    this.bell(1568, 0.1, 0.2);
+  }
+
+  /** A bonus firework: a whoosh up, then a pop and a bell that climbs with each rocket. */
+  rocket(k: number) {
+    if (!this.ok) return;
+    this.noise(0.3, { gain: 0.07, freq: 600, freqEnd: 4000, q: 1.2 });
+    const f = 523 * Math.pow(2, MAJOR[Math.min(k, MAJOR.length - 1)] / 12);
+    this.tone(160, 0.12, { gain: 0.3, freqEnd: 50, when: 0.34 });
+    this.noise(0.08, { gain: 0.12, filter: 'highpass', freq: 2500, when: 0.34 });
+    this.bell(f, 0.09, 0.35);
+  }
+
+  /** A star landing on the results card (each one higher). */
+  star(i: number) {
+    if (!this.ok) return;
+    const f = [784, 988, 1319][Math.min(2, i)];
+    this.bell(f, 0.16);
+    this.tone(f * 1.5, 0.3, { gain: 0.05, when: 0.05, wet: 0.6 });
+    this.tone(120, 0.1, { gain: 0.25, freqEnd: 60 });
+  }
+
   /** The next piece clicking into the launcher. */
   reload() {
     if (!this.ok) return;
