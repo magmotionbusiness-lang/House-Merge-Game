@@ -401,3 +401,24 @@ The game stays fair and ad-first, as the brief asks. Everything goes through one
 - **During an ad** the music fades out and a running game pauses. Both come back afterwards.
 - **Consent:** asked once, before the first ad of any kind, never at first launch. Two equally prominent choices (personalised or non-personalised ads); both mean the same number of ads. It can be changed in Settings → Privacy & ads. This stands in for Google's UMP flow, which the native build will show to EU/UK players.
 - **Remove Ads:** the policy already honours a `bm.noads` flag, which the native store purchase will set. `?noads` in the URL turns interstitials off for testing. Coin packs, the starter pack and the season pass wait for the native store (Phase 10).
+
+## Phase 8.1: Aim preview, score gains and edge sparkles (Block Blast study)
+
+The user's Block Blast recording showed three things that both reward and teach the player:
+- **The drag preview:** dragging a piece previews the lines it would clear, and the better the placement, the flashier the preview. One line gets a soft glow in the piece's colour; three lines get a chasing rainbow neon outline.
+- **Points:** the score counts up in a glowing badge while a gold "+270" floats out.
+- **The board edge:** a gold outline with drifting particles flashes on a clear.
+
+Our equivalents:
+- **Aim preview** (`render/preview.ts`). While aiming, the game predicts the shot: the first building in the straight path, and whether it's the same tier. It then follows the chain: the new building (placed between the pair) touching a twin of its own tier, up to 5 links. Shots slide straight, so this is reliable; bounces after a merge are not predicted, and the guess never claims more than it can know. The preview glows on the table around the buildings involved, just outside their base discs, and the aim line takes the same colour:
+
+  | Outcome | Preview |
+  |---|---|
+  | No merge | Plain white aim line |
+  | Merge | A soft ring in the colour of the building it will make |
+  | Chain of 2 | Brighter pulsing rings on both buildings |
+  | Chain of 3+, or a merge that completes a contract | A chasing rainbow neon ring on every building, sparkles, and a rainbow aim line |
+
+  It hides while a booster is being aimed and when out of reach in Sling mode. This makes good shots readable before they're taken, which helps new players and makes the best shots feel special.
+- **Score gains:** the score counts up instead of jumping. The score box pops with a gold glow that scales with the points. A gold "+N" bursts out just under it, beside the coin counter (clear of the contract tickets), and quick gains add up in one label.
+- **Edge sparkles:** every board-edge flash (combos, deliveries, board clears, theme changes, Heat) now also sends sparkles drifting off the rails in the same colour.

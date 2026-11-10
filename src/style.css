@@ -2676,3 +2676,76 @@ body:has(.screen.title) #splash {
   width: 100%;
   height: 100%;
 }
+
+/* ================= Score gains: glow, pop and a gold "+N" ================= */
+.score-box {
+  position: relative;
+}
+.score-box.gain {
+  animation: score-gain 0.55s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes score-gain {
+  0% {
+    box-shadow: 0 3px 0 #6a4a2a, 0 0 0 0 rgba(255, 216, 77, 0);
+  }
+  25% {
+    transform: scale(calc(1 + 0.08 * var(--gain, 0.5)));
+    box-shadow: 0 3px 0 #6a4a2a, 0 0 calc(26px * var(--gain, 0.5)) calc(6px * var(--gain, 0.5)) rgba(255, 216, 77, 0.9);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 3px 0 #6a4a2a, 0 0 0 0 rgba(255, 216, 77, 0);
+  }
+}
+.score-box.gain .score-value {
+  animation: score-num 0.45s ease-out;
+}
+@keyframes score-num {
+  30% {
+    color: #e08a00;
+    text-shadow: 0 0 14px rgba(255, 200, 60, 0.9);
+  }
+}
+.score-plus {
+  position: absolute;
+  right: 2px;
+  top: calc(100% + 6px);
+  font: 900 24px/1 var(--display);
+  color: #ffd84d;
+  -webkit-text-stroke: 2px #3d2614;
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 #3d2614, 0 0 14px rgba(255, 200, 60, 0.7);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+}
+.score-plus.go {
+  animation: score-plus 1.05s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+@keyframes score-plus {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.4);
+  }
+  18% {
+    opacity: 1;
+    transform: translateY(0) scale(1.2);
+  }
+  30% {
+    transform: translateY(0) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.95);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-box.gain {
+    animation: none;
+  }
+}

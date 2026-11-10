@@ -942,6 +942,7 @@ export class Game {
   private addScore(p: number) {
     const before = this.score;
     this.score += p;
+    this.hud.scoreGain(p);
     // Beating your record mid-run is its own celebration (once per run).
     if (!this.bestBeaten && this.best > 0 && before <= this.best && this.score > this.best && this.playMode.kind === 'endless') {
       this.bestBeaten = true;
@@ -1062,9 +1063,70 @@ export class Game {
       this.view.placePiece(l.view, l.x, CONFIG.launchY, wobble);
       this.view.animatePiece(l.view, dt);
       this.view.setAim(l.x, CONFIG.launchY + l.view.radius, this.aimEnd(l));
+      this.previewShot(l);
     } else {
       this.view.setAim(0, 0, null);
+      this.view.setPreview([], 0, '#ffffff');
     }
+  }
+
+  /**
+   * Predicts what the shot will do, for the aim preview: the first building in
+   * its path, and if it's the same tier, the merge and any chain that follows
+   * (the new building touching another of its own tier). Straight-line shots
+   * make this reliable; bounces after a merge are not predicted.
+   */
+  private previewShot(l: Launcher) {
+    const none = () => this.view.setPreview([], 0, '#ffffff');
+    if (this.over || this.paused || this.targeting) return none();
+    const r = l.view.radius;
+    let reach = Infinity;
+    if (this.mode === 'sling') {
+      if (!this.aim) return none();
+      reach = CONFIG.launchY + this.launchSpeed(this.aim.power) / CONFIG.linearDamping;
+    }
+    let first: Piece | null = null;
+    let firstY = Infinity;
+    for (const p of this.pieces.values()) {
+      const dx = Math.abs(p.x - l.x);
+      const rr = r + p.radius;
+      if (dx >= rr || p.y <= CONFIG.launchY) continue;
+      const y = p.y - Math.sqrt(rr * rr - dx * dx);
+      if (y < firstY) {
+        firstY = y;
+        first = p;
+      }
+    }
+    if (this.playMode.kind === 'level')
+      for (const [ox, oy, w, h] of this.playMode.level.obstacles ?? [])
+        if (Math.abs(ox - l.x) < w / 2 + r && oy - h / 2 - r < firstY) return none();
+    if (!first || first.tier !== l.tier || first.delivering || firstY - r > reach || l.tier >= MAX_TIER) return none();
+    // Follow the chain: the new building appears between the pair and merges with a touching twin.
+    const chain: Piece[] = [first];
+    let t = l.tier + 1;
+    let at = { x: (first.x + l.x) / 2, y: (first.y + firstY) / 2 };
+    while (t < MAX_TIER && chain.length < 5) {
+      const rt = pieceRadius(t);
+      let next: Piece | null = null;
+      let bestD = Infinity;
+      for (const p of this.pieces.values()) {
+        if (p.tier !== t || p.delivering || chain.includes(p)) continue;
+        const d = Math.hypot(p.x - at.x, p.y - at.y) - rt - p.radius;
+        // The new building's exact spot isn't known, so later links get more leeway.
+        if (d < (chain.length === 1 ? 0.03 : 0.07) && d < bestD) {
+          bestD = d;
+          next = p;
+        }
+      }
+      if (!next) break;
+      chain.push(next);
+      at = { x: (at.x + next.x) / 2, y: (at.y + next.y) / 2 };
+      t++;
+    }
+    const made = l.tier + chain.length; // the final building the chain makes
+    const contract = this.contracts.some((c) => !isComplete(c) && c.tier > l.tier && c.tier <= made);
+    const level = chain.length >= 3 || contract ? 3 : chain.length;
+    this.view.setPreview(chain.map((p) => p.view), level, tier(Math.min(MAX_TIER, made)).color);
   }
 
   /** Where the aim line stops: the first piece in the straight path, the back rail, or the sling's reach. */

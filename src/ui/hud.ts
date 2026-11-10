@@ -120,8 +120,11 @@ export class Hud {
   }
 
   /** Score, with a live countdown to the record you're chasing ("1,240 TO BEAT BEST"). */
+  private shownScore = 0;
+  private scoreAnim = 0;
+
   setScore(score: number, best: number, chasing = 0) {
-    this.score.textContent = score.toLocaleString('en-US');
+    this.countTo(score);
     const gap = chasing - score;
     if (chasing > 0 && gap > 0) {
       this.best.textContent = `${gap.toLocaleString('en-US')} TO BEAT BEST`;
@@ -135,6 +138,59 @@ export class Hud {
       this.best.textContent = `BEST ${best.toLocaleString('en-US')}`;
       this.best.classList.remove('close', 'beaten');
     }
+  }
+
+  /** The score counts up to its new value (instantly when it goes down, e.g. a new round). */
+  private countTo(score: number) {
+    cancelAnimationFrame(this.scoreAnim);
+    const from = this.shownScore;
+    if (score <= from || score - from < 2) {
+      this.shownScore = score;
+      this.score.textContent = score.toLocaleString('en-US');
+      return;
+    }
+    const t0 = performance.now();
+    const dur = Math.min(700, 280 + (score - from) * 0.4);
+    const step = (now: number) => {
+      const u = Math.min(1, (now - t0) / dur);
+      const v = Math.round(from + (score - from) * (1 - Math.pow(1 - u, 3)));
+      this.shownScore = v;
+      this.score.textContent = v.toLocaleString('en-US');
+      if (u < 1) this.scoreAnim = requestAnimationFrame(step);
+    };
+    this.scoreAnim = requestAnimationFrame(step);
+  }
+
+  private plusEl: HTMLElement | null = null;
+  private plusSum = 0;
+  private plusTimer = 0;
+
+  /**
+   * Points scored: the score box glows and pops, and a gold "+N" bursts out
+   * beside it (gains in quick succession add up in one label).
+   */
+  scoreGain(points: number) {
+    const box = this.score.closest('.score-box') as HTMLElement | null;
+    if (!box || points <= 0) return;
+    box.classList.remove('gain');
+    void box.offsetWidth;
+    box.classList.add('gain');
+    box.style.setProperty('--gain', String(Math.min(1, 0.35 + Math.log10(points) / 4)));
+    this.plusSum = this.plusEl ? this.plusSum + points : points;
+    if (!this.plusEl) {
+      this.plusEl = el('div', 'score-plus');
+      box.append(this.plusEl);
+    }
+    const p = this.plusEl;
+    p.textContent = `+${this.plusSum.toLocaleString('en-US')}`;
+    p.classList.remove('go');
+    void p.offsetWidth;
+    p.classList.add('go');
+    window.clearTimeout(this.plusTimer);
+    this.plusTimer = window.setTimeout(() => {
+      p.remove();
+      if (this.plusEl === p) this.plusEl = null;
+    }, 1100);
   }
 
   private streakEl = el('div', 'streak');

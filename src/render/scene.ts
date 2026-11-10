@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { FrameGlow } from './frame';
+import { AimPreview } from './preview';
 import { CONFIG } from '../core/config';
 import { ERA_RING, tier } from '../core/tiers';
 import type { Theme } from '../core/themes';
@@ -838,6 +839,39 @@ export class SceneView {
 
   private heat = 0;
   private frame: FrameGlow | null = null;
+  private preview = new AimPreview(this.scene);
+  private previewTargets: PieceView[] = [];
+  private aimTint = new THREE.Color();
+
+  /**
+   * Aim preview: what the shot would merge with. Level 1 a merge, 2 a chain of
+   * two, 3 a bigger chain or a contract: the glow gets flashier with each.
+   */
+  setPreview(targets: PieceView[], level: number, color: string) {
+    this.previewTargets = targets;
+    this.preview.set(targets, level, color);
+    this.aimTint.set(level > 0 ? color : '#ffffff');
+    if (level > 0) {
+      // A vivid, light version of the colour so the dotted line reads on the blueprint.
+      const hsl = { h: 0, s: 0, l: 0 };
+      this.aimTint.getHSL(hsl);
+      this.aimTint.setHSL(hsl.h, Math.max(hsl.s, 0.75), 0.68);
+    }
+  }
+
+  private tickPreview(dt: number) {
+    const level = this.preview.tick(dt, this.time);
+    const mat = this.aim.material as THREE.MeshBasicMaterial;
+    // The aim line takes the outcome's colour; the best shots cycle the rainbow.
+    if (level >= 3) mat.color.setHSL((this.time * 0.6) % 1, 0.85, 0.7);
+    else mat.color.lerp(this.aimTint, Math.min(1, dt * 12));
+    if (level >= 3 && this.previewTargets[0] && Math.random() < dt * 14) {
+      const t = this.previewTargets[Math.floor(Math.random() * this.previewTargets.length)];
+      const a = Math.random() * Math.PI * 2;
+      this.tmpColor.setHSL(Math.random(), 0.9, 0.7);
+      this.fx.spark(t.group.position.x + Math.cos(a) * t.radius, -t.group.position.z + Math.sin(a) * t.radius, 0.01, this.tmpColor, 0.7, 0, 0, 0.25);
+    }
+  }
   private tmpColor = new THREE.Color();
 
   private ensureFrame() {
@@ -879,6 +913,33 @@ export class SceneView {
   /** The board edges flash and pulse (deliveries, clean site, big combos, theme changes). */
   edgePulse(color: string, count = 3) {
     this.ensureFrame().pulse(color, count);
+    // Sparkles drift off the edges while they flash (Block Blast's glowing border with leaves).
+    this.tmpColor.set(color).lerp(new THREE.Color('#ffffff'), 0.25);
+    const n = 18 + count * 8;
+    const xl = -W / 2 - RAIL_W / 2;
+    const xr = W / 2 + RAIL_W / 2;
+    const per = 2 * L + (xr - xl);
+    for (let i = 0; i < n; i++) {
+      const u = Math.random() * per;
+      let x: number;
+      let y: number;
+      let vx = 0;
+      let vy = 0;
+      if (u < L) {
+        x = xl;
+        y = u;
+        vx = -0.12;
+      } else if (u < 2 * L) {
+        x = xr;
+        y = u - L;
+        vx = 0.12;
+      } else {
+        x = xl + (u - 2 * L);
+        y = 0;
+        vy = -0.12;
+      }
+      this.fx.spark(x, y, RAIL_H + 0.01, this.tmpColor, 0.7 + Math.random() * 0.8, vx * Math.random(), vy * Math.random(), 0.05 + Math.random() * 0.12);
+    }
   }
 
   /** A delivered building rises on the crane cable and flies off the top of the screen. */
@@ -1010,6 +1071,7 @@ export class SceneView {
     animateMaterials(this.time);
     this.fx.tick(dt);
     this.tickHeat(dt);
+    this.tickPreview(dt);
     this.lighting.update(dt);
     if (this.showT < 1) {
       this.showT = Math.min(1, this.showT + dt / this.showDur);
