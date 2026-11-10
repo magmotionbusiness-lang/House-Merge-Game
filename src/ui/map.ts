@@ -314,7 +314,12 @@ export class CampaignMap {
       card.append(el('div', 'cm-q', '🏗'), el('div', 'cm-title', 'More districts'), el('div', 'cm-sub', 'are under construction. Stay tuned!'));
     }
     bank.append(card);
-    this.world.append(bank);
+    // Solid sky of cloud above the bank, reaching far past the top of the map, so
+    // scrolling to the top or pulling the map down (iOS bounce) only ever shows clouds.
+    const sky = el('div', 'cmap-sky');
+    sky.style.top = `-2000px`;
+    sky.style.height = `${top + 2000 + 60}px`;
+    this.world.append(sky, bank);
   }
 
   private placeAvatar(n: Node) {
