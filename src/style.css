@@ -2497,3 +2497,182 @@ body:has(.screen.title) #splash {
     display: none;
   }
 }
+
+/* ================= Phase 8: ads (test ads, offers, consent) ================= */
+.ad-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 12, 28, 0.88);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  pointer-events: auto;
+}
+.ad-layer.in {
+  opacity: 1;
+}
+.ad-layer.consent {
+  background: rgba(20, 30, 50, 0.55);
+}
+.ad-card {
+  position: relative;
+  width: min(86vw, 360px);
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #24304f, #141a30);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  transform: scale(0.94);
+  transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.ad-layer.in .ad-card {
+  transform: scale(1);
+}
+.ad-tag {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font: 700 12px/1 'Barlow Condensed', var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd84d;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.ad-art {
+  margin: 26px 0 14px;
+  padding: 34px 12px;
+  border-radius: 14px;
+  background: repeating-linear-gradient(135deg, #2f3d63 0 14px, #29365a 14px 28px);
+}
+.ad-brand {
+  font: 900 34px/1 var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ad-small {
+  margin-top: 10px;
+  font: 600 15px/1.25 'Barlow Condensed', var(--display);
+  color: rgba(255, 255, 255, 0.75);
+}
+.ad-count {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  display: grid;
+  place-items: center;
+  font: 900 15px/1 var(--display);
+}
+.ad-count.done {
+  background: #3ecf6a;
+  border-color: #3ecf6a;
+}
+.ad-reward {
+  margin-bottom: 12px;
+  font: 900 20px/1 var(--display);
+  color: #9dffb6;
+  text-transform: uppercase;
+  opacity: 0.35;
+  transition: opacity 0.3s;
+}
+.ad-card.ready .ad-reward {
+  opacity: 1;
+}
+.ad-close:disabled {
+  filter: grayscale(1) brightness(0.8);
+  opacity: 0.6;
+}
+.consent-card h2 {
+  margin-top: 0;
+}
+/* Rewarded buttons carry a small "ad" icon. */
+.btn.ad svg {
+  width: 20px;
+  height: 20px;
+}
+.btn:disabled {
+  opacity: 0.6;
+}
+.ad-note {
+  margin: -4px 0 6px;
+  font: 600 14px/1.2 'Barlow Condensed', var(--display);
+  color: #6b4f33;
+  text-align: center;
+}
+.btn.small.double {
+  padding: 6px 12px;
+  background: linear-gradient(#ffd84d, #f5a400);
+  color: #3d2614;
+}
+.pill.coins.doubled {
+  animation: heat-pop 0.6s cubic-bezier(0.3, 1.8, 0.5, 1);
+  box-shadow: 0 0 0 3px #ffd84d;
+}
+/* A booster paid for by an ad reads "Free". */
+.booster.free .b-price {
+  background: #3ecf6a;
+  color: #fff;
+}
+.ad-offer {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--hud-bottom, 150px) + 12px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 10px;
+  background: var(--paper, #fff8ea);
+  border: 3px solid #6a4a2a;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  z-index: 8;
+  animation: ao-in 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
+  white-space: nowrap;
+}
+.ad-offer.out {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+@keyframes ao-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.9);
+  }
+}
+.ao-icon svg {
+  width: 30px;
+  height: 30px;
+  color: #3d2614;
+}
+.ao-title {
+  font: 900 18px/1 var(--display);
+  color: #3d2614;
+  text-transform: uppercase;
+}
+.ao-sub {
+  font: 600 14px/1.1 'Barlow Condensed', var(--display);
+  color: #6b4f33;
+}
+.ao-close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: #6b4f33;
+  padding: 4px;
+}
+.ao-close svg {
+  width: 100%;
+  height: 100%;
+}

@@ -13,6 +13,10 @@ import { MAX_TIER } from './core/tiers';
 import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
 import { Music } from './audio/music';
+import { createAds } from './ads/ads';
+import { booster } from './core/boosters';
+import { ICONS } from './ui/icons';
+import { store } from './game/storage';
 import { setTheme, themeForDistrict } from './core/themes';
 import { onSettings, progress } from './game/settings';
 import { claimLogin, dailySeed, dayKey } from './core/meta';
@@ -52,6 +56,22 @@ async function boot() {
   let game: Game | null = null;
   let screens: Screens | null = null;
   const music = new Music();
+  // Ads: the web build shows 3-second test ads; the native build will use AdMob behind the same API.
+  let adPaused = false;
+  const ads = createAds({
+    onStart: () => {
+      music.suspend(true);
+      if (game?.isRunning && !game.isPaused) {
+        game.setPaused(true);
+        adPaused = true;
+      }
+    },
+    onEnd: () => {
+      music.suspend(false);
+      if (adPaused) game?.setPaused(false);
+      adPaused = false;
+    },
+  });
   music.playHome();
   const pause = () => {
     if (!game?.isRunning || screens?.open) return;
@@ -64,7 +84,13 @@ async function boot() {
       const r = game?.useBooster(id);
       if (r === 'coins') {
         hud.boosterDenied(id);
-        hud.showHint('Not enough coins yet: finish contracts to earn more.');
+        // One booster per round can be had for a short ad instead.
+        if (game?.canAdBooster()) {
+          const def = booster(id);
+          hud.offerAdBooster(def.name, ICONS[id], async () => {
+            if (await ads.rewarded('booster')) game?.grantFreeBooster(id);
+          });
+        } else hud.showHint('Not enough coins yet: finish contracts to earn more.');
       }
     },
   });
@@ -156,6 +182,24 @@ async function boot() {
         music.playGame();
         game!.start(game!.currentMode);
       }),
+    canContinue: () => game!.canRevive(),
+    continueWithAd: async () => {
+      if (!(await ads.rewarded('continue'))) return false;
+      if (!game!.revive()) return false;
+      screens!.leave(() => undefined);
+      return true;
+    },
+    doubleCoinsWithAd: async () => ((await ads.rewarded('double_coins')) ? game!.doubleCoins() : 0),
+    canRefillDaily: () => store.num(`bm.dailyRefill.${dayKey()}`, 0) === 0,
+    refillDailyWithAd: async () => {
+      if (!(await ads.rewarded('daily_refill'))) return;
+      const day = dayKey();
+      store.set(`bm.dailyRefill.${day}`, 1);
+      // The Daily keeps the best of the two attempts.
+      startWithDust(() => game!.start({ kind: 'daily', day, seed: dailySeed(day) }));
+    },
+    betweenRounds: (then) => void ads.betweenRounds(game!.roundsFinished).then(then),
+    privacy: () => void ads.reviewConsent(),
     home: () => {
       game!.stop();
       game!.setPaused(false);
@@ -271,7 +315,8 @@ async function boot() {
       hud.showHint('Drag to aim, let go to slide. Match two buildings to merge them!');
     } else screens!.title();
   });
-  (window as unknown as { __game: Game; __view: SceneView }).__game = game;
+  (window as unknown as { __game: Game; __view: SceneView; __ads: unknown }).__game = game;
+  (window as unknown as { __ads: unknown }).__ads = ads;
   (window as unknown as { __view: SceneView }).__view = view;
   (window as unknown as { __music: Music }).__music = music;
 }

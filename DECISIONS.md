@@ -387,3 +387,17 @@ Feedback: the theme switches came too slowly. They should land while the run is 
   | Alpine | Snowfall |
   | Sweet | Tumbling sprinkles and twinkles |
   | Neon | Rain streaks and glow orbs |
+
+## Phase 8: Monetization scaffolding (ads)
+
+The game stays fair and ad-first, as the brief asks. Everything goes through one `Ads` facade (`src/ads/ads.ts`) over an `AdService` interface. The web build uses `MockAdService`, a 3-second full-screen test ad. The Capacitor build will put AdMob behind the same interface in Phase 10, so the game code won't change.
+
+- **Rewarded ads, always optional, each with a clear button and an ad icon:**
+  - **Continue after failing:** once per round. Overflow clears the 3 buildings nearest the site boundary (with a puff and a "Second chance!" flash). Out of shots gives 3 more. The board, score, streak and theme carry on, and Endless saves again.
+  - **Double coins:** the "×2" button next to the round's coins. It counts only the coins not already doubled, so continuing and doubling again can't double the same coins twice.
+  - **Free booster:** when a booster costs more than the player has, a small card offers it for an ad, once per round. The booster then reads "Free", costs nothing and doesn't raise its price.
+  - **One more Daily try:** once per day. The Daily now keeps the best of its attempts.
+- **Interstitials** (`src/ads/policy.ts`, unit tested): only between rounds, when leaving the results card (Next, Retry or Home), never on top of it. Never in a device's first 5 rounds ("never before level 6"). At least 120 s apart. Never within 120 s of a rewarded ad or a purchase. Never with Remove Ads.
+- **During an ad** the music fades out and a running game pauses. Both come back afterwards.
+- **Consent:** asked once, before the first ad of any kind, never at first launch. Two equally prominent choices (personalised or non-personalised ads); both mean the same number of ads. It can be changed in Settings → Privacy & ads. This stands in for Google's UMP flow, which the native build will show to EU/UK players.
+- **Remove Ads:** the policy already honours a `bm.noads` flag, which the native store purchase will set. `?noads` in the URL turns interstitials off for testing. Coin packs, the starter pack and the season pass wait for the native store (Phase 10).

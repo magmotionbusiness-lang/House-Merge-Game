@@ -181,6 +181,13 @@ export class Game {
   private themeId: ThemeId = 'site';
   private themeTime = 0;
   private themePrep: (() => void)[] = [];
+  // Rewarded-ad state for this round: one continue, one free booster, coins doubled so far.
+  private endReason = '';
+  private endWin = false;
+  private revived = false;
+  private freeBooster: BoosterId | null = null;
+  private adBoosterUsed = false;
+  private coinsDoubled = 0;
 
   constructor(
     private view: SceneView,
@@ -276,8 +283,7 @@ export class Game {
   /** Back to the title: the table empties and input stops. */
   stop() {
     // Leaving a Daily Blueprint mid-run keeps the score so far (one attempt per day).
-    if (this.playMode.kind === 'daily' && this.running && !this.over)
-      progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
+    if (this.playMode.kind === 'daily' && this.running && !this.over) this.recordDaily();
     this.saveRun();
     this.running = false;
     this.playMode = { kind: 'endless' };
@@ -302,6 +308,10 @@ export class Game {
     this.switchTheme(this.startTheme(), true);
     this.themeTime = 0;
     this.themePrep = [];
+    this.revived = false;
+    this.freeBooster = null;
+    this.adBoosterUsed = false;
+    this.coinsDoubled = 0;
     // The Daily Blueprint deals the same sequence to everyone that day.
     this.rng = new Rng(this.playMode.kind === 'daily' ? this.playMode.seed : Date.now());
     this.builtThisRun = new Set();
@@ -354,6 +364,15 @@ export class Game {
 
   private spawnTable() {
     return this.playMode.kind === 'level' && this.playMode.level.spawn ? this.playMode.level.spawn : undefined;
+  }
+
+  get isPaused() {
+    return this.paused;
+  }
+
+  /** Rounds finished on this device (the ad rules keep the first ones ad-free). */
+  get roundsFinished() {
+    return this.runsPlayed;
   }
 
   setPaused(p: boolean) {
@@ -972,6 +991,8 @@ export class Game {
 
   private endRound(win: boolean, reason: string) {
     this.over = true;
+    this.endReason = reason;
+    this.endWin = win;
     if (this.playMode.kind === 'endless') this.clearSavedRun();
     this.cancelBooster();
     this.aim = null;
@@ -979,8 +1000,7 @@ export class Game {
     this.view.setAim(0, 0, null);
     this.sfx.slide(0);
     let stars = 0;
-    if (this.playMode.kind === 'daily')
-      progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
+    if (this.playMode.kind === 'daily') this.recordDaily();
     if (win && this.playMode.kind === 'level') {
       const lvl = this.playMode.level;
       stars = starsFor(lvl, this.shotsUsed, this.bestCombo);
@@ -1134,7 +1154,7 @@ export class Game {
   useBooster(id: BoosterId): 'ok' | 'coins' | 'blocked' {
     if (!this.running || this.over || this.paused) return 'blocked';
     const def = booster(id);
-    if (progress.coins() < this.price(id)) return 'coins';
+    if (progress.coins() < this.price(id) && this.freeBooster !== id) return 'coins';
     if (this.targeting === id) {
       this.cancelBooster();
       return 'ok';
@@ -1235,16 +1255,91 @@ export class Game {
   }
 
   private refreshPrices() {
-    this.hud.setBoosterPrices({
-      wreck: this.price('wreck'),
-      swap: this.price('swap'),
-      upgrade: this.price('upgrade'),
-      crane: this.price('crane'),
-    });
+    const p = (id: BoosterId) => (this.freeBooster === id ? 0 : this.price(id));
+    this.hud.setBoosterPrices({ wreck: p('wreck'), swap: p('swap'), upgrade: p('upgrade'), crane: p('crane') });
+  }
+
+  // ------------------------------------------------------------ rewarded ads
+
+  /** The Daily keeps the best of its attempts (an ad can grant a second one). */
+  private recordDaily() {
+    if (this.playMode.kind !== 'daily') return;
+    const prev = progress.daily(this.playMode.day);
+    if (prev && prev.score > this.score) return;
+    progress.setDaily(this.playMode.day, { score: this.score, highest: this.highestRun, built: [...this.builtThisRun] });
+  }
+
+  /** A failed round can be continued once with a rewarded ad. */
+  canRevive() {
+    return this.over && !this.endWin && !this.revived;
+  }
+
+  /**
+   * Continue after failing: the 3 buildings closest to the site boundary are
+   * cleared away (or, out of shots, 3 more shots are added) and the round goes on.
+   */
+  revive() {
+    if (!this.canRevive()) return false;
+    this.revived = true;
+    this.over = false;
+    this.running = true;
+    this.paused = false;
+    if (this.endReason === 'Out of shots') {
+      this.shotsLeft = 3;
+      this.outOfShotsAt = -1;
+      this.hud.setShots(this.shotsLeft);
+    } else {
+      const near = [...this.pieces.values()].sort((a, b) => a.y - a.radius - (b.y - b.radius)).slice(0, 3);
+      for (const p of near) {
+        this.view.fx.dust(p.x, p.y, p.radius * 1.6, '#ffffff', 5);
+        this.view.fx.merge(p.x, p.y, tier(p.tier).era, tier(p.tier).color, 1.5);
+        this.destroy(p);
+      }
+    }
+    for (const p of this.pieces.values()) p.over = 0;
+    this.setDanger(false);
+    if (!this.launcher) this.spawnLauncher();
+    this.lastLaunch = this.time;
+    this.view.edgePulse(this.themePulse(), 4);
+    this.hud.praise(4, THEMES[this.themeId].accent, 'Second chance!');
+    this.sfx.deliver();
+    if (this.playMode.kind === 'daily') this.recordDaily();
+    this.saveRun();
+    this.refreshHud();
+    return true;
+  }
+
+  /** Doubles the coins earned this round (rewarded ad on the results card). Returns the coins added. */
+  doubleCoins() {
+    const extra = this.coinsEarned - this.coinsDoubled;
+    if (extra <= 0) return 0;
+    this.coinsDoubled = this.coinsEarned;
+    this.hud.setCoins(progress.addCoins(extra));
+    return extra;
+  }
+
+  /** One booster per round can be had for a rewarded ad instead of coins. */
+  canAdBooster() {
+    return !this.adBoosterUsed && this.running && !this.over;
+  }
+
+  grantFreeBooster(id: BoosterId) {
+    if (!this.canAdBooster()) return 'blocked';
+    this.adBoosterUsed = true;
+    this.freeBooster = id;
+    this.refreshPrices();
+    return this.useBooster(id);
   }
 
   /** Charges the current price and raises the next one. */
   private pay(id: BoosterId) {
+    if (this.freeBooster === id) {
+      // Paid for with a rewarded ad: no coins, and the price doesn't climb.
+      this.freeBooster = null;
+      this.refreshPrices();
+      this.sfx.contract();
+      return;
+    }
     this.hud.setCoins(progress.addCoins(-this.price(id)));
     this.boosterUses[id] = (this.boosterUses[id] ?? 0) + 1;
     this.refreshPrices();

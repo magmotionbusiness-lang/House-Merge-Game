@@ -295,8 +295,9 @@ export class Hud {
       const btn = this.boosterBtns.get(b.id);
       if (!btn) continue;
       const label = btn.querySelector('.b-price span:last-child');
-      if (label) label.textContent = prices[b.id].toLocaleString('en-US');
-      btn.setAttribute('aria-label', `${b.name}, ${prices[b.id]} coins`);
+      if (label) label.textContent = prices[b.id] === 0 ? 'Free' : prices[b.id].toLocaleString('en-US');
+      btn.classList.toggle('free', prices[b.id] === 0);
+      btn.setAttribute('aria-label', prices[b.id] === 0 ? `${b.name}, free` : `${b.name}, ${prices[b.id]} coins`);
       btn.classList.toggle('poor', this.shownCoins < prices[b.id]);
     }
   }
@@ -308,6 +309,37 @@ export class Hud {
     b.classList.remove('denied');
     void b.offsetWidth;
     b.classList.add('denied');
+  }
+
+  private offerEl: HTMLElement | null = null;
+
+  /** "Free with an ad?" card when a booster is too expensive. Hides itself after a few seconds. */
+  offerAdBooster(name: string, icon: string, onWatch: () => void) {
+    this.offerEl?.remove();
+    const card = el('div', 'ad-offer');
+    const ic = el('div', 'ao-icon');
+    ic.innerHTML = icon;
+    const text = el('div', 'ao-text');
+    text.append(el('div', 'ao-title', `Free ${name}?`), el('div', 'ao-sub', 'Watch a short ad'));
+    const watch = el('button', 'btn small green ao-watch');
+    watch.innerHTML = `${ICONS.ad}<span>Watch</span>`;
+    const close = el('button', 'ao-close');
+    close.innerHTML = ICONS.close;
+    close.setAttribute('aria-label', 'No thanks');
+    const done = () => {
+      card.classList.add('out');
+      window.setTimeout(() => card.remove(), 250);
+      if (this.offerEl === card) this.offerEl = null;
+    };
+    watch.onclick = () => {
+      done();
+      onWatch();
+    };
+    close.onclick = done;
+    card.append(ic, text, watch, close);
+    this.root.append(card);
+    this.offerEl = card;
+    window.setTimeout(done, 8000);
   }
 
   /** One-line tip at the start of a level. */

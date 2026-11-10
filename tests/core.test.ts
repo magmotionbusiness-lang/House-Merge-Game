@@ -80,3 +80,17 @@ describe('map themes', () => {
     expect(tierName(1, 'site')).toBe(TIERS[0].name);
   });
 });
+
+describe('ad rules', () => {
+  it('interstitials respect first rounds, spacing, rewarded ads and Remove Ads', async () => {
+    const { interstitialAllowed, FIRST_ROUNDS_FREE, INTERSTITIAL_GAP, AFTER_REWARDED_GAP } = await import('../src/ads/policy');
+    const base = { now: 1000, lastInterstitial: -Infinity, lastRewarded: -Infinity, roundsFinished: 20, noAds: false };
+    expect(interstitialAllowed(base)).toBe(true);
+    expect(interstitialAllowed({ ...base, roundsFinished: FIRST_ROUNDS_FREE })).toBe(false);
+    expect(interstitialAllowed({ ...base, roundsFinished: FIRST_ROUNDS_FREE + 1 })).toBe(true);
+    expect(interstitialAllowed({ ...base, lastInterstitial: 1000 - INTERSTITIAL_GAP + 1 })).toBe(false);
+    expect(interstitialAllowed({ ...base, lastInterstitial: 1000 - INTERSTITIAL_GAP })).toBe(true);
+    expect(interstitialAllowed({ ...base, lastRewarded: 1000 - AFTER_REWARDED_GAP + 5 })).toBe(false);
+    expect(interstitialAllowed({ ...base, noAds: true })).toBe(false);
+  });
+});

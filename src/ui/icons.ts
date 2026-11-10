@@ -22,5 +22,6 @@ export const ICONS = {
   book: svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>'),
   share: svg('<path d="M12 15V3.5M7.5 8L12 3.5 16.5 8"/><path d="M5 12v7.5h14V12"/>'),
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  ad: svg('<rect x="3" y="5" width="18" height="13" rx="2.5"/><path d="M10.2 9v5.2l4.3-2.6z" fill="currentColor"/><path d="M8.5 21h7"/>'),
   restart: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.3-5.4"/><path d="M4 4.5v4.3h4.3"/>'),
 };

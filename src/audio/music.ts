@@ -113,6 +113,13 @@ export class Music {
     this.fade('game', this.volume.game, 1.2);
   }
 
+  /** An ad takes over the screen: the music fades out, then back in after. */
+  suspend(on: boolean) {
+    if (!this.want) return;
+    const ch = this.want;
+    this.fade(ch, on ? 0 : this.volume[ch], on ? 0.25 : 0.8);
+  }
+
   /** A new map theme: crossfade into the next track so the soundtrack changes with the scenery. */
   changeTrack() {
     if (this.want !== 'game') return;

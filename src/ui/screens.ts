@@ -50,6 +50,15 @@ export interface ScreenHandlers {
   resume(): void;
   restart(): void;
   home(): void;
+  /** Rewarded ads (always optional). */
+  canContinue(): boolean;
+  continueWithAd(): Promise<boolean>;
+  doubleCoinsWithAd(): Promise<number>;
+  canRefillDaily(): boolean;
+  refillDailyWithAd(): void;
+  /** Runs a between-rounds ad when the rules allow one, then `then`. */
+  betweenRounds(then: () => void): void;
+  privacy(): void;
 }
 
 /**
@@ -305,6 +314,7 @@ export class Screens {
     card.append(el('div', 'eyebrow', `Daily Blueprint #${dailyNumber(day)}`), el('h2', '', "Today's build"), el('div', 'result-score', r.score.toLocaleString('en-US')));
     card.append(el('p', 'note', 'A new blueprint arrives tomorrow.'));
     const menu = el('div', 'menu');
+    if (this.h.canRefillDaily()) menu.append(button('One more try', 'big green hero ad', () => this.h.refillDailyWithAd(), ICONS.ad));
     menu.append(this.shareButton(day, r.score, r.highest, r.built), this.back(() => this.title()));
     card.append(menu);
     this.show(card);
@@ -481,6 +491,7 @@ export class Screens {
       row('Aiming', 'Slide: fixed power. Sling: pull down for power.', seg),
       row('Calm effects', 'No screen shake or white flashes', toggle('calm')),
       row('Large text', 'Bigger labels and numbers', toggle('largeText')),
+      row('Privacy & ads', 'Personalised or non-personalised ads', button('Review', 'small', () => this.h.privacy())),
       button('Done', 'big green', back),
     );
     this.show(card);
@@ -530,24 +541,48 @@ export class Screens {
     }
     if (r.coins > 0) {
       const c = el('div', 'pill stat coins');
-      c.append(el('span', 'mini-coin'), el('span', '', `+${r.coins.toLocaleString('en-US')}`));
+      const amount = el('span', '', `+${r.coins.toLocaleString('en-US')}`);
+      c.append(el('span', 'mini-coin'), amount);
       info.append(c);
+      // Rewarded: double this round's coins.
+      const dbl = button('×2', 'small ad double', async () => {
+        dbl.disabled = true;
+        const added = await this.h.doubleCoinsWithAd();
+        if (added > 0) {
+          amount.textContent = `+${(r.coins + added).toLocaleString('en-US')}`;
+          c.classList.add('doubled');
+          dbl.remove();
+        } else dbl.disabled = false;
+      }, ICONS.ad);
+      dbl.setAttribute('aria-label', 'Watch an ad to double your coins');
+      info.append(dbl);
     }
     card.append(info);
     const menu = el('div', 'menu');
+    // Rewarded: continue a failed round once (the 3 buildings nearest the line are cleared).
+    if (!r.win && this.h.canContinue()) {
+      const cont = button(r.reason === 'Out of shots' ? '3 more shots' : 'Continue', 'big green hero ad', async () => {
+        cont.disabled = true;
+        if (!(await this.h.continueWithAd())) cont.disabled = false;
+      }, ICONS.ad);
+      menu.append(cont);
+      menu.append(el('div', 'ad-note', r.reason === 'Out of shots' ? 'Watch a short ad for 3 more shots' : 'Watch a short ad: the 3 buildings nearest the line are cleared'));
+    }
+    const gate = (fn: () => void) => () => this.h.betweenRounds(fn);
     if (r.mode.kind === 'daily') {
       card.prepend(el('div', 'eyebrow', `Daily Blueprint #${dailyNumber(r.mode.day)}`));
-      menu.append(this.shareButton(r.mode.day, r.score, r.highest, r.built), button('Home', 'small', () => this.h.home(), ICONS.home));
+      menu.append(this.shareButton(r.mode.day, r.score, r.highest, r.built), button('Home', 'small', gate(() => this.h.home()), ICONS.home));
       card.append(menu);
       this.show(card);
       return;
     }
-    if (r.win && next) menu.append(button('Next level', 'big green hero', next, ICONS.play));
+    const retryHero = !(r.win && next) && !menu.childElementCount;
+    if (r.win && next) menu.append(button('Next level', 'big green hero', gate(next), ICONS.play));
     menu.append(
-      button(r.win ? 'Replay' : r.mode.kind === 'endless' ? 'Build again' : 'Try again', r.win && next ? 'big blue' : 'big green hero', () => this.h.restart(), ICONS.restart),
+      button(r.win ? 'Replay' : r.mode.kind === 'endless' ? 'Build again' : 'Try again', retryHero ? 'big green hero' : 'big blue', gate(() => this.h.restart()), ICONS.restart),
     );
     if (r.mode.kind === 'endless') menu.append(this.scoreShare(r));
-    menu.append(button('Home', 'small', () => this.h.home(), ICONS.home));
+    menu.append(button('Home', 'small', gate(() => this.h.home()), ICONS.home));
     card.append(menu);
     this.show(card);
   }
