@@ -22,6 +22,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 const STEP = 96; // vertical distance between levels
 const HEAD_H = 190; // district sign at the bottom of each district
 const GATE_H = 250; // star gate at the top of each district (but the last)
+const CLOUD_H = 430; // cloud bank hiding everything past the last open district
 const TOP_PAD = 96;
 const BOTTOM_PAD = 70;
 
@@ -91,6 +92,7 @@ export class CampaignMap {
   private blocks: { top: number; bottom: number }[] = [];
   private active = -1;
   private card: HTMLElement | null = null;
+  private visible: District[] = [];
 
   constructor(private o: MapOptions) {
     const top = el('div', 'cmap-top');
@@ -104,7 +106,9 @@ export class CampaignMap {
     const total = el('div', 'cmap-total');
     total.innerHTML = `<span class="cmap-star">★</span><b>${totalStars(o.stars)}</b>`;
     top.append(back, el('div', 'cmap-title', 'Campaign'), total);
-    o.districts.forEach((d) => {
+    // Only open districts exist on the map: what's next stays hidden in the clouds.
+    this.visible = o.districts.filter((_, i) => districtOpen(o.districts, i, o.stars));
+    this.visible.forEach((d) => {
       const layer = el('div', 'cmap-layer');
       const art = THEMES[themeForDistrict(d.id)].art;
       if (art) layer.style.backgroundImage = `url('${import.meta.env.BASE_URL}${art}')`;
@@ -119,8 +123,10 @@ export class CampaignMap {
   /** Builds the map once the container has its size (call right after it is on screen). */
   layout() {
     const W = this.scroll.clientWidth || 390;
-    const { districts, stars } = this.o;
-    const heights = districts.map((d, i) => HEAD_H + d.levels.length * STEP + (i < districts.length - 1 ? GATE_H : 60));
+    const { stars } = this.o;
+    const all = this.o.districts;
+    const districts = this.visible;
+    const heights = districts.map((d, i) => HEAD_H + d.levels.length * STEP + (i < districts.length - 1 ? GATE_H : CLOUD_H));
     const H = TOP_PAD + BOTTOM_PAD + heights.reduce((a, b) => a + b, 0);
     this.world.style.height = `${H}px`;
     let bottom = H - BOTTOM_PAD;
@@ -130,7 +136,7 @@ export class CampaignMap {
       const t = THEMES[theme];
       const top = bottom - heights[di];
       this.blocks.push({ top, bottom });
-      const open = districtOpen(districts, di, stars);
+      const open = true;
       const xs = (i: number) => W / 2 + A * Math.sin(i * 0.62 + di * 1.7);
       const ys = (i: number) => bottom - HEAD_H - i * STEP - STEP / 2;
       // Road: from the district sign up through every level to the gate.
@@ -191,7 +197,7 @@ export class CampaignMap {
       // Levels.
       d.levels.forEach((l, li) => {
         const s = stars[l.id] ?? 0;
-        const playable = levelOpen(districts, di, li, stars);
+        const playable = levelOpen(all, di, li, stars);
         const big = (li + 1) % 11 === 0;
         const b = el('button', `cmap-lv ${s > 0 ? 'done' : playable ? 'open' : 'locked'} ${big ? 'big' : ''}`);
         b.style.left = `${xs(li)}px`;
@@ -226,7 +232,7 @@ export class CampaignMap {
       if (di < districts.length - 1) {
         const next = districts[di + 1];
         const nt = THEMES[themeForDistrict(next.id)];
-        const nextOpen = districtOpen(districts, di + 1, stars);
+        const nextOpen = districtOpen(all, di + 1, stars);
         const gate = el('div', `cmap-gate ${nextOpen ? 'open' : ''}`);
         gate.style.top = `${top + 40}px`;
         gate.style.setProperty('--accent', nt.accent);
@@ -246,6 +252,8 @@ export class CampaignMap {
       bottom = top;
     });
 
+    this.clouds(W, bottom);
+
     // The builder marks the current level.
     this.world.append(this.avatar);
     const img = el('img') as HTMLImageElement;
@@ -260,6 +268,53 @@ export class CampaignMap {
     this.onScroll();
     if (hop && this.current && hop !== this.current) window.setTimeout(() => this.hop(hop, this.current!), 450);
     else if (this.o.autoOpen && this.current) window.setTimeout(() => this.openCard(this.current!), 350);
+  }
+
+  /**
+   * A thick bank of drifting clouds over the top of the map. Whatever comes
+   * after the last open district stays hidden: no names, no buildings, only
+   * what it takes to clear the clouds.
+   */
+  private clouds(W: number, top: number) {
+    const { stars } = this.o;
+    const all = this.o.districts;
+    const next = this.visible.length;
+    const bank = el('div', 'cmap-clouds');
+    bank.style.top = `${top - 40}px`;
+    bank.style.height = `${CLOUD_H + 80}px`;
+    // Puffs in three rows; the lower edge is ragged so the road vanishes into them.
+    for (let i = 0; i < 22; i++) {
+      const row = i % 3;
+      const size = 170 + ((i * 53) % 130) - row * 20;
+      const puff = el('i');
+      puff.style.width = puff.style.height = `${size}px`;
+      puff.style.left = `${((i * 37) % 100) / 100 * (W + 120) - 60 - size / 2}px`;
+      puff.style.top = `${CLOUD_H - 60 - row * 90 - ((i * 29) % 60) - size / 2}px`;
+      puff.style.animationDuration = `${9 + (i % 5) * 2}s`;
+      puff.style.animationDelay = `${-(i % 7)}s`;
+      bank.append(puff);
+    }
+    const card = el('div', 'cmap-mystery');
+    if (next < all.length) {
+      const last = this.visible[next - 1];
+      const lastId = last.levels[last.levels.length - 1].id;
+      const need = DISTRICT_GATES[next] ?? 0;
+      const have = totalStars(stars);
+      const lastDone = (stars[lastId] ?? 0) > 0;
+      card.append(el('div', 'cm-q', '?'), el('div', 'cm-title', 'A new district'), el('div', 'cm-sub', 'is hiding in the clouds'));
+      const bar = el('div', 'cg-bar');
+      const fill = el('div', 'cg-fill');
+      fill.style.width = `${Math.min(100, (have / Math.max(1, need)) * 100)}%`;
+      bar.append(fill, el('span', '', `★ ${Math.min(have, need)} / ${need}`));
+      const todo: string[] = [];
+      if (!lastDone) todo.push(`beat level ${last.levels.length}`);
+      if (have < need) todo.push(`collect ${need - have} more ★`);
+      card.append(bar, el('div', 'cg-note', `To clear the clouds: ${todo.join(' and ')}`));
+    } else {
+      card.append(el('div', 'cm-q', '🏗'), el('div', 'cm-title', 'More districts'), el('div', 'cm-sub', 'are under construction. Stay tuned!'));
+    }
+    bank.append(card);
+    this.world.append(bank);
   }
 
   private placeAvatar(n: Node) {
