@@ -23,6 +23,11 @@ export interface Theme {
   /** Banner and confetti colours for the arrival celebration. */
   accent: string;
   confetti: string[];
+  /**
+   * Board-edge glow per Heat level 1-5: three colours each that flow around
+   * the stroke. Soft and picked from the scene, so the glow belongs to the map.
+   */
+  glow: [string, string, string][];
 }
 
 const SITE_NAMES = Array.from({ length: 18 }, (_, i) => tier(i + 1).name);
@@ -39,6 +44,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     beam: ['#f5c400', '#1e1e1e'],
     accent: '#ffd84d',
     confetti: ['#ffd84d', '#ff9a3d', '#4fc3f7', '#ffffff'],
+    glow: [['#ffe08a', '#fff3c4', '#ffd36b'], ['#ffc94d', '#ffe08a', '#ffb347'], ['#ffa94d', '#ffd36b', '#ff8f4d'], ['#ff8a4d', '#ffc94d', '#ff6f5a'], ['#ffd84d', '#ffffff', '#ff9a3d']],
   },
   beach: {
     id: 'beach',
@@ -55,6 +61,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     beam: ['#38c9e6', '#ffffff'],
     accent: '#38c9e6',
     confetti: ['#38c9e6', '#ffd84d', '#ff8fa3', '#7ee081', '#ffffff'],
+    glow: [['#8fe9f2', '#d4fbff', '#7fdcea'], ['#5ce0d0', '#bff7ff', '#8fe9f2'], ['#ffe27a', '#7fe6f0', '#fff3b8'], ['#ff9e7a', '#ffe27a', '#5ce0d0'], ['#5ce0d0', '#ffe27a', '#ff9e7a']],
   },
   alpine: {
     id: 'alpine',
@@ -71,6 +78,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     beam: ['#d6392f', '#ffffff'],
     accent: '#8fd8ff',
     confetti: ['#ffffff', '#8fd8ff', '#d6392f', '#7ee081', '#ffd84d'],
+    glow: [['#cdeeff', '#ffffff', '#b8e2ff'], ['#9fd8ff', '#ffffff', '#cdeeff'], ['#8fd0ff', '#d9f2ff', '#a8c8ff'], ['#b7a8ff', '#bfe6ff', '#9ff5df'], ['#7fffd4', '#8fd0ff', '#c8a8ff']],
   },
   sweet: {
     id: 'sweet',
@@ -87,6 +95,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     beam: ['#ff5e8a', '#ffffff'],
     accent: '#ff5e8a',
     confetti: ['#ff5e8a', '#ffd84d', '#6fd6ff', '#7ee081', '#b48cff', '#ffffff'],
+    glow: [['#ffc2dc', '#ffe3f0', '#ffb3d1'], ['#ffa3c8', '#b8f0d8', '#ffc2dc'], ['#ff8fbf', '#ffe08a', '#ffb3d1'], ['#ff7fb5', '#c9b3ff', '#9be3c9'], ['#ff8fbf', '#9be3c9', '#ffe08a']],
   },
   neon: {
     id: 'neon',
@@ -103,6 +112,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     beam: ['#ff3df2', '#1d2233'],
     accent: '#3df5ff',
     confetti: ['#3df5ff', '#ff3df2', '#b48cff', '#7dff6b', '#ffffff'],
+    glow: [['#3df5ff', '#9ffbff', '#3dc8ff'], ['#3df5ff', '#b48cff', '#3dc8ff'], ['#ff3df2', '#3df5ff', '#b48cff'], ['#ff3df2', '#b48cff', '#3df5ff'], ['#3df5ff', '#ff3df2', '#7dff6b']],
   },
 };
 
@@ -143,7 +153,12 @@ export function themeForDistrict(district: number): ThemeId {
   return THEME_ORDER[(Math.max(1, district) - 1) % THEME_ORDER.length];
 }
 
-/** How long a run stays in one theme before it looks for a big moment to switch (seconds of play). */
-export const THEME_MIN_TIME = 150;
-/** After this long the next merge switches the theme anyway. */
-export const THEME_MAX_TIME = 270;
+/** How long a run stays in one theme before the next flashy moment can switch it (seconds of play). */
+export const THEME_MIN_TIME = 45;
+/** After this long any merge switches the theme. */
+export const THEME_MAX_TIME = 150;
+
+/** The glow colour for a Heat level (1-5) in a theme, for trails, sparks and banners. */
+export function heatGlow(level: number, theme: ThemeId = current) {
+  return THEMES[theme].glow[Math.max(0, Math.min(4, level - 1))][0];
+}

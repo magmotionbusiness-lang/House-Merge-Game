@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Era } from '../core/tiers';
+import type { ThemeId } from '../core/themes';
 import { puffTexture, sparkleTexture, starTexture } from './textures';
 
 export interface Effect {
@@ -34,7 +35,26 @@ export class ParticleFx {
     confetti: new THREE.PlaneGeometry(0.014, 0.008),
     spark: new THREE.SphereGeometry(0.006, 6, 4),
     ray: new THREE.CylinderGeometry(0.006, 0.012, 1, 6, 1, true).translate(0, 0.5, 0),
+    // Themed merge pieces: candy, jelly beans and sprinkles; petals and droplets; snowflakes and ice; neon pixels.
+    candy: new THREE.SphereGeometry(0.0075, 10, 7),
+    bean: new THREE.CapsuleGeometry(0.0042, 0.008, 3, 8),
+    sprinkle: new THREE.CapsuleGeometry(0.0022, 0.012, 2, 5),
+    petal: new THREE.CircleGeometry(0.009, 8).scale(1, 0.55, 1),
+    drop: new THREE.SphereGeometry(0.0055, 8, 6).scale(1, 1.35, 1),
+    flake: (() => {
+      const sh = new THREE.Shape();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const r = i % 2 ? 0.0045 : 0.013;
+        if (i === 0) sh.moveTo(Math.sin(a) * r, Math.cos(a) * r);
+        else sh.lineTo(Math.sin(a) * r, Math.cos(a) * r);
+      }
+      return new THREE.ShapeGeometry(sh);
+    })(),
+    pixel: new THREE.BoxGeometry(0.009, 0.009, 0.009),
   };
+  /** The map theme: merges throw pieces that belong to it. */
+  theme: ThemeId = 'site';
   private mats = new Map<string, THREE.Material>();
   private puff = puffTexture();
   private starMat = new THREE.SpriteMaterial({
@@ -144,6 +164,9 @@ export class ParticleFx {
         }),
     );
   }
+  private gloss(color: string) {
+    return this.mat('p' + color, () => new THREE.MeshPhongMaterial({ color, shininess: 90, specular: '#ffffff' }));
+  }
   private flat(color: string) {
     return this.mat('f' + color, () => new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
   }
@@ -175,7 +198,41 @@ export class ParticleFx {
     };
 
     const sp = 0.45 + power * 0.25;
-    if (era === 1) {
+    if (this.theme === 'sweet') {
+      // Candy pops out: gumballs and jelly beans that bounce, sprinkles that flutter.
+      const cols = ['#ff7fb5', '#ffd84d', '#7fd8ff', '#9be3c9', '#c9b3ff', '#ffffff'];
+      for (let i = 0; i < n; i++) {
+        const kind = i % 3;
+        spawn(kind === 0 ? this.geo.candy : kind === 1 ? this.geo.bean : this.geo.sprinkle, this.gloss(cols[i % cols.length]), {
+          speed: sp,
+          up: kind === 2 ? 1.6 : 1.3,
+          drag: kind === 2 ? 1.6 : 0.4,
+          life: rand(0.7, 1.0),
+        });
+      }
+      this.dust(x, y, 0.07 + power * 0.03, '#ffe3f0', 3);
+    } else if (this.theme === 'beach') {
+      // A splash of droplets and hibiscus petals drifting down.
+      const petals = ['#ff6b8b', '#ffb347', '#ffffff', '#ff8fa3'];
+      for (let i = 0; i < n; i++) {
+        if (i % 2) spawn(this.geo.drop, this.glow('#bff7ff'), { speed: sp * 0.9, up: 1.8, gravity: 6, life: rand(0.45, 0.7), bounce: false });
+        else spawn(this.geo.petal, this.flat(petals[i % petals.length]), { speed: sp, up: 1.6, gravity: 1.6, drag: 2.2, life: rand(0.9, 1.3), bounce: false });
+      }
+      this.dust(x, y, 0.07 + power * 0.03, '#e8fbff', 3);
+    } else if (this.theme === 'alpine') {
+      // Snowflakes swirl up and float down; a few ice crystals glint.
+      for (let i = 0; i < n; i++) {
+        if (i % 3 === 0) spawn(this.geo.glint, this.glow('#d9f2ff'), { speed: sp * 1.1, up: 1.4, life: 0.6 });
+        else spawn(this.geo.flake, this.flat('#ffffff'), { speed: sp, up: 1.7, gravity: 1.2, drag: 2.6, life: rand(1.0, 1.4), bounce: false });
+      }
+      this.dust(x, y, 0.08 + power * 0.03, '#ffffff', 4);
+    } else if (this.theme === 'neon') {
+      // Glowing pixels burst out and rise, with light rays.
+      const cols = ['#3df5ff', '#ff3df2', '#b48cff', '#7dff6b'];
+      for (let i = 0; i < n; i++)
+        spawn(this.geo.pixel, this.glow(cols[i % cols.length]), { speed: sp, up: 1.1, gravity: -0.6, drag: 2, life: rand(0.6, 1.0), bounce: false });
+      this.rays(x, y, '#3df5ff', 4);
+    } else if (era === 1) {
       // Brick dust and mortar chips.
       for (let i = 0; i < n; i++)
         spawn(this.geo.chip, this.solid(i % 3 === 0 ? '#c9c2b4' : color), { speed: sp, up: 1.1 });

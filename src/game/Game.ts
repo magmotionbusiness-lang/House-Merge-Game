@@ -14,8 +14,8 @@ import { levelCoins, starsFor, type LevelDef } from '../core/levels';
 import type { TimeOfDay } from '../render/lighting';
 import { onSettings, progress, settings } from './settings';
 import { booster, boosterPrice, type BoosterId } from '../core/boosters';
-import { HEAT_COLORS, heatFor, heatProgress } from '../core/heat';
-import { isThemeId, nextTheme, setTheme, THEME_MAX_TIME, THEME_MIN_TIME, THEME_ORDER, themeForDistrict, THEMES, tierName, type ThemeId } from '../core/themes';
+import { heatFor, heatProgress } from '../core/heat';
+import { heatGlow, isThemeId, nextTheme, setTheme, THEME_MAX_TIME, THEME_MIN_TIME, THEME_ORDER, themeForDistrict, THEMES, tierName, type ThemeId } from '../core/themes';
 import { prepareBackdrop, showBackdrop } from '../render/backdrops';
 import { modelTemplate, wireframe } from '../models';
 
@@ -190,7 +190,7 @@ export class Game {
   ) {
     this.bindInput();
     this.hud.onGlow = (c) => {
-      if (!settings.calm) this.view.edgePulse(c, 2);
+      if (!settings.calm) this.view.edgePulse(this.themePulse(c), 2);
     };
     onSettings((st) => {
       this.mode = st.aim;
@@ -341,7 +341,7 @@ export class Game {
     this.bestBeaten = false;
     this.bestAtStart = this.best;
     this.heat = 0;
-    this.view.setHeat(0, HEAT_COLORS[0]);
+    this.view.setHeat(0);
     this.hud.setHeat(0, 0);
     this.view.setFever(false);
     this.lastShot = null;
@@ -490,6 +490,8 @@ export class Game {
     this.hud.setStreak(this.streak);
     // Fever: a hot streak sets the board's stroke ablaze until it breaks.
     this.view.setFever(this.streak >= 4 && !settings.calm);
+    // A hot streak is peak hype: the moment to roll into a new map.
+    if (this.streak >= 4) this.bigMoment();
     this.saveRun();
   }
 
@@ -730,8 +732,8 @@ export class Game {
     }
 
     this.contractBuilt(nt, n);
-    // A new top building this run, or a long stay in one theme, can carry the run into the next theme.
-    if ((nt === this.highestRun && nt >= 6) || this.themeTime >= THEME_MAX_TIME) this.bigMoment();
+    // After a long stay in one theme, any merge carries the run into the next one.
+    if (this.themeTime >= THEME_MAX_TIME) this.bigMoment();
 
     if (nt > this.highestEver) {
       this.highestEver = nt;
@@ -747,6 +749,15 @@ export class Game {
 
   /** Credits a newly built tier to the contracts; pays coins and refills (endless) or wins (level). */
   // ------------------------------------------------------------ map themes
+
+  /**
+   * A flash colour for the board edges that belongs to the current map: one of
+   * the theme's glow colours (`hint` is ignored so tier colours never clash with the scene).
+   */
+  private themePulse(_hint?: string) {
+    const pal = THEMES[this.themeId].glow[Math.max(2, this.heat - 1)];
+    return pal[Math.floor(Math.random() * pal.length)];
+  }
 
   /** The theme a round opens in: the site for Endless, the district's theme for levels, the day's for the Daily. */
   private startTheme(): ThemeId {
@@ -772,13 +783,14 @@ export class Game {
   }
 
   /**
-   * A big moment (board clear, delivery, big combo, heat level, new top tier).
-   * After a couple of minutes in one theme, the next big moment carries the run
-   * into the next theme, so the switch itself feels earned.
+   * A flashy moment: a shot that merges 3+ buildings, a streak of 4+, a board
+   * clear or a Heat level-up. After 45 seconds in a theme the next one carries
+   * the run into a new map while the screen is already lit up, so the change
+   * stacks on the hype instead of interrupting a quiet moment.
    */
-  private bigMoment() {
+  private bigMoment(delay = 700) {
     if (this.playMode.kind === 'level' || !this.running || this.over) return;
-    if (this.themeTime >= THEME_MIN_TIME) window.setTimeout(() => !this.over && this.running && this.themeTime >= THEME_MIN_TIME && this.switchTheme(nextTheme(this.themeId)), 1200);
+    if (this.themeTime >= THEME_MIN_TIME) window.setTimeout(() => !this.over && this.running && this.themeTime >= THEME_MIN_TIME && this.switchTheme(nextTheme(this.themeId)), delay);
   }
 
   /** Moves the run to a theme. Quiet: instantly (round start, resume). Otherwise with the full celebration. */
@@ -787,6 +799,7 @@ export class Game {
     this.themeId = id;
     this.themeTime = 0;
     setTheme(id);
+    this.sfx.theme = id;
     const t = THEMES[id];
     this.view.applyTheme(t);
     showBackdrop(id, quiet);
@@ -851,12 +864,11 @@ export class Game {
       const at = { x: p.x, y: p.y };
       this.destroy(p, true);
       this.view.deliver(p.view);
-      this.view.edgePulse(tier(p.tier).color);
+      this.view.edgePulse(this.themePulse());
       this.hud.praise(4, tier(p.tier).color, 'Delivered!');
       const sub = document.querySelector('.praise-combo');
       if (sub) sub.textContent = name.toUpperCase();
       this.sfx.deliver();
-      this.bigMoment();
       for (let i = 0; i < 14; i++) {
         const a = (i / 14) * Math.PI * 2;
         this.view.fx.spark(at.x, at.y, 0.05, this.view.heatColor().set('#fff3b0'), 0.7, Math.cos(a) * 0.6, Math.sin(a) * 0.6, 0.4);
@@ -871,7 +883,7 @@ export class Game {
     this.addScore(bonus);
     this.hud.praise(5, '#ffd84d', 'Clean site!');
     this.bigMoment();
-    this.view.edgePulse('#ffd84d', 5);
+    this.view.edgePulse(this.themePulse(), 5);
     this.hud.floatText(this.view.toScreen(x, y, 0.2).x, this.view.toScreen(x, y, 0.2).y - 40, `+${bonus.toLocaleString('en-US')}`, true, 6);
     for (let i = 0; i < 3; i++) this.view.fx.merge(x + (i - 1) * 0.25, y, 3, '#ffd84d', 3);
     if (!settings.calm) this.hud.flash();
@@ -933,15 +945,17 @@ export class Game {
   /** A new heat level: banner, fanfare and a burst, and the board gets flashier for the rest of the run. */
   private heatUp(level: number, quiet = false) {
     this.heat = level;
-    this.view.setHeat(level, HEAT_COLORS[level]);
+    this.view.setHeat(level);
     if (quiet) return;
     window.setTimeout(() => {
       if (this.over) return;
-      this.hud.heatUp(level, HEAT_COLORS[level]);
+      this.hud.heatUp(level, heatGlow(level));
       this.sfx.heatUp(level);
       this.events.onMerge?.(12, 5);
-      for (let i = 0; i < 2 + level; i++) this.view.fx.merge((Math.random() - 0.5) * 0.7, CONFIG.failY + 0.4 + Math.random() * 1, 3, HEAT_COLORS[level], 2 + level * 0.4);
+      for (let i = 0; i < 2 + level; i++) this.view.fx.merge((Math.random() - 0.5) * 0.7, CONFIG.failY + 0.4 + Math.random() * 1, 3, heatGlow(level), 2 + level * 0.4);
       if (!settings.calm) this.view.punch(2 + level * 0.4);
+      // Let the Heat banner land first, then roll into the next map.
+      this.bigMoment(1600);
     }, 700);
   }
 
@@ -1018,7 +1032,7 @@ export class Game {
       this.view.animatePiece(p.view, dt);
       // Comet trail behind fast shots once the run heats up (fiery during a streak).
       if (p.shot && p.speed > 1.5 && dt > 0 && (this.heat >= 1 || this.streak >= 2))
-        this.view.trail(x, y, this.streak >= 4 ? '#ff7a2a' : HEAT_COLORS[Math.max(1, this.heat)]);
+        this.view.trail(x, y, this.streak >= 4 ? '#ff9a4d' : heatGlow(Math.max(1, this.heat)));
       fastest = Math.max(fastest, p.speed);
     }
     this.sfx.slide(this.paused || this.over ? 0 : fastest);

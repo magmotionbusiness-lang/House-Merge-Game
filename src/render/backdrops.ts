@@ -566,7 +566,7 @@ export function showBackdrop(id: ThemeId, instant = false) {
     requestAnimationFrame(() => {
       if (!layer.isConnected) return;
       layer.classList.add('in');
-      window.setTimeout(() => old.forEach((l) => l.remove()), 1000);
+      window.setTimeout(() => old.forEach((l) => l.remove()), 700);
     });
   if (THEMES[id].art) loadArt(THEMES[id], reveal);
   else reveal();

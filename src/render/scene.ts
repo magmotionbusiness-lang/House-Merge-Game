@@ -147,6 +147,8 @@ export class SceneView {
     this.beamMat.map = hazardTexture(t.beam[0], t.beam[1]);
     this.beamMat.needsUpdate = true;
     this.beamSolid.color.set(t.beam[0]);
+    this.ensureFrame().setPalette(t.glow, t.id === 'neon');
+    this.fx.theme = t.id;
   }
 
   /**
@@ -163,7 +165,7 @@ export class SceneView {
       return;
     }
     const sorted = [...pieces].sort((a, b) => b.group.position.z - a.group.position.z);
-    sorted.forEach((p, i) => (p.morph = { t: -0.05 - i * 0.045, swapped: false, color }));
+    sorted.forEach((p, i) => (p.morph = { t: -0.03 - i * 0.025, swapped: false, color }));
   }
 
   private swapModel(p: PieceView) {
@@ -800,6 +802,13 @@ export class SceneView {
     this.animatePiece(p, 0.05);
     this.startFlash(p, 0.1);
     for (const era of [1, 2, 3, 4] as const) this.fx.merge(0, 0, era, '#ffffff', 2);
+    // Themed merge pieces use their own materials: compile them up front too.
+    const was = this.fx.theme;
+    for (const th of ['sweet', 'beach', 'alpine', 'neon'] as const) {
+      this.fx.theme = th;
+      this.fx.merge(0, 0, 2, '#ffffff', 2);
+    }
+    this.fx.theme = was;
     this.fx.impact(0, 0, 0.1, '#ffffff', 2);
     this.fx.dust(0, 0, 0.1);
     this.ring(0, 0, 0.1, '#ffffff');
@@ -857,7 +866,7 @@ export class SceneView {
    * livelier, and ambient sparkles rise over the table from level 3. Nothing
    * is drawn over the playing area itself.
    */
-  setHeat(level: number, _color?: string) {
+  setHeat(level: number) {
     this.heat = level;
     this.ensureFrame().setHeat(level);
   }

@@ -1,4 +1,5 @@
 import type { Era } from '../core/tiers';
+import type { ThemeId } from '../core/themes';
 
 type Wave = OscillatorType;
 
@@ -31,6 +32,8 @@ const MAJOR = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24];
  * synthesised in code (no files), routed through a master limiter.
  */
 export class Sfx {
+  /** The map theme: merges get that theme's instrument (candy pops, steel drums, sleigh bells, synths). */
+  theme: ThemeId = 'site';
   private ctx: AudioContext | null = null;
   private master!: GainNode;
   private noiseBuf!: AudioBuffer;
@@ -264,6 +267,12 @@ export class Sfx {
     this.tone(150, 0.13, { gain: 0.42 + weight * 0.2, freqEnd: 46 });
     this.noise(0.018, { gain: 0.22, filter: 'highpass', freq: 3000 });
     if (tierId >= 9) this.tone(62, 0.55, { gain: 0.25 + weight * 0.15, freqEnd: 38 });
+    if (this.theme !== 'site') {
+      this.themedMerge(root, combo, weight);
+      if (combo >= 2) this.stamp(0.02);
+      this.heatLayers(root, heat);
+      return;
+    }
     // Reward chord (root, major third, fifth, octave) with bell partials.
     [1, 1.26, 1.5, 2].forEach((m, i) => {
       const f = root * m;
@@ -278,11 +287,78 @@ export class Sfx {
       this.tone(root * 2 * Math.pow(2, n / 12), 0.16, { gain: 0.07, type: 'triangle', when: 0.04 + i * 0.035, wet: 0.6 }),
     );
     if (combo >= 2) this.stamp(0.02);
-    // Heat layers: an octave shimmer from heat 2, a sub thump and a sizzle from heat 4.
+    this.heatLayers(root, heat);
+  }
+
+  /** Heat layers: an octave shimmer from heat 2, a sub thump and a sizzle from heat 4. */
+  private heatLayers(root: number, heat: number) {
     if (heat >= 2) [12, 19, 24].forEach((n, i) => this.tone(root * 2 * Math.pow(2, n / 12), 0.3, { gain: 0.045, when: 0.09 + i * 0.03, wet: 0.7 }));
     if (heat >= 4) {
       this.tone(55, 0.3, { gain: 0.3, freqEnd: 40 });
       this.noise(0.4, { gain: 0.06, filter: 'highpass', freq: 6000, wet: 0.5 });
+    }
+  }
+
+  /**
+   * The merge reward in a map theme's own instrument. Pitch still climbs with
+   * the combo (same ladder as the site), only the timbre and the signature change.
+   */
+  private themedMerge(root: number, combo: number, weight: number) {
+    const ctx = this.ctx!;
+    const n = 3 + Math.min(4, combo);
+    const up = [0, 4, 7, 12, 16, 19, 24];
+    if (this.theme === 'sweet') {
+      // Candy pops: bubbly upward blips, a soft marimba chord and a fizzy sparkle.
+      for (let i = 0; i < n; i++) {
+        const f = root * Math.pow(2, up[i] / 12) * jitter();
+        this.tone(f * 0.6, 0.07, { gain: 0.2, freqEnd: f * 1.8, when: i * 0.05 });
+      }
+      [1, 1.26, 1.5, 2].forEach((m, i) => {
+        this.tone(root * m, 0.35, { gain: (i ? 0.1 : 0.15) * (1 + weight * 0.3), wet: 0.3 });
+        this.tone(root * m * 4, 0.07, { gain: 0.035 });
+      });
+      this.noise(0.18, { gain: 0.05, filter: 'highpass', freq: 7000, when: 0.05, wet: 0.4 });
+      up.slice(0, n).forEach((s, i) => this.tone(root * 4 * Math.pow(2, s / 12), 0.09, { gain: 0.04, when: 0.12 + i * 0.03, wet: 0.6 }));
+    } else if (this.theme === 'beach') {
+      // Steel drums and a splash.
+      const steel = (f: number, gain: number, when = 0) => {
+        this.tone(f, 0.5, { gain, when, freqEnd: f * 0.985, wet: 0.3 });
+        this.tone(f * 2, 0.26, { gain: gain * 0.5, when });
+        this.tone(f * 3.01, 0.12, { gain: gain * 0.22, when, type: 'triangle' });
+      };
+      [1, 1.26, 1.5].forEach((m, i) => steel(root * m, (i ? 0.11 : 0.16) * (1 + weight * 0.3)));
+      up.slice(0, n).forEach((s, i) => steel(root * 2 * Math.pow(2, s / 12), 0.05, 0.05 + i * 0.045));
+      this.noise(0.35, { gain: 0.13, freq: 2600, freqEnd: 500, q: 0.7, wet: 0.3 });
+      this.tone(1300 * jitter(), 0.035, { gain: 0.06, freqEnd: 2600, when: 0.08 });
+      this.tone(1700 * jitter(), 0.03, { gain: 0.05, freqEnd: 3200, when: 0.14 });
+    } else if (this.theme === 'alpine') {
+      // Glockenspiel chord, sleigh bells and a crunch of snow.
+      this.noise(0.09, { gain: 0.16, filter: 'lowpass', freq: 900 });
+      [1, 1.26, 1.5, 2].forEach((m, i) => {
+        const f = root * m * 2;
+        const g = (i ? 0.07 : 0.1) * (1 + weight * 0.3);
+        this.tone(f, 0.7, { gain: g, wet: 0.5 });
+        this.tone(f * 2.76, 0.16, { gain: g * 0.35, wet: 0.4 });
+      });
+      for (let i = 0; i < 4 + combo * 2; i++)
+        this.noise(0.05, { gain: 0.06, filter: 'highpass', freq: 6500 + Math.random() * 2500, when: 0.02 + i * 0.035, wet: 0.4 });
+      up.slice(0, n).forEach((s, i) => this.tone(root * 4 * Math.pow(2, s / 12), 0.2, { gain: 0.035, when: 0.06 + i * 0.04, wet: 0.7 }));
+    } else {
+      // Neon: a laser zap, a filtered synth stab and a quick square arpeggio.
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      const t = ctx.currentTime;
+      lp.frequency.setValueAtTime(500, t);
+      lp.frequency.exponentialRampToValueAtTime(4200, t + 0.04);
+      lp.frequency.exponentialRampToValueAtTime(800, t + 0.45);
+      lp.Q.value = 6;
+      lp.connect(this.master);
+      this.tone(1900 * jitter(), 0.14, { gain: 0.07, type: 'sawtooth', freqEnd: 180 });
+      [1, 1.26, 1.5].forEach((m) => {
+        this.tone(root * m * 0.995, 0.45, { gain: 0.06 * (1 + weight * 0.3), type: 'sawtooth', dest: lp, wet: 0.3 });
+        this.tone(root * m * 1.005, 0.45, { gain: 0.06 * (1 + weight * 0.3), type: 'sawtooth', dest: lp });
+      });
+      up.slice(0, n).forEach((s, i) => this.tone(root * 2 * Math.pow(2, s / 12), 0.07, { gain: 0.035, type: 'square', when: 0.05 + i * 0.04, wet: 0.5 }));
     }
   }
 

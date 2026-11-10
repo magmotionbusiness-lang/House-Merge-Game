@@ -25,6 +25,7 @@ uniform float uTime;
 uniform float uLevel;      // resting brightness 0..1
 uniform vec3 uColA;
 uniform vec3 uColB;
+uniform vec3 uColC;
 uniform float uRainbow;    // 0..1
 uniform float uChase;      // chase light strength
 uniform float uChaseN;     // number of chase lights
@@ -48,8 +49,11 @@ void main() {
   float core = exp(-pow(off / 0.006, 2.0));
   float halo = off > 0.0 ? exp(-off / 0.07) : exp(off / 0.01);
 
-  float wave = 0.5 + 0.5 * sin(6.2832 * (vS * 2.0 - uTime * 0.25));
-  vec3 col = mix(uColA, uColB, wave);
+  // The theme's three colours flow around the loop.
+  float ph = fract(vS * 2.0 - uTime * 0.12) * 3.0;
+  vec3 col = ph < 1.0 ? mix(uColA, uColB, smoothstep(0.0, 1.0, ph))
+           : ph < 2.0 ? mix(uColB, uColC, smoothstep(1.0, 2.0, ph))
+           : mix(uColC, uColA, smoothstep(2.0, 3.0, ph));
   col = mix(col, hue(vS * 1.5 - uTime * 0.18), uRainbow);
 
   float chase = pow(0.5 + 0.5 * cos(6.2832 * (vS * uChaseN - uTime * uChaseSpeed)), 14.0) * uChase;
@@ -76,22 +80,20 @@ void main() {
 
 interface Look {
   level: number;
-  a: string;
-  b: string;
   rainbow: number;
   chase: number;
   n: number;
   speed: number;
 }
 
-/** Resting look per heat level. */
+/** Resting brightness and motion per heat level (colours come from the map theme). */
 const LOOKS: Look[] = [
-  { level: 0, a: '#6fd6ff', b: '#6fd6ff', rainbow: 0, chase: 0, n: 1, speed: 0 },
-  { level: 0.6, a: '#6fd6ff', b: '#b8f0ff', rainbow: 0, chase: 0.35, n: 1, speed: 0.12 },
-  { level: 0.72, a: '#5cffb0', b: '#6fd6ff', rainbow: 0, chase: 0.6, n: 2, speed: 0.18 },
-  { level: 0.82, a: '#ff9a3d', b: '#ffd84d', rainbow: 0, chase: 0.8, n: 3, speed: 0.24 },
-  { level: 0.92, a: '#ff5ec4', b: '#b48cff', rainbow: 0, chase: 1, n: 4, speed: 0.3 },
-  { level: 1, a: '#ffd84d', b: '#ffffff', rainbow: 1, chase: 1, n: 4, speed: 0.36 },
+  { level: 0, rainbow: 0, chase: 0, n: 1, speed: 0 },
+  { level: 0.55, rainbow: 0, chase: 0.35, n: 1, speed: 0.12 },
+  { level: 0.66, rainbow: 0, chase: 0.6, n: 2, speed: 0.18 },
+  { level: 0.76, rainbow: 0, chase: 0.8, n: 3, speed: 0.24 },
+  { level: 0.86, rainbow: 0, chase: 1, n: 4, speed: 0.3 },
+  { level: 0.95, rainbow: 0, chase: 1, n: 4, speed: 0.36 },
 ];
 
 export class FrameGlow {
@@ -99,6 +101,10 @@ export class FrameGlow {
   private mat: THREE.ShaderMaterial;
   private u: Record<string, THREE.IUniform>;
   private target: Look = LOOKS[0];
+  private heat = 0;
+  private palette: [string, string, string][] = [['#6fd6ff', '#6fd6ff', '#6fd6ff']];
+  private rainbowTop = false;
+  private colC = new THREE.Color();
   private fever = 0;
   private feverOn = false;
   private pulseT = -1;
@@ -159,6 +165,7 @@ export class FrameGlow {
       uLevel: { value: 0 },
       uColA: { value: new THREE.Color('#6fd6ff') },
       uColB: { value: new THREE.Color('#6fd6ff') },
+      uColC: { value: new THREE.Color('#6fd6ff') },
       uRainbow: { value: 0 },
       uChase: { value: 0 },
       uChaseN: { value: 1 },
@@ -187,7 +194,14 @@ export class FrameGlow {
   }
 
   setHeat(level: number) {
-    this.target = LOOKS[Math.max(0, Math.min(level, LOOKS.length - 1))];
+    this.heat = Math.max(0, Math.min(level, LOOKS.length - 1));
+    this.target = LOOKS[this.heat];
+  }
+
+  /** Map theme colours (three per heat level). `rainbowTop`: full rainbow at Legendary (Neon City). */
+  setPalette(p: [string, string, string][], rainbowTop = false) {
+    this.palette = p;
+    this.rainbowTop = rainbowTop;
   }
 
   setFever(on: boolean) {
@@ -213,9 +227,12 @@ export class FrameGlow {
     const k = Math.min(1, dt * 2.5);
     const t = this.target;
     u.uLevel.value += (t.level - u.uLevel.value) * k;
-    (u.uColA.value as THREE.Color).lerp(this.colA.set(t.a), k);
-    (u.uColB.value as THREE.Color).lerp(this.colB.set(t.b), k);
-    u.uRainbow.value += (t.rainbow - u.uRainbow.value) * k;
+    const pal = this.palette[Math.max(0, this.heat - 1)] ?? this.palette[0];
+    (u.uColA.value as THREE.Color).lerp(this.colA.set(pal[0]), k);
+    (u.uColB.value as THREE.Color).lerp(this.colB.set(pal[1]), k);
+    (u.uColC.value as THREE.Color).lerp(this.colC.set(pal[2]), k);
+    const rainbow = this.rainbowTop && this.heat >= 5 ? 1 : t.rainbow;
+    u.uRainbow.value += (rainbow - u.uRainbow.value) * k;
     u.uChase.value += (t.chase - u.uChase.value) * k;
     u.uChaseN.value = t.n;
     u.uChaseSpeed.value = t.speed;

@@ -335,3 +335,55 @@ Feedback: past a certain level the Heat glow washed a yellowish layer over the w
 - **Thumbnails** are baked per theme (`public/thumbs/<theme>/`), with a lineup sheet per theme in `docs/`.
 
 **Painted backdrops arrived** for all four themes: a beach construction site, a snowy alpine site, a candy site and a neon night site. They match the original site painting, crane included. They are served as `public/bg/<theme>.webp` (941 × 1672) and preloaded with the next theme's models before a switch. Each crossfade starts only once its painting has loaded, so a switch never flashes an empty frame. The code-painted backdrops stay as a fallback for any future theme without art.
+
+## Phase 7.6: Each map feels different (playtest feedback)
+
+Feedback: the theme switches came too slowly. They should land while the run is already flashy. Each map should also sound and burst differently, the backdrops should move, and the board glow clashed with the scenery (purple and pink at the beach).
+
+- **Faster, hype-driven switching:** a run can leave a theme after 45 seconds (was 2.5 minutes). The switch rides on peak moments:
+  - a shot that merges 3+ buildings
+  - a streak of 4+
+  - a board clear
+  - a Heat level-up (after its banner lands)
+
+  It fires 0.7 s later, while the screen is still lit up. After 2.5 minutes any merge switches. Deliveries and new top tiers no longer trigger it. The transition is snappier too: buildings morph in quicker succession and the backdrop fades in 0.6 s.
+- **Glow matches the map:** each theme has its own soft, three-colour palette per Heat level, and the colours flow around the stroke.
+
+  | Theme | Palette |
+  |---|---|
+  | Site | Warm amber |
+  | Beach | Aqua, sun yellow and coral |
+  | Alpine | Ice blue up to an aurora green and lilac |
+  | Sweet | Pastel pink, mint and lemon |
+  | Neon | Cyan and magenta, with a true rainbow only at Legendary |
+
+  Combo, delivery and board-clear flashes, comet trails and Heat banners take the theme's colours too, never a tier colour that could clash.
+- **Theme merge sounds:** the combo pitch ladder stays the same everywhere, so progress still "sounds up". Only the instrument changes:
+
+  | Theme | Merge sound |
+  |---|---|
+  | Sweet Town | Bubbly candy pops, a soft marimba chord and fizz |
+  | Beach | Steel drums and a water splash with droplets |
+  | Alpine | Glockenspiel, sleigh bells and a snow crunch |
+  | Neon | A laser zap, a filtered synth stab and a square arpeggio |
+  | Site | The original bells |
+
+- **Theme merge bursts**, minimal and short (shaders compiled at load):
+
+  | Theme | Burst |
+  |---|---|
+  | Sweet | Gumballs and jelly beans bounce out with sprinkles |
+  | Beach | Droplets and hibiscus petals |
+  | Alpine | Snowflakes and ice glints |
+  | Neon | Glowing pixels and light rays |
+  | Site | The era bursts |
+
+- **Living backdrops:** a light 2D layer between the painting and the board, behind the play area. Calm mode and Reduce Motion thin it out.
+
+  | Theme | Motion |
+  |---|---|
+  | Site | Dust motes |
+  | Beach | Sun glints, drifting petals and seagulls |
+  | Alpine | Snowfall |
+  | Sweet | Tumbling sprinkles and twinkles |
+  | Neon | Rain streaks and glow orbs |

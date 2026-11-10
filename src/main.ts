@@ -6,6 +6,7 @@ import '@fontsource/architects-daughter/latin-400.css';
 import './style.css';
 import { initPhysics } from './physics/world';
 import { SceneView } from './render/scene';
+import { Ambient } from './render/ambient';
 import { Hud } from './ui/hud';
 import { Game, savedRun } from './game/Game';
 import { MAX_TIER } from './core/tiers';
@@ -45,6 +46,9 @@ async function boot() {
   const hudRoot = document.getElementById('hud') as HTMLElement;
   const tint = document.getElementById('bg-tint') as HTMLElement;
   const view = new SceneView(canvas, (css) => (tint.style.backgroundColor = css));
+  // Snow, sprinkles, rain... the backdrop's own little motion, behind the board.
+  const ambient = new Ambient(canvas.parentElement as HTMLElement, canvas);
+  onSettings((st) => ambient.setCalm(st.calm));
   let game: Game | null = null;
   let screens: Screens | null = null;
   const music = new Music();
@@ -223,6 +227,7 @@ async function boot() {
   const loop = (now: number) => {
     const dt = (now - last) / 1000;
     game!.frame(dt);
+    ambient.tick(dt);
     last = now;
     if (debug) {
       frames++;
