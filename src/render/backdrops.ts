@@ -479,10 +479,10 @@ const PAINTERS: Partial<Record<ThemeId, (ctx: Ctx) => void>> = {
 /** Colour shown under the backdrop and below the app (the iOS bottom strip): the scene's ground. */
 const GROUND: Record<ThemeId, string> = {
   site: '#d9a35c',
-  beach: '#e9c98c',
-  alpine: '#e6eef8',
-  sweet: '#ffd6e8',
-  neon: '#0f0b28',
+  beach: '#e6b86e',
+  alpine: '#eef2fb',
+  sweet: '#f3d9ee',
+  neon: '#3b2b78',
 };
 
 const painted = new Map<ThemeId, HTMLCanvasElement>();
@@ -500,12 +500,33 @@ function paint(id: ThemeId) {
   return c;
 }
 
+const artUrl = (t: Theme) => `${import.meta.env.BASE_URL}${t.art}`;
+const loaded = new Map<string, HTMLImageElement>();
+
+/** Starts downloading a painting (once) and calls back when it is ready to show. */
+function loadArt(t: Theme, done?: () => void) {
+  const url = artUrl(t);
+  let img = loaded.get(url);
+  if (!img) {
+    img = new Image();
+    img.decoding = 'async';
+    img.src = url;
+    loaded.set(url, img);
+  }
+  if (!done) return;
+  if (img.complete) done();
+  else {
+    img.addEventListener('load', done, { once: true });
+    img.addEventListener('error', done, { once: true });
+  }
+}
+
 /** Builds the layer element for a theme: its painted art when it exists, else the code-drawn scene. */
 function layerFor(t: Theme): HTMLElement {
   if (t.art) {
     const d = document.createElement('div');
     d.className = 'bg-layer';
-    d.style.backgroundImage = `url('${import.meta.env.BASE_URL}${t.art}')`;
+    d.style.backgroundImage = `url('${artUrl(t)}')`;
     return d;
   }
   const src = paint(t.id);
@@ -519,7 +540,8 @@ function layerFor(t: Theme): HTMLElement {
 
 /** Prepares a theme's backdrop ahead of time (call during idle time before a switch). */
 export function prepareBackdrop(id: ThemeId) {
-  if (!THEMES[id].art) paint(id);
+  if (THEMES[id].art) loadArt(THEMES[id]);
+  else paint(id);
 }
 
 let shown: ThemeId = 'site';
@@ -539,8 +561,13 @@ export function showBackdrop(id: ThemeId, instant = false) {
     old.forEach((l) => l.remove());
     return;
   }
-  requestAnimationFrame(() => {
-    layer.classList.add('in');
-    window.setTimeout(() => old.forEach((l) => l.remove()), 1000);
-  });
+  // Fade in only once the painting has loaded, so the switch never flashes an empty frame.
+  const reveal = () =>
+    requestAnimationFrame(() => {
+      if (!layer.isConnected) return;
+      layer.classList.add('in');
+      window.setTimeout(() => old.forEach((l) => l.remove()), 1000);
+    });
+  if (THEMES[id].art) loadArt(THEMES[id], reveal);
+  else reveal();
 }

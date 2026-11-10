@@ -63,7 +63,7 @@ Each tier lives in `src/models/tierNN.ts`. Models are built in "model units": th
 
 ## Theme backdrops
 
-Each theme can use a painted backdrop like the construction site (`public/bg/site.webp`, portrait, about 940 × 1670). Put the image in `public/bg` (for example `public/bg/beach.webp`) and set `art: 'bg/beach.webp'` for that theme in `src/core/themes.ts`. Until then the game paints a stylised backdrop in code (`src/render/backdrops.ts`). Keep the important scenery in the top third and down the sides: the board covers the middle and bottom.
+Each theme can use a painted backdrop like the construction site (`public/bg/site.webp`, portrait, about 940 × 1670). Put the image in `public/bg` (for example `public/bg/beach.webp`) and set `art: 'bg/beach.webp'` for that theme in `src/core/themes.ts`. All five themes have painted art; a theme without art falls back to a stylised backdrop painted in code (`src/render/backdrops.ts`). Keep the important scenery in the top third and down the sides: the board covers the middle and bottom.
 
 ## Adding levels
 
