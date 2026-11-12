@@ -80,7 +80,7 @@
     },
     {
       "id": "5-3",
-      "name": "Hover House & Neon House",
+      "name": "Hover House & Stack House",
       "shots": 15,
       "contracts": [
         {
@@ -119,7 +119,7 @@
     },
     {
       "id": "5-4",
-      "name": "Two Neon Houses",
+      "name": "Two Stack Houses",
       "shots": 9,
       "contracts": [
         {
@@ -192,7 +192,7 @@
     },
     {
       "id": "5-6",
-      "name": "Glass Villa",
+      "name": "Sky Villa",
       "shots": 23,
       "contracts": [
         {
@@ -232,7 +232,7 @@
     },
     {
       "id": "5-7",
-      "name": "Glass Villa & Neon House",
+      "name": "Sky Villa & Stack House",
       "shots": 27,
       "contracts": [
         {
@@ -316,7 +316,7 @@
     },
     {
       "id": "5-9",
-      "name": "Glass Villa Square",
+      "name": "Sky Villa Square",
       "shots": 41,
       "contracts": [
         {
@@ -360,7 +360,7 @@
     },
     {
       "id": "5-10",
-      "name": "Glass Villa & Hover House",
+      "name": "Sky Villa & Hover House",
       "shots": 60,
       "contracts": [
         {
@@ -408,7 +408,7 @@
     },
     {
       "id": "5-11",
-      "name": "Big Build: Neon Townhouses",
+      "name": "Big Build: Neon Rowhouses",
       "shots": 68,
       "contracts": [
         {
@@ -483,7 +483,7 @@
     },
     {
       "id": "5-13",
-      "name": "Glass Villa",
+      "name": "Sky Villa",
       "shots": 39,
       "contracts": [
         {
@@ -521,7 +521,7 @@
     },
     {
       "id": "5-14",
-      "name": "Glass Villa & Hover House",
+      "name": "Sky Villa & Hover House",
       "shots": 26,
       "contracts": [
         {
@@ -595,7 +595,7 @@
     },
     {
       "id": "5-16",
-      "name": "Glass Villa Lane",
+      "name": "Sky Villa Lane",
       "shots": 39,
       "contracts": [
         {
@@ -639,7 +639,7 @@
     },
     {
       "id": "5-17",
-      "name": "Neon Townhouses",
+      "name": "Neon Rowhouses",
       "shots": 46,
       "contracts": [
         {
@@ -674,7 +674,7 @@
     },
     {
       "id": "5-18",
-      "name": "Neon Townhouses & Hover House",
+      "name": "Neon Rowhouses & Hover House",
       "shots": 62,
       "contracts": [
         {
@@ -713,7 +713,7 @@
     },
     {
       "id": "5-19",
-      "name": "Two Glass Villas",
+      "name": "Two Sky Villas",
       "shots": 34,
       "contracts": [
         {
@@ -753,7 +753,7 @@
     },
     {
       "id": "5-20",
-      "name": "Neon Townhouses Square",
+      "name": "Neon Rowhouses Square",
       "shots": 136,
       "contracts": [
         {
@@ -797,7 +797,7 @@
     },
     {
       "id": "5-21",
-      "name": "Neon Townhouses & Glass Villa",
+      "name": "Neon Rowhouses & Sky Villa",
       "shots": 107,
       "contracts": [
         {
@@ -839,7 +839,7 @@
     },
     {
       "id": "5-22",
-      "name": "Big Build: Neon Apartments",
+      "name": "Big Build: Pod Towers",
       "shots": 131,
       "contracts": [
         {
@@ -914,7 +914,7 @@
     },
     {
       "id": "5-24",
-      "name": "Neon Townhouses",
+      "name": "Neon Rowhouses",
       "shots": 92,
       "contracts": [
         {
@@ -958,7 +958,7 @@
     },
     {
       "id": "5-25",
-      "name": "Neon Townhouses & Glass Villa",
+      "name": "Neon Rowhouses & Sky Villa",
       "shots": 80,
       "contracts": [
         {
@@ -992,7 +992,7 @@
     },
     {
       "id": "5-26",
-      "name": "Two Glass Villas",
+      "name": "Two Sky Villas",
       "shots": 33,
       "contracts": [
         {
@@ -1027,7 +1027,7 @@
     },
     {
       "id": "5-27",
-      "name": "Neon Townhouses Lane",
+      "name": "Neon Rowhouses Lane",
       "shots": 136,
       "contracts": [
         {
@@ -1071,7 +1071,7 @@
     },
     {
       "id": "5-28",
-      "name": "Neon Apartments",
+      "name": "Pod Towers",
       "shots": 92,
       "contracts": [
         {
@@ -1106,7 +1106,7 @@
     },
     {
       "id": "5-29",
-      "name": "Neon Apartments & Glass Villa",
+      "name": "Pod Towers & Sky Villa",
       "shots": 123,
       "contracts": [
         {
@@ -1145,7 +1145,7 @@
     },
     {
       "id": "5-30",
-      "name": "Two Neon Townhouses",
+      "name": "Two Neon Rowhouses",
       "shots": 68,
       "contracts": [
         {
@@ -1180,7 +1180,7 @@
     },
     {
       "id": "5-31",
-      "name": "Neon Townhouses Scaffolds",
+      "name": "Neon Rowhouses Scaffolds",
       "shots": 86,
       "contracts": [
         {
@@ -1218,7 +1218,7 @@
     },
     {
       "id": "5-32",
-      "name": "Neon Townhouses Scaffolds",
+      "name": "Neon Rowhouses Scaffolds",
       "shots": 145,
       "contracts": [
         {
@@ -1266,7 +1266,7 @@
     },
     {
       "id": "5-33",
-      "name": "Big Build: Neon Apartments",
+      "name": "Big Build: Pod Towers",
       "shots": 127,
       "contracts": [
         {

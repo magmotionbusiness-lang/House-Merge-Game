@@ -471,3 +471,9 @@ New lineup: Power Cube → Capsule Hut (barrel roof) → Neon Garage → Cube Ho
 - **Calm effects** (Settings) now covers everything added since it was introduced: no confetti (theme arrivals, level clears), no looping bounces on the map (clouds, "?" badge, the builder pin, the current level, the Play button), the level card fades in instead of dropping and swinging, and no score-box pop. The system's Reduce Motion setting gets the same treatment, and the animated backdrop thins out under both.
 - **Large text** already scales every screen, including the new map and its cards.
 - **Colour blindness:** the 18 tier colours were checked under simulated deuteranopia, protanopia and tritanopia. The closest neighbouring pair is still ΔE ≈ 12 apart (tiers 11/12 for tritanopia, 3/4 for deuteranopia), which is clearly distinguishable, and every building also carries its tier number on the badge. The aim preview tells its levels apart by size, brightness and the rainbow chase as well as by colour.
+
+**Neon tiers 1-10 redesigned again (playtest feedback):** the first rebuild read clearly but looked like ordinary suburban houses. Tiers 11-18 stay; 1-10 are now futuristic, each with its own silhouette, the tier colour as the main body, and thick neon trim:
+
+Neon Cube → Pod Home (tilted roof, porthole) → A-Frame Pod (glass triangle front) → Hexa Home (six-sided with a glass top room) → Wedge House (roof sweeping up into a glass wall) → Stack House (box cantilevered across a glass floor) → Hover House (on four glowing thrusters) → Sky Villa → Neon Rowhouses (zig-zag roofs, neon signs) → Pod Tower (capsule homes spiralling round a core).
+
+District 5 level names were renamed in place.

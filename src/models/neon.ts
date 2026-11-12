@@ -1,5 +1,5 @@
+import * as THREE from 'three';
 import { Builder, base, shade } from './kit';
-import { house } from './parts';
 import { neonBox, neonRings, panes } from './themekit';
 
 /**
@@ -30,147 +30,163 @@ function door(b: Builder, x: number, z: number, y: number, color: string, w = 0.
   b.box(w + 0.03, 0.014, 0.02, 'glow', lit(color), { x, z: z + 0.004, y: y + h });
 }
 
-/** 1 Power Cube: a solid block in the tier colour with a glowing band (the neon "brick"). */
-const powerCube: Build = (_H, color) => {
-  const b = new Builder();
-  const y = base(b, color);
-  b.box(0.5, 0.3, 0.42, 'gloss', color, { y }, 0.05);
-  b.box(0.52, 0.035, 0.44, 'glow', lit(color), { y: y + 0.13 });
-  for (const x of [-0.13, 0.13]) b.box(0.12, 0.014, 0.12, 'glow', '#ffffff', { x, y: y + 0.3 });
-  return b.finish();
-};
+/** Thick neon strip (reads at small sizes). */
+function strip(b: Builder, w: number, h: number, d: number, color: string, at: { x?: number; y: number; z?: number; rx?: number; ry?: number; rz?: number }) {
+  b.box(w, h, d, 'glow', color, at);
+}
 
-/** 2 Capsule Hut: a tiny white hut with a rounded roof in the tier colour and a round window. */
-const capsuleHut: Build = (_H, color) => {
+/** 1 Neon Cube: a block in the tier colour, outlined in neon, with a glowing visor slit. */
+const neonCube: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  b.box(0.5, 0.2, 0.38, 'plaster', WHITE, { y });
-  // Barrel roof: a cylinder lying along x, half sunk into the walls.
-  b.cyl(0.2, 0.2, 0.56, 'gloss', color, { y: y + 0.2, x: -0.28, rz: -Math.PI / 2 }, 18);
-  b.cyl(0.205, 0.205, 0.02, 'glow', lit(color), { y: y + 0.2, x: -0.29, rz: -Math.PI / 2 }, 18);
-  b.cyl(0.205, 0.205, 0.02, 'glow', lit(color), { y: y + 0.2, x: 0.27, rz: -Math.PI / 2 }, 18);
-  door(b, -0.1, 0.19, y, color, 0.1, 0.16);
-  b.cyl(0.05, 0.05, 0.016, 'pane', '#ffffff', { x: 0.12, z: 0.19, y: y + 0.1, rx: Math.PI / 2 }, 16);
+  b.box(0.42, 0.32, 0.42, 'gloss', color, { y }, 0.02);
+  neonBox(b, 0.42, 0.32, 0.42, y, lit(color));
+  strip(b, 0.3, 0.05, 0.02, '#ffffff', { y: y + 0.19, z: 0.21 });
+  b.cyl(0.008, 0.008, 0.1, 'gloss', WHITE, { y: y + 0.32, x: 0.12 }, 5);
+  b.sphere(0.022, 'glow', lit(color), { y: y + 0.43, x: 0.12 }, 8);
   return b.finish();
 };
 
-/** 3 Neon Garage: a small garage with a sloped roof and a glowing striped door. */
-const garage: Build = (_H, color) => {
+/** 2 Pod Home: a tiny white pod with a tilted roof in the tier colour, a porthole and a glowing door. */
+const podHome: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  b.box(0.56, 0.26, 0.44, 'plaster', WHITE, { y });
-  b.box(0.62, 0.04, 0.52, 'gloss', color, { y: y + 0.27, rx: 0.16 });
-  for (let i = 0; i < 4; i++) b.box(0.3, 0.025, 0.016, 'glow', i % 2 ? '#ffffff' : lit(color), { x: -0.08, z: 0.225, y: y + 0.03 + i * 0.045 });
-  b.box(0.1, 0.1, 0.016, 'pane', GLASS, { x: 0.18, z: 0.225, y: y + 0.1 });
-  b.box(0.58, 0.012, 0.012, 'glow', lit(color), { y: y + 0.26, z: 0.23 });
+  b.box(0.48, 0.24, 0.4, 'plaster', WHITE, { y }, 0.03);
+  b.box(0.56, 0.05, 0.48, 'gloss', color, { y: y + 0.22, rz: 0.18 });
+  strip(b, 0.5, 0.022, 0.022, lit(color), { y: y + 0.2, z: 0.21 });
+  door(b, -0.12, 0.2, y, color, 0.1, 0.16);
+  b.cyl(0.055, 0.055, 0.02, 'pane', GLASS, { x: 0.1, z: 0.2, y: y + 0.11, rx: Math.PI / 2 }, 16);
+  b.torus(0.06, 0.01, 'glow', lit(color), { x: 0.1, z: 0.212, y: y + 0.11, rx: Math.PI / 2 });
   return b.finish();
 };
 
-/** 4 Cube Home: two stacked offset white cubes with roof slabs in the tier colour and big windows. */
-const cubeHome: Build = (_H, color) => {
+/** 3 A-Frame Pod: a steep triangle house in the tier colour with a glowing glass front. */
+const aFramePod: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  b.box(0.56, 0.2, 0.42, 'plaster', WHITE, { y, z: 0.02 });
-  b.box(0.6, 0.035, 0.46, 'gloss', color, { y: y + 0.2, z: 0.02 });
-  b.box(0.36, 0.17, 0.3, 'plaster', WHITE, { y: y + 0.235, x: 0.08, z: -0.04 });
-  b.box(0.4, 0.035, 0.34, 'gloss', color, { y: y + 0.405, x: 0.08, z: -0.04 });
-  b.box(0.26, 0.11, 0.016, 'pane', GLASS, { x: 0.1, z: 0.235, y: y + 0.05 });
-  b.box(0.24, 0.1, 0.016, 'pane', GLASS, { x: 0.08, z: 0.112, y: y + 0.27 });
-  door(b, -0.17, 0.235, y, color, 0.1, 0.16);
-  neonBox(b, 0.56, 0.2, 0.42, y, lit(color), { z: 0.02 });
+  b.gable(0.48, 0.44, 0.5, 'gloss', color, { y, ry: Math.PI / 2 }, 0.03);
+  b.extrude([[-0.19, 0], [0.19, 0], [0, -0.36]], 0.016, 'pane', GLASS, { y: y + 0.015, z: 0.262, rx: Math.PI / 2 });
+  // Neon along both front roof edges.
+  for (const s of [-1, 1]) strip(b, 0.024, 0.52, 0.024, lit(color), { x: s * 0.27, y: y + 0.005, z: 0.275, rz: s * Math.atan2(0.27, 0.44) });
+  door(b, 0, 0.275, y, color, 0.09, 0.15);
   return b.finish();
 };
 
-/** 5 Smart Cottage: a classic gable cottage with a coloured solar roof and neon eaves. */
-const smartCottage: Build = (_H, color) => {
+/** 4 Hexa Home: a six-sided white home with a hex roof in the tier colour and a glass top room. */
+const hexaHome: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  const top = house(b, { y, w: 0.6, d: 0.44, floors: 1, fh: 0.24, wall: WHITE, roof: color, roofH: 0.22, windows: 3, wallMat: 'plaster', trim: lit(color) });
-  for (const z of [0.25, -0.25]) b.box(0.68, 0.012, 0.012, 'glow', lit(color), { y: top, z });
-  b.box(0.012, 0.012, 0.5, 'glow', lit(color), { y: top + 0.22, x: 0 });
-  b.box(0.06, 0.18, 0.06, 'gloss', PALE, { y: top + 0.04, x: 0.18, z: -0.08 });
-  b.sphere(0.025, 'glow', lit(color), { y: top + 0.24, x: 0.18, z: -0.08 }, 8);
+  const r = Math.PI / 6;
+  b.cyl(0.29, 0.29, 0.24, 'plaster', WHITE, { y, ry: r }, 6);
+  b.cyl(0.35, 0.32, 0.05, 'gloss', color, { y: y + 0.24, ry: r }, 6);
+  b.torus(0.33, 0.012, 'glow', lit(color), { y: y + 0.245 });
+  b.cyl(0.17, 0.17, 0.12, 'window', GLASS, { y: y + 0.29, ry: r }, 6);
+  b.cyl(0.2, 0.17, 0.04, 'gloss', color, { y: y + 0.41, ry: r }, 6);
+  door(b, 0, 0.255, y, color, 0.1, 0.17);
+  for (const a of [-1, 1]) b.box(0.08, 0.08, 0.016, 'pane', GLASS, { x: Math.sin(a * 1.05) * 0.255, z: Math.cos(a * 1.05) * 0.255, y: y + 0.09, ry: a * 1.05 });
   return b.finish();
 };
 
-/** 6 Neon House: a two-storey gable house with lit windows and a neon outline. */
-const neonHouse: Build = (_H, color) => {
+/** 5 Wedge House: a modern house whose roof in the tier colour sweeps up into a glass wall. */
+const wedgeHouse: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  const h = 0.4;
-  const top = house(b, { y, w: 0.64, d: 0.48, floors: 2, fh: 0.2, wall: WHITE, roof: color, roofH: 0.24, windows: 3, wallMat: 'plaster', trim: lit(color) });
-  neonBox(b, 0.64, h, 0.48, y, lit(color));
-  for (const z of [0.27, -0.27]) b.box(0.72, 0.012, 0.012, 'glow', lit(color), { y: top, z });
+  const prof = new THREE.Shape([new THREE.Vector2(-0.3, 0), new THREE.Vector2(0.3, 0), new THREE.Vector2(0.3, 0.42), new THREE.Vector2(-0.3, 0.2)]);
+  const g = new THREE.ExtrudeGeometry(prof, { depth: 0.44, bevelEnabled: false });
+  g.translate(0, 0, -0.22);
+  b.add(g, 'plaster', WHITE, { y });
+  const slope = Math.atan2(0.22, 0.6);
+  b.box(0.68, 0.04, 0.52, 'gloss', color, { y: y + 0.3, rz: slope });
+  strip(b, 0.68, 0.022, 0.022, lit(color), { y: y + 0.34, z: 0.26, rz: slope });
+  b.box(0.22, 0.26, 0.016, 'pane', GLASS, { x: 0.15, y: y + 0.04, z: 0.222 });
+  door(b, -0.13, 0.222, y, color, 0.1, 0.16);
   return b.finish();
 };
 
-/** 7 Hover House: a modern two-storey house floating over a glowing pad. */
+/** 6 Stack House: a glass ground floor with a long box in the tier colour cantilevered across it. */
+const stackHouse: Build = (_H, color) => {
+  const b = new Builder();
+  const y = deck(b, base(b, color), color);
+  b.box(0.56, 0.18, 0.34, 'window', GLASS, { y, z: -0.04 });
+  b.box(0.6, 0.03, 0.38, 'gloss', WHITE, { y: y + 0.18, z: -0.04 });
+  b.box(0.3, 0.2, 0.64, 'gloss', color, { y: y + 0.21, x: 0.1 });
+  b.box(0.22, 0.08, 0.016, 'pane', GLASS, { y: y + 0.27, x: 0.1, z: 0.322 });
+  neonBox(b, 0.3, 0.2, 0.64, y + 0.21, lit(color), { x: 0.1 });
+  neonBox(b, 0.56, 0.18, 0.34, y, lit(color), { z: -0.04 });
+  return b.finish();
+};
+
+/** 7 Hover House: a house in the tier colour floating on four glowing thrusters. */
 const hoverHouse: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
   b.cyl(0.3, 0.32, 0.02, 'glow', lit(color), { y }, 22);
   b.animated(
     (s) => {
-      s.box(0.64, 0.2, 0.44, 'plaster', WHITE, {}, 0.03);
-      s.box(0.54, 0.1, 0.016, 'pane', GLASS, { y: 0.05, z: 0.222 });
-      s.box(0.68, 0.035, 0.48, 'gloss', color, { y: 0.2 });
-      s.box(0.42, 0.16, 0.34, 'plaster', WHITE, { y: 0.235, x: 0.08 });
-      s.box(0.32, 0.09, 0.016, 'pane', GLASS, { y: 0.27, x: 0.08, z: 0.172 });
-      s.box(0.46, 0.035, 0.38, 'gloss', color, { y: 0.395, x: 0.08 });
-      s.box(0.66, 0.012, 0.46, 'glow', lit(color), { y: -0.012 });
+      for (const [x, z] of [[-0.22, -0.14], [0.22, -0.14], [-0.22, 0.14], [0.22, 0.14]] as const) {
+        s.cyl(0.05, 0.035, 0.05, 'gloss', WHITE, { x, z, y: -0.05 }, 10);
+        s.cone(0.035, 0.08, 'glow', lit(color), { x, z, y: -0.05, rx: Math.PI }, 8);
+      }
+      s.box(0.62, 0.22, 0.42, 'gloss', color, {}, 0.05);
+      s.box(0.5, 0.08, 0.016, 'pane', GLASS, { y: 0.1, z: 0.212 });
+      s.box(0.46, 0.12, 0.32, 'plaster', WHITE, { y: 0.22, x: -0.04 }, 0.03);
+      s.box(0.3, 0.06, 0.016, 'pane', GLASS, { y: 0.25, x: -0.04, z: 0.162 });
+      s.box(0.64, 0.022, 0.022, 'glow', lit(color), { y: 0.02, z: 0.215 });
     },
     { type: 'bob', amp: 0.02, speed: 1.8 },
-    { y: y + 0.09 },
+    { y: y + 0.13 },
   );
   return b.finish();
 };
 
-/** 8 Glass Villa: a wide modern villa with a glass ground floor, coloured roofs and a glowing pool. */
-const glassVilla: Build = (_H, color) => {
+/** 8 Sky Villa: a wide villa with a glass ground floor, an upper volume in the tier colour and a glowing pool deck. */
+const skyVilla: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  b.box(0.72, 0.2, 0.36, 'window', GLASS, { y, z: -0.06 });
-  b.box(0.76, 0.035, 0.4, 'gloss', color, { y: y + 0.2, z: -0.06 });
-  b.box(0.44, 0.18, 0.32, 'plaster', WHITE, { y: y + 0.235, x: -0.12, z: -0.08 });
-  b.box(0.3, 0.1, 0.016, 'pane', GLASS, { y: y + 0.27, x: -0.12, z: 0.082 });
-  b.box(0.48, 0.035, 0.36, 'gloss', color, { y: y + 0.415, x: -0.12, z: -0.08 });
-  b.box(0.5, 0.014, 0.14, 'glow', '#7ff3ff', { y, x: 0.08, z: 0.25 });
-  b.box(0.54, 0.02, 0.18, 'gloss', PALE, { y: y - 0.004, x: 0.08, z: 0.25 });
-  neonBox(b, 0.72, 0.2, 0.36, y, lit(color), { z: -0.06 });
+  b.box(0.72, 0.18, 0.38, 'window', GLASS, { y, z: -0.08 });
+  b.box(0.76, 0.03, 0.42, 'gloss', WHITE, { y: y + 0.18, z: -0.08 });
+  b.box(0.5, 0.2, 0.36, 'gloss', color, { y: y + 0.21, x: -0.1, z: -0.06 });
+  b.box(0.36, 0.08, 0.016, 'pane', GLASS, { y: y + 0.27, x: -0.1, z: 0.122 });
+  b.box(0.26, 0.03, 0.4, 'gloss', WHITE, { y: y + 0.21, x: 0.24, z: -0.08 });
+  b.box(0.2, 0.012, 0.32, 'glow', '#7ff3ff', { y: y + 0.24, x: 0.24, z: -0.08 });
+  neonBox(b, 0.5, 0.2, 0.36, y + 0.21, lit(color), { x: -0.1, z: -0.06 });
+  strip(b, 0.74, 0.022, 0.022, lit(color), { y: y + 0.18, z: 0.12 });
   return b.finish();
 };
 
-/** 9 Neon Townhouses: three narrow gabled townhouses, each outlined in neon. */
-const townhouses: Build = (_H, color) => {
+/** 9 Neon Rowhouses: three tall narrow homes with zig-zag roofs and vertical neon signs. */
+const rowhouses: Build = (_H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  const walls = [WHITE, PALE, WHITE];
-  [-0.26, 0, 0.26].forEach((x, i) => {
-    const floors = i === 1 ? 3 : 2;
-    const top = house(b, { y, x, w: 0.24, d: 0.42, floors, fh: 0.17, wall: walls[i], roof: i === 1 ? color : shade(color, 0.85), roofH: 0.16, windows: 1, door: i !== 1, wallMat: 'plaster', trim: lit(color) });
-    b.box(0.012, top - y, 0.012, 'glow', lit(color), { y, x: x - 0.12, z: 0.22 });
-    b.box(0.26, 0.012, 0.012, 'glow', lit(color), { y: top, x, z: 0.22 });
+  [-0.24, 0, 0.24].forEach((x, i) => {
+    const h = [0.42, 0.5, 0.38][i];
+    b.box(0.22, h, 0.4, i === 1 ? 'gloss' : 'plaster', i === 1 ? color : WHITE, { y, x });
+    b.box(0.26, 0.04, 0.44, 'gloss', i === 1 ? WHITE : color, { y: y + h, x, rz: i % 2 ? -0.35 : 0.35 });
+    panes(b, x - 0.08, x + 0.08, y + h * 0.55, 0.205, 1, 0.1, GLASS);
+    strip(b, 0.03, h * 0.5, 0.02, lit(color), { y: y + h * 0.2, x: x + 0.085, z: 0.21 });
+    door(b, x - 0.03, 0.205, y, color, 0.07, 0.13);
   });
   return b.finish();
 };
 
-/** 10 Neon Apartments: a five-storey white block with coloured balconies and lit windows. */
-const apartments: Build = (H, color) => {
+/** 10 Pod Tower: capsule homes in the tier colour stacked in a spiral around a white core. */
+const podTower: Build = (H, color) => {
   const b = new Builder();
   const y = deck(b, base(b, color), color);
-  const floors = 5;
-  const fh = Math.max(0.12, (H - 0.2) / floors);
-  b.box(0.66, fh * floors, 0.44, 'plaster', WHITE, { y, z: -0.03 });
-  for (let f = 0; f < floors; f++) {
-    const fy = y + f * fh;
-    panes(b, -0.28, 0.28, fy + fh * 0.25, 0.195, 4, fh * 0.5, GLASS);
-    if (f > 0) {
-      b.box(0.7, 0.02, 0.08, 'gloss', color, { y: fy, z: 0.22 });
-      b.box(0.7, 0.012, 0.012, 'glow', lit(color), { y: fy + fh * 0.32, z: 0.26 });
-    }
+  const h = Math.max(0.7, H - 0.2);
+  b.cyl(0.09, 0.1, h, 'gloss', WHITE, { y }, 12);
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const a = i * 2.2;
+    const py = y + 0.02 + (h - 0.16) * (i / (n - 1));
+    const x = Math.sin(a) * 0.2;
+    const z = Math.cos(a) * 0.2;
+    b.box(0.26, 0.13, 0.18, 'gloss', i % 2 ? color : shade(color, 1.15), { x, z, y: py, ry: a });
+    b.box(0.14, 0.05, 0.012, 'pane', GLASS, { x: x + Math.sin(a) * 0.092, z: z + Math.cos(a) * 0.092, y: py + 0.045, ry: a });
+    b.box(0.2, 0.014, 0.014, 'glow', lit(color), { x: x + Math.sin(a) * 0.095, z: z + Math.cos(a) * 0.095, y: py + 0.012, ry: a });
   }
-  b.box(0.7, 0.04, 0.48, 'gloss', color, { y: y + floors * fh, z: -0.03 });
-  door(b, 0, 0.195, y, color, 0.12, fh * 0.8);
+  b.cyl(0.008, 0.008, 0.18, 'gloss', WHITE, { y: y + h }, 5);
+  b.sphere(0.025, 'glow', lit(color), { y: y + h + 0.18 }, 8);
   return b.finish();
 };
 
@@ -329,6 +345,6 @@ const orbital: Build = (H, color) => {
 };
 
 export const NEON: Build[] = [
-  powerCube, capsuleHut, garage, cubeHome, smartCottage, neonHouse, hoverHouse, glassVilla, townhouses,
-  apartments, arcology, neonTower, holoSky, helix, megaSpire, cyberHQ, skyDome, orbital,
+  neonCube, podHome, aFramePod, hexaHome, wedgeHouse, stackHouse, hoverHouse, skyVilla, rowhouses,
+  podTower, arcology, neonTower, holoSky, helix, megaSpire, cyberHQ, skyDome, orbital,
 ];

@@ -34,7 +34,7 @@ THEMES = [
     (2, 'Tropical Beach', 4, ['Sandcastle', 'Beach Hut', 'Lifeguard Tower', 'Tiki Hut', 'Surf Shack', 'Beach Cottage', 'Stilt House', 'Overwater Bungalow', 'Bungalow Pier', 'Pool Villa', 'Seaside Apartments', 'Beach Resort', 'Palm Hotel', 'Sail Tower', 'Lagoon Resort', 'Coral Palace', 'Island Citadel', 'Paradise Spire']),
     (3, 'Alpine Peaks', 5, ['Woodpile', 'Tent', "Hunter's Hut", 'A-Frame Cabin', 'Log Cabin', 'Big Log Cabin', 'Luxury Log Cabin', 'Chalet', 'Ski Lodge', 'Mountain Villa', 'Grand Chalet', 'Alpine Hotel', 'Cliff Villa', 'Peak Resort', 'Cable Car Station', 'Mountain Castle', 'Glacier Palace', 'Summit Observatory']),
     (4, 'Sweet Town', 6, ['Sugar Cube', 'Cupcake Hut', 'Candy Kiosk', 'Gingerbread Cabin', 'Cookie Cottage', 'Gingerbread House', 'Donut House', 'Layer Cake Manor', 'Macaron Row', 'Ice Cream Parlour', 'Chocolate Block', 'Lollipop Tower', 'Candy Cane Tower', 'Soft-Serve Swirl', 'Wedding Cake Tower', 'Candy Castle', 'Sundae Citadel', 'Rainbow Spire']),
-    (5, 'Neon City', 6, ['Power Cube', 'Capsule Hut', 'Neon Garage', 'Cube Home', 'Smart Cottage', 'Neon House', 'Hover House', 'Glass Villa', 'Neon Townhouses', 'Neon Apartments', 'Arcology', 'Neon Tower', 'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower']),
+    (5, 'Neon City', 6, ['Neon Cube', 'Pod Home', 'A-Frame Pod', 'Hexa Home', 'Wedge House', 'Stack House', 'Hover House', 'Sky Villa', 'Neon Rowhouses', 'Pod Tower', 'Arcology', 'Neon Tower', 'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower']),
 ]
 MAX_CONTRACT = 10
 
