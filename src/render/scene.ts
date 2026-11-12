@@ -805,7 +805,7 @@ export class SceneView {
     for (const era of [1, 2, 3, 4] as const) this.fx.merge(0, 0, era, '#ffffff', 2);
     // Themed merge pieces use their own materials: compile them up front too.
     const was = this.fx.theme;
-    for (const th of ['sweet', 'beach', 'alpine', 'neon'] as const) {
+    for (const th of ['sweet', 'beach', 'alpine', 'neon', 'atlantis', 'sakura', 'desert'] as const) {
       this.fx.theme = th;
       this.fx.merge(0, 0, 2, '#ffffff', 2);
     }

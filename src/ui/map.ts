@@ -33,6 +33,9 @@ const ROAD: Record<ThemeId, [string, string, string]> = {
   alpine: ['#6d8aa8', '#ffffff', '#8fd0ff'],
   sweet: ['#d4698f', '#ffe0ee', '#ff5e8a'],
   neon: ['#3df5ff', '#20264a', '#ff3df2'],
+  atlantis: ['#2f8fb0', '#f3ead2', '#ffd36b'],
+  sakura: ['#c8452f', '#fbe9ee', '#ff8fbf'],
+  desert: ['#a8743d', '#f6e2b5', '#2f5da8'],
 };
 
 export interface MapOptions {

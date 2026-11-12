@@ -35,6 +35,9 @@ THEMES = [
     (3, 'Alpine Peaks', 5, ['Woodpile', 'Tent', "Hunter's Hut", 'A-Frame Cabin', 'Log Cabin', 'Big Log Cabin', 'Luxury Log Cabin', 'Chalet', 'Ski Lodge', 'Mountain Villa', 'Grand Chalet', 'Alpine Hotel', 'Cliff Villa', 'Peak Resort', 'Cable Car Station', 'Mountain Castle', 'Glacier Palace', 'Summit Observatory']),
     (4, 'Sweet Town', 6, ['Sugar Cube', 'Cupcake Hut', 'Candy Kiosk', 'Gingerbread Cabin', 'Cookie Cottage', 'Gingerbread House', 'Donut House', 'Layer Cake Manor', 'Macaron Row', 'Ice Cream Parlour', 'Chocolate Block', 'Lollipop Tower', 'Candy Cane Tower', 'Soft-Serve Swirl', 'Wedding Cake Tower', 'Candy Castle', 'Sundae Citadel', 'Rainbow Spire']),
     (5, 'Neon City', 6, ['Neon Cube', 'Pod Home', 'A-Frame Pod', 'Hexa Home', 'Wedge House', 'Stack House', 'Hover House', 'Sky Villa', 'Neon Rowhouses', 'Pod Tower', 'Arcology', 'Neon Tower', 'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower']),
+    (6, 'Atlantis', 6, ['Seashell', 'Coral Hut', 'Clam House', 'Diving Bell', 'Bubble Dome', 'Reef Cottage', 'Sea Manor', 'Pearl Villa', 'Coral Terraces', 'Column Hall', 'Reef Apartments', 'Lighthouse Tower', 'Kelp Tower', 'Trident Tower', 'Conch Spire', "Poseidon's Temple", 'Crystal Palace', 'Atlantis Spire']),
+    (7, 'Sakura Spring', 6, ['Stone Lantern', 'Tea Stall', 'Shrine Gate', 'Garden Teahouse', 'Paper House', 'Machiya', 'Ryokan Inn', 'Samurai House', 'Temple Hall', 'Moon Pavilion', 'Three-Tier Pagoda', 'Five-Tier Pagoda', 'Castle Keep', 'Blossom Tower', 'Golden Pavilion', 'Shogun Castle', 'Cloud Palace', 'Sakura Spire']),
+    (8, 'Desert Oasis', 7, ['Mud Brick', 'Nomad Tent', 'Market Stall', 'Adobe Hut', 'Oasis House', 'Courtyard House', 'Domed Villa', 'Merchant House', 'Sandstone Row', 'Bazaar Palace', 'Obelisk', 'Temple of the Sun', 'Step Pyramid', 'Great Pyramid', 'Sphinx Temple', "Pharaoh's Palace", 'Golden Citadel', 'Sun Spire']),
 ]
 MAX_CONTRACT = 10
 
@@ -50,7 +53,10 @@ HINTS = {
     (2, 1): 'Welcome to the beach! Bigger buildings, bigger rewards.',
     (3, 1): 'Alpine Peaks: scaffolds everywhere. Aim around them!',
     (4, 1): 'Sweet Town: tight gaps and sweet chains.',
-    (5, 1): 'Neon City: the final district. Every shot counts!',
+    (5, 1): 'Neon City: every shot counts!',
+    (6, 1): 'Welcome to Atlantis! Bubbles, pearls and big chains.',
+    (7, 1): 'Sakura Spring: calm petals, tricky pagodas.',
+    (8, 1): 'Desert Oasis: the final district. Build to the sun!',
 }
 
 
@@ -97,7 +103,7 @@ def district(did, theme, base, names):
         pos = (n - 1) % 11 + 1  # 1..11
         t0 = base + act
         # How many of the optional levels get scaffolds in this district.
-        ob_slots = {1: set(), 2: {9}, 3: {5, 9}, 4: {2, 5, 9}, 5: {2, 5, 9, 10}}[did]
+        ob_slots = {1: set(), 2: {9}, 3: {5, 9}, 4: {2, 5, 9}, 5: {2, 5, 9, 10}}.get(did, {2, 5, 9})
         if did == 1 and act == 2:
             ob_slots = {5, 9}
         # Starting piles help less as the district goes on.
@@ -168,7 +174,11 @@ def district(did, theme, base, names):
     return {'id': did, 'name': theme, 'time': 'noon', 'levels': levels}
 
 
+import os
+ONLY = {int(x) for x in os.environ.get('ONLY', '').split(',') if x}
 for did, theme, base, names in THEMES:
+    if ONLY and did not in ONLY:
+        continue
     with open(f'levels/district-{did:02d}.json', 'w') as f:
         json.dump(district(did, theme, base, names), f, indent=2)
         f.write('\n')

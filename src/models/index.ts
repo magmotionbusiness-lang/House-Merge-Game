@@ -24,11 +24,14 @@ import { BEACH } from './beach';
 import { ALPINE } from './alpine';
 import { SWEET } from './sweet';
 import { NEON } from './neon';
+import { ATLANTIS } from './atlantis';
+import { SAKURA } from './sakura';
+import { DESERT } from './desert';
 import { currentTheme, type ThemeId } from '../core/themes';
 
 type Build = (H: number, color: string) => THREE.Group;
 const SITE: Build[] = [t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12, t13, t14, t15, t16, t17, t18];
-const LINEUPS: Record<ThemeId, Build[]> = { site: SITE, beach: BEACH, alpine: ALPINE, sweet: SWEET, neon: NEON };
+const LINEUPS: Record<ThemeId, Build[]> = { site: SITE, beach: BEACH, alpine: ALPINE, sweet: SWEET, neon: NEON, atlantis: ATLANTIS, sakura: SAKURA, desert: DESERT };
 
 /** World size of a tier's model: footprint diameter and target visual height. */
 export function modelSize(tierId: number) {

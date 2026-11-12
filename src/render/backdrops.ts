@@ -483,6 +483,9 @@ const GROUND: Record<ThemeId, string> = {
   alpine: '#eef2fb',
   sweet: '#f3d9ee',
   neon: '#3b2b78',
+  atlantis: '#e9dcb8',
+  sakura: '#f3d6dc',
+  desert: '#e7c58e',
 };
 
 const painted = new Map<ThemeId, HTMLCanvasElement>();

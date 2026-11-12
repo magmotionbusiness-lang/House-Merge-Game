@@ -343,6 +343,28 @@ export class Sfx {
       for (let i = 0; i < 4 + combo * 2; i++)
         this.noise(0.05, { gain: 0.06, filter: 'highpass', freq: 6500 + Math.random() * 2500, when: 0.02 + i * 0.035, wet: 0.4 });
       up.slice(0, n).forEach((s, i) => this.tone(root * 4 * Math.pow(2, s / 12), 0.2, { gain: 0.035, when: 0.06 + i * 0.04, wet: 0.7 }));
+    } else if (this.theme === 'atlantis') {
+      // Underwater: a bubbly "bloop" rising, a soft harp-like chord and a whale-song swell.
+      this.tone(220 * jitter(), 0.18, { gain: 0.16, freqEnd: 700 });
+      this.tone(330 * jitter(), 0.14, { gain: 0.1, freqEnd: 1000, when: 0.06 });
+      [1, 1.26, 1.5, 2].forEach((m, i) => this.tone(root * m, 0.8, { gain: (i ? 0.06 : 0.09) * (1 + weight * 0.3), type: 'triangle', when: i * 0.03, wet: 0.7 }));
+      this.tone(root / 2, 0.9, { gain: 0.05, freqEnd: root / 2 * 1.06, attack: 0.15, wet: 0.8 });
+      up.slice(0, n).forEach((s, i) => this.tone(root * 2 * Math.pow(2, s / 12), 0.25, { gain: 0.035, when: 0.08 + i * 0.05, wet: 0.8 }));
+    } else if (this.theme === 'sakura') {
+      // Koto plucks and a soft wind chime (pentatonic, like the merge ladder).
+      const pluck = (f: number, gain: number, when = 0) => {
+        this.tone(f, 0.55, { gain, when, type: 'triangle', freqEnd: f * 0.995, wet: 0.35 });
+        this.tone(f * 2, 0.12, { gain: gain * 0.4, when });
+        this.noise(0.02, { gain: gain * 0.4, filter: 'highpass', freq: 4000, when });
+      };
+      [1, 1.5, 2].forEach((m, i) => pluck(root * m, (i ? 0.09 : 0.13) * (1 + weight * 0.3), i * 0.05));
+      up.slice(0, n).forEach((s, i) => this.tone(root * 4 * Math.pow(2, s / 12), 0.4, { gain: 0.03, when: 0.12 + i * 0.06, wet: 0.8 }));
+    } else if (this.theme === 'desert') {
+      // A darbuka "doum-tek", an oud-like pluck chord and a coin shimmer.
+      this.tone(110, 0.16, { gain: 0.3, freqEnd: 60 });
+      this.noise(0.03, { gain: 0.14, filter: 'highpass', freq: 3500, when: 0.09 });
+      [1, 1.19, 1.5].forEach((m, i) => this.tone(root * m, 0.45, { gain: (i ? 0.07 : 0.1) * (1 + weight * 0.3), type: 'sawtooth', when: 0.02 + i * 0.025, wet: 0.25 }));
+      for (let i = 0; i < 3 + combo; i++) this.tone(2600 + i * 400 + Math.random() * 300, 0.06, { gain: 0.03, type: 'triangle', when: 0.1 + i * 0.04 });
     } else {
       // Neon: a laser zap, a filtered synth stab and a quick square arpeggio.
       const lp = ctx.createBiquadFilter();

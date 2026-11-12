@@ -477,3 +477,27 @@ New lineup: Power Cube → Capsule Hut (barrel roof) → Neon Garage → Cube Ho
 Neon Cube → Pod Home (tilted roof, porthole) → A-Frame Pod (glass triangle front) → Hexa Home (six-sided with a glass top room) → Wedge House (roof sweeping up into a glass wall) → Stack House (box cantilevered across a glass floor) → Hover House (on four glowing thrusters) → Sky Villa → Neon Rowhouses (zig-zag roofs, neon signs) → Pod Tower (capsule homes spiralling round a core).
 
 District 5 level names were renamed in place.
+
+## Three new maps: Atlantis, Sakura Spring, Desert Oasis
+
+The user painted three more backdrops in the house style (crane, cones, scaffolding). Each became a full map: its own 18 procedural buildings, building names, rail, frame and beam colours, board-glow palette, confetti, level-clear shout, merge instrument, merge burst, a living backdrop, a campaign district of 33 levels (districts 6-8), and a place in the Endless theme rotation (after Neon City).
+
+**Atlantis** ("Tidal Wave!")
+- Buildings: white marble, gold capitals and coral, with domes and roofs in the tier colour. Seashell → Coral Hut → Clam House → Diving Bell → Bubble Dome → Reef Cottage → Sea Manor → Pearl Villa → Coral Terraces → Column Hall → Reef Apartments → Lighthouse Tower → Kelp Tower → Trident Tower → Conch Spire → Poseidon's Temple → Crystal Palace → Atlantis Spire.
+- Sound: a rising bubbly "bloop", a soft harp chord and a whale-song swell.
+- Burst: bubbles rising and pearls.
+- Backdrop motion: bubbles wobbling up, small schools of fish crossing, and light rays from the surface slowly swaying.
+
+**Sakura Spring** ("Full Bloom!")
+- Buildings: dark timber, white paper walls and stone bases, with flared roofs in the tier colour, lanterns and blossom trees. Stone Lantern → Tea Stall → Shrine Gate → Garden Teahouse → Paper House → Machiya → Ryokan Inn → Samurai House → Temple Hall → Moon Pavilion → Three-Tier Pagoda → Five-Tier Pagoda → Castle Keep → Blossom Tower → Golden Pavilion → Shogun Castle → Cloud Palace → Sakura Spire.
+- Sound: koto plucks and a wind chime.
+- Burst: a puff of petals drifting away.
+- Backdrop motion: cherry petals riding a calm breeze. One shared wind slowly gusts and eases, and every petal also flutters and tumbles on its own.
+
+**Desert Oasis** ("Golden Sands!")
+- Buildings: sandstone and mud brick with Egyptian blue-and-gold friezes and lotus columns; the tier colour is on domes, awnings, tents and capstones. Mud Brick → Nomad Tent → Market Stall → Adobe Hut → Oasis House → Courtyard House → Domed Villa → Merchant House → Sandstone Row → Bazaar Palace → Obelisk → Temple of the Sun → Step Pyramid → Great Pyramid → Sphinx Temple → Pharaoh's Palace → Golden Citadel → Sun Spire.
+- Sound: a darbuka doum-tek, an oud-like chord and a coin shimmer.
+- Burst: sand chips and spinning gold coins.
+- Backdrop motion (the "something creative"): wind-blown sand streams and grains sweeping across, heat haze shimmering over the dunes, and a falcon slowly circling high above the oasis.
+
+**Campaign:** districts 6-8 open at 230 / 280 / 330 stars. The bot's target win rate keeps falling past district 5, but by 2% a district instead of 6%, so the curve flattens out instead of becoming punishing. Districts 1-5 were not regenerated; their tuned limits are untouched.

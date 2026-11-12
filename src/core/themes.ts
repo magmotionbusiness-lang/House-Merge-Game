@@ -6,7 +6,7 @@ import { tier } from './tiers';
  * Tier identity never changes: the same tier keeps its colour, rank badge and
  * size in every theme, only its look and name differ.
  */
-export type ThemeId = 'site' | 'beach' | 'alpine' | 'sweet' | 'neon';
+export type ThemeId = 'site' | 'beach' | 'alpine' | 'sweet' | 'neon' | 'atlantis' | 'sakura' | 'desert';
 
 export interface Theme {
   id: ThemeId;
@@ -119,10 +119,61 @@ export const THEMES: Record<ThemeId, Theme> = {
     shout: 'Neon Overdrive!',
     glow: [['#3df5ff', '#9ffbff', '#3dc8ff'], ['#3df5ff', '#b48cff', '#3dc8ff'], ['#ff3df2', '#3df5ff', '#b48cff'], ['#ff3df2', '#b48cff', '#3df5ff'], ['#3df5ff', '#ff3df2', '#7dff6b']],
   },
+  atlantis: {
+    id: 'atlantis',
+    name: 'Atlantis',
+    tagline: 'A lost city under the sea',
+    names: [
+      'Seashell', 'Coral Hut', 'Clam House', 'Diving Bell', 'Bubble Dome', 'Reef Cottage', 'Sea Manor', 'Pearl Villa', 'Coral Terraces', 'Column Hall',
+      'Reef Apartments', 'Lighthouse Tower', 'Kelp Tower', 'Trident Tower', 'Conch Spire', "Poseidon's Temple", 'Crystal Palace', 'Atlantis Spire',
+    ],
+    art: 'bg/atlantis.webp',
+    rail: '#e7dcc2',
+    frame: '#2f6f8a',
+    beam: ['#ffd36b', '#2a8fb0'],
+    accent: '#3fe0e8',
+    confetti: ['#3fe0e8', '#ff7fc8', '#ffd36b', '#b48cff', '#ffffff'],
+    shout: 'Tidal Wave!',
+    glow: [['#8ff4ff', '#d8fdff', '#7fe6f0'], ['#3fe0e8', '#bff7ff', '#8fb8ff'], ['#3fe0e8', '#ff9ed8', '#bff7ff'], ['#ff9ed8', '#3fe0e8', '#ffd36b'], ['#3fe0e8', '#ff9ed8', '#b48cff']],
+  },
+  sakura: {
+    id: 'sakura',
+    name: 'Sakura Spring',
+    tagline: 'Cherry blossoms and pagodas',
+    names: [
+      'Stone Lantern', 'Tea Stall', 'Shrine Gate', 'Garden Teahouse', 'Paper House', 'Machiya', 'Ryokan Inn', 'Samurai House', 'Temple Hall', 'Moon Pavilion',
+      'Three-Tier Pagoda', 'Five-Tier Pagoda', 'Castle Keep', 'Blossom Tower', 'Golden Pavilion', 'Shogun Castle', 'Cloud Palace', 'Sakura Spire',
+    ],
+    art: 'bg/sakura.webp',
+    rail: '#c8452f',
+    frame: '#5a2a22',
+    beam: ['#ff9ec4', '#ffffff'],
+    accent: '#ff8fbf',
+    confetti: ['#ffc2dc', '#ff8fbf', '#ffffff', '#ffd36b', '#c8452f'],
+    shout: 'Full Bloom!',
+    glow: [['#ffd1e6', '#fff0f6', '#ffc2dc'], ['#ffb3d1', '#ffe8f2', '#ffd36b'], ['#ff8fbf', '#ffd1e6', '#ffb070'], ['#ff7fae', '#ffd36b', '#ffc2dc'], ['#ff8fbf', '#ffd36b', '#ffffff']],
+  },
+  desert: {
+    id: 'desert',
+    name: 'Desert Oasis',
+    tagline: 'Pyramids, palms and golden sands',
+    names: [
+      'Mud Brick', 'Nomad Tent', 'Market Stall', 'Adobe Hut', 'Oasis House', 'Courtyard House', 'Domed Villa', 'Merchant House', 'Sandstone Row', 'Bazaar Palace',
+      'Obelisk', 'Temple of the Sun', 'Step Pyramid', 'Great Pyramid', 'Sphinx Temple', "Pharaoh's Palace", 'Golden Citadel', 'Sun Spire',
+    ],
+    art: 'bg/desert.webp',
+    rail: '#d9b072',
+    frame: '#8a5a2b',
+    beam: ['#2f5da8', '#f2c14e'],
+    accent: '#ffc43d',
+    confetti: ['#ffc43d', '#2f5da8', '#3fd0d0', '#ff7a59', '#ffffff'],
+    shout: 'Golden Sands!',
+    glow: [['#ffe2a0', '#fff4d6', '#ffd27a'], ['#ffc43d', '#fff0c2', '#3fd0d0'], ['#ffb02e', '#ffe2a0', '#3fd0d0'], ['#ff8a3d', '#ffc43d', '#5aa0ff'], ['#ffc43d', '#3fd0d0', '#ffffff']],
+  },
 };
 
 /** The order a run travels through the themes (then it loops). */
-export const THEME_ORDER: ThemeId[] = ['site', 'beach', 'alpine', 'sweet', 'neon'];
+export const THEME_ORDER: ThemeId[] = ['site', 'beach', 'alpine', 'sweet', 'neon', 'atlantis', 'sakura', 'desert'];
 
 let current: ThemeId = 'site';
 const listeners = new Set<(t: Theme) => void>();

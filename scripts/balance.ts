@@ -19,7 +19,7 @@ const args = process.argv.slice(2);
 const RUNS = Number(args[args.indexOf('--runs') + 1]) || 300;
 const WRITE = args.includes('--write');
 const MAX_SHOTS = 220;
-const files = [1, 2, 3, 4, 5].map((d) => `levels/district-${String(d).padStart(2, '0')}.json`);
+const files = [1, 2, 3, 4, 5, 6, 7, 8].map((d) => `levels/district-${String(d).padStart(2, '0')}.json`);
 const ONLY = args.includes('--district') ? Number(args[args.indexOf('--district') + 1]) : 0;
 
 /**
@@ -29,7 +29,8 @@ const ONLY = args.includes('--district') ? Number(args[args.indexOf('--district'
  */
 function target(district: number, n: number): number {
   if (district === 1 && n <= 3) return 0.97;
-  let t = 0.95 - 0.2 * ((n - 1) / 32) - 0.06 * (district - 1);
+  // Districts 1-5 step down 6% each; later districts only 2% more each, so the curve flattens out.
+  let t = 0.95 - 0.2 * ((n - 1) / 32) - 0.06 * Math.min(district - 1, 4) - 0.02 * Math.max(0, district - 5);
   if (n % 11 === 0) t -= 0.05; // Big Build
   if (n % 11 === 1 && n > 1) t += 0.1; // breather after a Big Build
   return Math.min(0.97, Math.max(0.5, t));

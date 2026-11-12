@@ -73,7 +73,7 @@ export function levelCoins(_level: LevelDef, stars: number, contractCoins: numbe
 }
 
 /** Stars needed (in total, across the campaign) to open each district. District 1 is always open. */
-export const DISTRICT_GATES = [0, 40, 85, 130, 180];
+export const DISTRICT_GATES = [0, 40, 85, 130, 180, 230, 280, 330];
 
 export function totalStars(stars: Record<string, number>) {
   return Object.values(stars).reduce((a, b) => a + b, 0);

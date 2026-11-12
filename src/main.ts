@@ -26,8 +26,11 @@ import district2 from '../levels/district-02.json';
 import district3 from '../levels/district-03.json';
 import district4 from '../levels/district-04.json';
 import district5 from '../levels/district-05.json';
+import district6 from '../levels/district-06.json';
+import district7 from '../levels/district-07.json';
+import district8 from '../levels/district-08.json';
 
-const DISTRICTS: District[] = [district1, district2, district3, district4, district5].map((d) => validateDistrict(d as District));
+const DISTRICTS: District[] = [district1, district2, district3, district4, district5, district6, district7, district8].map((d) => validateDistrict(d as District));
 
 /** Canvas textures draw with these fonts, so wait for them (but never block boot for long). */
 function loadFonts() {

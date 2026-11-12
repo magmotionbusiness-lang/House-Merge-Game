@@ -52,6 +52,7 @@ export class ParticleFx {
       return new THREE.ShapeGeometry(sh);
     })(),
     pixel: new THREE.BoxGeometry(0.009, 0.009, 0.009),
+    coin: new THREE.CylinderGeometry(0.008, 0.008, 0.003, 12),
   };
   /** The map theme: merges throw pieces that belong to it. */
   theme: ThemeId = 'site';
@@ -232,6 +233,26 @@ export class ParticleFx {
       for (let i = 0; i < n; i++)
         spawn(this.geo.pixel, this.glow(cols[i % cols.length]), { speed: sp, up: 1.1, gravity: -0.6, drag: 2, life: rand(0.6, 1.0), bounce: false });
       this.rays(x, y, '#3df5ff', 4);
+    } else if (this.theme === 'atlantis') {
+      // A rush of bubbles rising, a few pearls and a shimmer of sea glints.
+      for (let i = 0; i < n; i++) {
+        if (i % 4 === 0) spawn(this.geo.candy, this.gloss('#fff6ea'), { speed: sp * 0.8, up: 1.2, life: rand(0.7, 1.0) });
+        else spawn(this.geo.candy, this.glow(i % 3 ? '#bff7ff' : '#8ff4ff'), { speed: sp * 0.6, up: 0.9, gravity: -1.8, drag: 1.4, life: rand(0.8, 1.2), bounce: false, size: rand(0.6, 1.5) });
+      }
+      this.dust(x, y, 0.07 + power * 0.03, '#d8fdff', 3);
+    } else if (this.theme === 'sakura') {
+      // A puff of cherry petals drifting away on the breeze.
+      const cols = ['#ffc2dc', '#ffb3d1', '#ffffff', '#ff9ec4'];
+      for (let i = 0; i < n; i++)
+        spawn(this.geo.petal, this.flat(cols[i % cols.length]), { speed: sp, up: 1.6, gravity: 1.1, drag: 2.4, life: rand(1.0, 1.5), bounce: false });
+      this.dust(x, y, 0.07 + power * 0.03, '#ffe8f2', 3);
+    } else if (this.theme === 'desert') {
+      // A burst of sand and spinning gold coins.
+      for (let i = 0; i < n; i++) {
+        if (i % 3 === 0) spawn(this.geo.coin, this.gloss('#f2c14e'), { speed: sp * 1.1, up: 1.6, life: rand(0.7, 1.0) });
+        else spawn(this.geo.chip, this.solid(i % 2 ? '#e8c48a' : '#d9a865'), { speed: sp, up: 1.1, drag: 0.8 });
+      }
+      this.dust(x, y, 0.09 + power * 0.03, '#f3d9a4', 4);
     } else if (era === 1) {
       // Brick dust and mortar chips.
       for (let i = 0; i < n; i++)
