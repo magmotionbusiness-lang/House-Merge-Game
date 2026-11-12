@@ -465,3 +465,9 @@ Players couldn't tell the Neon City buildings apart: the small tiers were blobs 
 - Proper house shapes that grow with each tier.
 
 New lineup: Power Cube → Capsule Hut (barrel roof) → Neon Garage → Cube Home → Smart Cottage → Neon House → Hover House → Glass Villa → Neon Townhouses → Neon Apartments → Arcology → Neon Tower → Holo Skyscraper → Helix Tower → Mega Spire → Cyber HQ → Sky Dome → Orbital Tower. District 5's level names were renamed in place, so the tuned shot limits are kept.
+
+## Phase 9b: Accessibility pass
+
+- **Calm effects** (Settings) now covers everything added since it was introduced: no confetti (theme arrivals, level clears), no looping bounces on the map (clouds, "?" badge, the builder pin, the current level, the Play button), the level card fades in instead of dropping and swinging, and no score-box pop. The system's Reduce Motion setting gets the same treatment, and the animated backdrop thins out under both.
+- **Large text** already scales every screen, including the new map and its cards.
+- **Colour blindness:** the 18 tier colours were checked under simulated deuteranopia, protanopia and tritanopia. The closest neighbouring pair is still ΔE ≈ 12 apart (tiers 11/12 for tritanopia, 3/4 for deuteranopia), which is clearly distinguishable, and every building also carries its tier number on the badge. The aim preview tells its levels apart by size, brightness and the rainbow chase as well as by colour.

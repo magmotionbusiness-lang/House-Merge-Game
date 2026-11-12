@@ -3631,3 +3631,34 @@ body:has(.screen.title) #splash {
     animation: none;
   }
 }
+
+/* ================= Accessibility: Calm effects and Large text on the newer screens ================= */
+/* Calm (Settings) does what the system's Reduce Motion does: no confetti, no looping bounces. */
+.calm .confetti {
+  display: none;
+}
+.calm .cmap-clouds i,
+.calm .cm-q,
+.calm .cmap-avatar img,
+.calm .cmap-lv.current,
+.calm .lvcard-play,
+.calm .celeb-shout span {
+  animation-duration: 0.01s;
+  animation-iteration-count: 1;
+}
+.calm .lvcard {
+  animation: fadein 0.25s ease-out;
+}
+.calm .score-box.gain {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cmap-clouds i,
+  .cm-q {
+    animation: none;
+  }
+  .lvcard {
+    animation: fadein 0.25s ease-out;
+  }
+}
+/* Large text: `.large-text .screens` already scales the map and its cards. */

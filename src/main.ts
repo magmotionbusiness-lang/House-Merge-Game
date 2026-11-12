@@ -255,6 +255,7 @@ async function boot() {
   window.visualViewport?.addEventListener('resize', resize);
   onSettings((st) => {
     document.documentElement.classList.toggle('large-text', st.largeText);
+    document.documentElement.classList.toggle('calm', st.calm);
     requestAnimationFrame(resize);
   });
 
