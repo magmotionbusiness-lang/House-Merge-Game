@@ -80,7 +80,7 @@
     },
     {
       "id": "5-3",
-      "name": "Hover House & Glass House",
+      "name": "Hover House & Neon House",
       "shots": 15,
       "contracts": [
         {
@@ -119,7 +119,7 @@
     },
     {
       "id": "5-4",
-      "name": "Two Glass Houses",
+      "name": "Two Neon Houses",
       "shots": 9,
       "contracts": [
         {
@@ -192,7 +192,7 @@
     },
     {
       "id": "5-6",
-      "name": "Holo Villa",
+      "name": "Glass Villa",
       "shots": 23,
       "contracts": [
         {
@@ -232,7 +232,7 @@
     },
     {
       "id": "5-7",
-      "name": "Holo Villa & Glass House",
+      "name": "Glass Villa & Neon House",
       "shots": 27,
       "contracts": [
         {
@@ -316,7 +316,7 @@
     },
     {
       "id": "5-9",
-      "name": "Holo Villa Square",
+      "name": "Glass Villa Square",
       "shots": 41,
       "contracts": [
         {
@@ -360,7 +360,7 @@
     },
     {
       "id": "5-10",
-      "name": "Holo Villa & Hover House",
+      "name": "Glass Villa & Hover House",
       "shots": 60,
       "contracts": [
         {
@@ -408,7 +408,7 @@
     },
     {
       "id": "5-11",
-      "name": "Big Build: Pod Stack",
+      "name": "Big Build: Neon Townhouses",
       "shots": 68,
       "contracts": [
         {
@@ -483,7 +483,7 @@
     },
     {
       "id": "5-13",
-      "name": "Holo Villa",
+      "name": "Glass Villa",
       "shots": 39,
       "contracts": [
         {
@@ -521,7 +521,7 @@
     },
     {
       "id": "5-14",
-      "name": "Holo Villa & Hover House",
+      "name": "Glass Villa & Hover House",
       "shots": 26,
       "contracts": [
         {
@@ -595,7 +595,7 @@
     },
     {
       "id": "5-16",
-      "name": "Holo Villa Lane",
+      "name": "Glass Villa Lane",
       "shots": 39,
       "contracts": [
         {
@@ -639,7 +639,7 @@
     },
     {
       "id": "5-17",
-      "name": "Pod Stack",
+      "name": "Neon Townhouses",
       "shots": 46,
       "contracts": [
         {
@@ -674,7 +674,7 @@
     },
     {
       "id": "5-18",
-      "name": "Pod Stack & Hover House",
+      "name": "Neon Townhouses & Hover House",
       "shots": 62,
       "contracts": [
         {
@@ -713,7 +713,7 @@
     },
     {
       "id": "5-19",
-      "name": "Two Holo Villas",
+      "name": "Two Glass Villas",
       "shots": 34,
       "contracts": [
         {
@@ -753,7 +753,7 @@
     },
     {
       "id": "5-20",
-      "name": "Pod Stack Square",
+      "name": "Neon Townhouses Square",
       "shots": 136,
       "contracts": [
         {
@@ -797,7 +797,7 @@
     },
     {
       "id": "5-21",
-      "name": "Pod Stack & Holo Villa",
+      "name": "Neon Townhouses & Glass Villa",
       "shots": 107,
       "contracts": [
         {
@@ -839,7 +839,7 @@
     },
     {
       "id": "5-22",
-      "name": "Big Build: Ring Apartments",
+      "name": "Big Build: Neon Apartments",
       "shots": 131,
       "contracts": [
         {
@@ -914,7 +914,7 @@
     },
     {
       "id": "5-24",
-      "name": "Pod Stack",
+      "name": "Neon Townhouses",
       "shots": 92,
       "contracts": [
         {
@@ -958,7 +958,7 @@
     },
     {
       "id": "5-25",
-      "name": "Pod Stack & Holo Villa",
+      "name": "Neon Townhouses & Glass Villa",
       "shots": 80,
       "contracts": [
         {
@@ -992,7 +992,7 @@
     },
     {
       "id": "5-26",
-      "name": "Two Holo Villas",
+      "name": "Two Glass Villas",
       "shots": 33,
       "contracts": [
         {
@@ -1027,7 +1027,7 @@
     },
     {
       "id": "5-27",
-      "name": "Pod Stack Lane",
+      "name": "Neon Townhouses Lane",
       "shots": 136,
       "contracts": [
         {
@@ -1071,7 +1071,7 @@
     },
     {
       "id": "5-28",
-      "name": "Ring Apartments",
+      "name": "Neon Apartments",
       "shots": 92,
       "contracts": [
         {
@@ -1106,7 +1106,7 @@
     },
     {
       "id": "5-29",
-      "name": "Ring Apartments & Holo Villa",
+      "name": "Neon Apartments & Glass Villa",
       "shots": 123,
       "contracts": [
         {
@@ -1145,7 +1145,7 @@
     },
     {
       "id": "5-30",
-      "name": "Two Pod Stacks",
+      "name": "Two Neon Townhouses",
       "shots": 68,
       "contracts": [
         {
@@ -1180,7 +1180,7 @@
     },
     {
       "id": "5-31",
-      "name": "Pod Stack Scaffolds",
+      "name": "Neon Townhouses Scaffolds",
       "shots": 86,
       "contracts": [
         {
@@ -1218,7 +1218,7 @@
     },
     {
       "id": "5-32",
-      "name": "Pod Stack Scaffolds",
+      "name": "Neon Townhouses Scaffolds",
       "shots": 145,
       "contracts": [
         {
@@ -1266,7 +1266,7 @@
     },
     {
       "id": "5-33",
-      "name": "Big Build: Ring Apartments",
+      "name": "Big Build: Neon Apartments",
       "shots": 127,
       "contracts": [
         {

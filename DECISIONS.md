@@ -455,3 +455,13 @@ What makes Candy Crush's clear such a rush is that the reward keeps coming after
 4. **Results:** the stars land one by one, each with its own rising chime.
 
 **Clouds over what's next (playtest feedback):** the map now only contains the districts the player has opened. Above the last one, the road disappears into a thick bank of softly drifting clouds. Nothing of the next district shows: no name, no backdrop, no buildings. In the clouds sits a card with a "?" badge reading "A new district is hiding in the clouds", a star progress bar and exactly what's left to do ("beat level 33 and collect 12 more ★"). Once every district is open, the clouds say more districts are under construction. The mystery makes reaching the gate a reveal.
+
+## Neon City lineup rebuilt (playtest feedback)
+
+Players couldn't tell the Neon City buildings apart: the small tiers were blobs (the "Sleep Pod" read as a bean), and most models were dark glass that disappeared on the board, so the tier colour barely showed. The lineup is rebuilt on the same rules as the others:
+- White walls or light glass.
+- The tier colour on every roof and main surface.
+- Neon trim in a lighter tint of that colour on top.
+- Proper house shapes that grow with each tier.
+
+New lineup: Power Cube → Capsule Hut (barrel roof) → Neon Garage → Cube Home → Smart Cottage → Neon House → Hover House → Glass Villa → Neon Townhouses → Neon Apartments → Arcology → Neon Tower → Holo Skyscraper → Helix Tower → Mega Spire → Cyber HQ → Sky Dome → Orbital Tower. District 5's level names were renamed in place, so the tuned shot limits are kept.

@@ -108,9 +108,7 @@ export const THEMES: Record<ThemeId, Theme> = {
     name: 'Neon City',
     tagline: 'Glowing homes of the future',
     names: [
-      'Power Cell', 'Sleep Pod', 'Dome Hut', 'Cube Home', 'Smart Cottage', 'Glass House',
-      'Hover House', 'Holo Villa', 'Pod Stack', 'Ring Apartments', 'Arcology', 'Neon Tower',
-      'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower',
+      'Power Cube', 'Capsule Hut', 'Neon Garage', 'Cube Home', 'Smart Cottage', 'Neon House', 'Hover House', 'Glass Villa', 'Neon Townhouses', 'Neon Apartments', 'Arcology', 'Neon Tower', 'Holo Skyscraper', 'Helix Tower', 'Mega Spire', 'Cyber HQ', 'Sky Dome', 'Orbital Tower',
     ],
     art: 'bg/neon.webp',
     rail: '#3a4256',
