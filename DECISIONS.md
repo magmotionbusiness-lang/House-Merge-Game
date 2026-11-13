@@ -524,3 +524,8 @@ The user painted three more backdrops in the house style (crane, cones, scaffold
 - **Settings button:** a proper filled cogwheel, centred (icon-only buttons no longer reserve space for an empty label).
 
 **Aim guide end ring removed (playtest feedback):** the ghost ring where the building lands was removed; the dots now run all the way to the landing spot. Bounce rings and the red stop sign stay.
+
+**Roof flicker fixed (playtest feedback):** the Market Stall's striped awning (and the Nomad Tent's top band) blinked while moving. Two surfaces sat in exactly the same plane, so the GPU alternated which one it drew (z-fighting).
+- `stripedBox` now makes the stripes stand a hair proud of the block on every side.
+- The tent band, the courtyard parapets and the Egyptian friezes were nudged apart.
+- A one-off scan of every model (every axis-aligned box pair sharing a visible face plane) also found and fixed the same problem on the neon trims (`neonBox` rims and posts), the Arcology and Holo Skyscraper bands, the Sky Villa deck, the Step Pyramid stair and the Sphinx headdress. The remaining coplanar pairs are hidden under roofs or slabs.

@@ -45,9 +45,10 @@ export function pine(b: Builder, x: number, z: number, y: number, h = 0.3, snow 
 export function stripedBox(b: Builder, w: number, h: number, d: number, a: string, c: string, at: { x?: number; y: number; z?: number }, n = 6, mat: MatKey = 'wood') {
   const x0 = at.x ?? 0;
   const z0 = at.z ?? 0;
-  b.box(w, h, d, mat, c, { x: x0, y: at.y, z: z0 });
+  b.box(w - 0.008, h, d, mat, c, { x: x0, y: at.y, z: z0 });
   const sw = w / n;
-  for (let i = 0; i < n; i += 2) b.box(sw, h, d + 0.006, mat, a, { x: x0 - w / 2 + sw * (i + 0.5), y: at.y, z: z0 });
+  // Stripes stand a hair proud of the block on every side; matching faces would z-fight (flicker) as the piece moves.
+  for (let i = 0; i < n; i += 2) b.box(sw, h + 0.008, d + 0.008, mat, a, { x: x0 - w / 2 + sw * (i + 0.5), y: at.y - 0.004, z: z0 });
 }
 
 /** Round water patch sitting on the base (lagoons, pools, lakes). */
@@ -95,11 +96,12 @@ export function neonBox(b: Builder, w: number, h: number, d: number, y: number, 
   const z = at.z ?? 0;
   const t = 0.014;
   for (const sx of [-1, 1])
-    for (const sz of [-1, 1]) b.box(t, h, t, 'glow', glow, { x: x + (sx * w) / 2, z: z + (sz * d) / 2, y });
-  b.box(w + t, t, t, 'glow', glow, { x, z: z + d / 2, y: y + h - t });
-  b.box(w + t, t, t, 'glow', glow, { x, z: z - d / 2, y: y + h - t });
-  b.box(t, t, d + t, 'glow', glow, { x: x - w / 2, z, y: y + h - t });
-  b.box(t, t, d + t, 'glow', glow, { x: x + w / 2, z, y: y + h - t });
+    for (const sz of [-1, 1]) b.box(t, h + 0.004, t, 'glow', glow, { x: x + (sx * w) / 2, z: z + (sz * d) / 2, y });
+  const ry = y + h - t + 0.003;
+  b.box(w + t, t, t, 'glow', glow, { x, z: z + d / 2, y: ry });
+  b.box(w + t, t, t, 'glow', glow, { x, z: z - d / 2, y: ry });
+  b.box(t, t, d + t * 1.4, 'glow', glow, { x: x - w / 2, z, y: ry - 0.001 });
+  b.box(t, t, d + t * 1.4, 'glow', glow, { x: x + w / 2, z, y: ry - 0.001 });
 }
 
 /** Horizontal glowing bands around a cylinder (neon towers). */

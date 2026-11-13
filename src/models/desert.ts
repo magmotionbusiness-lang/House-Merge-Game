@@ -21,9 +21,9 @@ function sand(b: Builder, y: number, r = 0.4) {
 
 /** Egyptian frieze: a blue band with gold dashes along the front. */
 function frieze(b: Builder, w: number, z: number, y: number, x = 0) {
-  b.box(w, 0.03, 0.012, 'matte', BLUE, { x, z, y });
+  b.box(w + 0.008, 0.03, 0.012, 'matte', BLUE, { x, z: z + 0.003, y });
   const n = Math.max(3, Math.round(w / 0.06));
-  for (let i = 0; i < n; i++) b.box(0.02, 0.012, 0.014, 'gloss', GOLD, { x: x - w / 2 + (w * (i + 0.5)) / n, z, y: y + 0.009 });
+  for (let i = 0; i < n; i++) b.box(0.02, 0.012, 0.02, 'gloss', GOLD, { x: x - w / 2 + (w * (i + 0.5)) / n, z: z + 0.002, y: y + 0.009 });
 }
 
 /** A dome in the tier colour on a short drum, gold tip. */
@@ -67,7 +67,7 @@ const tent: Build = (_H, color) => {
   const y = sand(b, base(b, color));
   b.box(0.36, 0.008, 0.24, 'matte', '#b8433a', { y, z: 0.2 });
   b.gable(0.54, 0.32, 0.5, 'matte', color, { y, ry: Math.PI / 2 }, 0.0);
-  b.gable(0.56, 0.1, 0.18, 'matte', shade(color, 1.25), { y: y + 0.22, ry: Math.PI / 2 }, 0.0);
+  b.gable(0.58, 0.11, 0.2, 'matte', shade(color, 1.25), { y: y + 0.226, ry: Math.PI / 2 }, 0.0);
   b.gable(0.2, 0.18, 0.2, 'matte', '#3a2418', { y, z: 0.17, ry: Math.PI / 2 }, 0.0);
   for (const z of [-0.26, 0.26]) b.cyl(0.01, 0.01, 0.38, 'wood', '#6d4c33', { z, y }, 5);
   return b.finish();
@@ -80,7 +80,7 @@ const stall: Build = (_H, color) => {
   b.box(0.5, 0.14, 0.24, 'wood', '#a87a4a', { y, z: -0.04 });
   for (const [x, z] of [[-0.24, -0.15], [0.24, -0.15], [-0.24, 0.15], [0.24, 0.15]] as const) b.box(0.025, 0.3, 0.025, 'wood', '#6d4c33', { x, z, y });
   stripedBox(b, 0.58, 0.03, 0.4, color, '#fff3dc', { y: y + 0.3 }, 7, 'matte');
-  b.box(0.58, 0.07, 0.01, 'matte', color, { y: y + 0.24, z: 0.2 });
+  b.box(0.58, 0.07, 0.01, 'matte', color, { y: y + 0.24, z: 0.21 });
   const spice = ['#e05a2a', '#f2c14e', '#7a9a3a'];
   spice.forEach((c, i) => {
     b.cyl(0.05, 0.04, 0.05, 'wood', '#c89a5a', { x: -0.15 + i * 0.15, z: 0.12, y: y + 0.14 }, 10);
@@ -123,7 +123,8 @@ const courtyard: Build = (_H, color) => {
   b.box(0.68, 0.24, 0.16, 'plaster', SANDSTONE, { y, z: -0.18 });
   b.box(0.16, 0.24, 0.34, 'plaster', SANDSTONE, { y, x: -0.26, z: 0.07 });
   b.box(0.16, 0.24, 0.34, 'plaster', SANDSTONE, { y, x: 0.26, z: 0.07 });
-  for (const [w, d, x, z] of [[0.72, 0.2, 0, -0.18], [0.2, 0.38, -0.26, 0.07], [0.2, 0.38, 0.26, 0.07]] as const) b.box(w, 0.04, d, 'gloss', color, { y: y + 0.24, x, z });
+  b.box(0.72, 0.045, 0.2, 'gloss', color, { y: y + 0.24, z: -0.18 });
+  for (const x of [-0.26, 0.26]) b.box(0.2, 0.04, 0.3, 'gloss', color, { y: y + 0.24, x, z: 0.11 });
   frieze(b, 0.68, -0.098, y + 0.18);
   b.cyl(0.08, 0.09, 0.04, 'plaster', PLASTER, { y }, 14);
   b.cyl(0.065, 0.065, 0.01, 'gloss', '#3fd0d0', { y: y + 0.04 }, 14);
@@ -239,7 +240,7 @@ const stepPyramid: Build = (H, color) => {
     const w = 0.76 - i * 0.1;
     b.box(w, h / steps / 1.2, w, 'brick', i % 2 ? SANDSTONE : shade(SANDSTONE, 0.92), { y: y + (h / steps) * i * 0.83 });
   }
-  b.box(0.1, h * 0.8, 0.12, 'plaster', shade(SANDSTONE, 0.85), { y, z: 0.32 });
+  b.box(0.1, h * 0.8, 0.12, 'plaster', shade(SANDSTONE, 0.85), { y, z: 0.326 });
   const top = y + (h / steps) * steps * 0.83;
   b.box(0.18, 0.12, 0.18, 'gloss', color, { y: top });
   b.box(0.22, 0.03, 0.22, 'gloss', GOLD, { y: top + 0.12 });
@@ -278,7 +279,7 @@ const sphinx: Build = (H, color) => {
   b.box(0.06, 0.04, 0.12, 'plaster', SANDSTONE, { y, x: -0.05, z: 0.38 });
   b.box(0.06, 0.04, 0.12, 'plaster', SANDSTONE, { y, x: 0.05, z: 0.38 });
   b.box(0.12, 0.12, 0.1, 'plaster', SANDSTONE, { y: y + 0.08, z: 0.3 });
-  b.box(0.16, 0.08, 0.12, 'gloss', color, { y: y + 0.17, z: 0.29 }, 0.02);
+  b.box(0.16, 0.08, 0.124, 'gloss', color, { y: y + 0.17, z: 0.292 }, 0.02);
   for (const s of [-1, 1]) b.box(0.04, 0.12, 0.06, 'gloss', color, { x: s * 0.08, y: y + 0.08, z: 0.32 });
   b.box(0.04, 0.012, 0.13, 'gloss', GOLD, { y: y + 0.24, z: 0.29 });
   return b.finish();

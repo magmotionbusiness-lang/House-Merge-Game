@@ -147,7 +147,7 @@ const skyVilla: Build = (_H, color) => {
   b.box(0.76, 0.03, 0.42, 'gloss', WHITE, { y: y + 0.18, z: -0.08 });
   b.box(0.5, 0.2, 0.36, 'gloss', color, { y: y + 0.21, x: -0.1, z: -0.06 });
   b.box(0.36, 0.08, 0.016, 'pane', GLASS, { y: y + 0.27, x: -0.1, z: 0.122 });
-  b.box(0.26, 0.03, 0.4, 'gloss', WHITE, { y: y + 0.21, x: 0.24, z: -0.08 });
+  b.box(0.26, 0.03, 0.39, 'gloss', WHITE, { y: y + 0.21, x: 0.24, z: -0.085 });
   b.box(0.2, 0.012, 0.32, 'glow', '#7ff3ff', { y: y + 0.24, x: 0.24, z: -0.08 });
   neonBox(b, 0.5, 0.2, 0.36, y + 0.21, lit(color), { x: -0.1, z: -0.06 });
   strip(b, 0.74, 0.022, 0.022, lit(color), { y: y + 0.18, z: 0.12 });
@@ -200,8 +200,8 @@ const arcology: Build = (H, color) => {
     const w = 0.76 - i * 0.1;
     const ly = y + i * lh;
     b.box(w, lh, w * 0.66, 'window', GLASS, { y: ly });
-    b.box(w + 0.03, 0.03, w * 0.66 + 0.03, 'gloss', color, { y: ly + lh - 0.03 });
-    b.box(w + 0.035, 0.01, w * 0.66 + 0.035, 'glow', lit(color), { y: ly + lh });
+    b.box(w + 0.03, 0.03, w * 0.66 + 0.03, 'gloss', color, { y: ly + lh - 0.026 });
+    b.box(w + 0.035, 0.01, w * 0.66 + 0.035, 'glow', lit(color), { y: ly + lh + 0.004 });
   }
   b.cone(0.05, 0.25, 'gloss', color, { y: y + levels * lh }, 8);
   return b.finish();
@@ -232,7 +232,7 @@ const holoSky: Build = (H, color) => {
     const w = 0.58 - i * 0.1;
     const sh = (h / n) * (1 - i * 0.05);
     b.box(w, sh, w, 'window', GLASS, { y: sy });
-    b.box(w + 0.03, 0.035, w + 0.03, 'gloss', color, { y: sy + sh - 0.035 });
+    b.box(w + 0.03, 0.035, w + 0.03, 'gloss', color, { y: sy + sh - 0.028 });
     neonBox(b, w, sh, w, sy, lit(color));
     sy += sh;
   }
