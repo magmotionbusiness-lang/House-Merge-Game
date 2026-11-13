@@ -3,7 +3,7 @@ import type { ShotPath } from '../physics/world';
 
 /**
  * The aim guide: bold dots flowing along the predicted path of the shot
- * (including glancing bounces off scaffold corners and rails), a ghost ring
+ * (including glancing bounces off scaffold corners and rails), up to where it lands
  * where the building will end up, a pulse at each bounce, and a red stop sign
  * when a scaffold will stop it dead.
  */
@@ -35,8 +35,6 @@ export class AimPath {
   private pos = new Float32Array(MAX_DOTS * 3);
   private dots: THREE.Points;
   private mat: THREE.PointsMaterial;
-  private ghost: THREE.Mesh;
-  private ghostMat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false });
   private stop: THREE.Group;
   private bounceRings: THREE.Mesh[] = [];
   private path: ShotPath | null = null;
@@ -51,9 +49,6 @@ export class AimPath {
     this.dots.renderOrder = 3;
     this.dots.frustumCulled = false;
     scene.add(this.dots);
-    this.ghost = new THREE.Mesh(new THREE.RingGeometry(0.86, 1, 40).rotateX(-Math.PI / 2), this.ghostMat);
-    this.ghost.renderOrder = 3;
-    scene.add(this.ghost);
     // Red stop sign: a ring with a cross.
     this.stop = new THREE.Group();
     const red = new THREE.MeshBasicMaterial({ color: '#ff3b3b', transparent: true, opacity: 0.95, depthWrite: false });
@@ -77,7 +72,6 @@ export class AimPath {
   hide() {
     this.path = null;
     this.dots.visible = false;
-    this.ghost.visible = false;
     this.stop.visible = false;
     for (const r of this.bounceRings) r.visible = false;
   }
@@ -112,14 +106,13 @@ export class AimPath {
     const path = this.path;
     if (!path || this.len < 0.01) {
       this.dots.visible = false;
-      this.ghost.visible = false;
       this.stop.visible = false;
       for (const r of this.bounceRings) r.visible = false;
       return;
     }
-    // Dots start just past the launcher's edge and stop at the ghost ring, flowing forward.
+    // Dots start just past the launcher's edge and run up to where it lands, flowing forward.
     const start = this.radius + 0.01;
-    const stopAt = Math.max(start, this.len - this.radius * 0.6);
+    const stopAt = Math.max(start, this.len);
     const phase = (time * 0.11) % SPACING;
     let n = 0;
     for (let d = start + phase; d < stopAt && n < MAX_DOTS; d += SPACING) {
@@ -134,16 +127,11 @@ export class AimPath {
     const e = path.end;
     const pulse = 1 + 0.05 * Math.sin(time * 6);
     if (path.blocked) {
-      this.ghost.visible = false;
       this.stop.visible = true;
       this.stop.position.copy(toWorld(e.x, e.y, 0.007));
       this.stop.scale.setScalar(this.radius * 0.9 * pulse);
     } else {
       this.stop.visible = false;
-      this.ghost.visible = true;
-      this.ghost.position.copy(toWorld(e.x, e.y, 0.006));
-      this.ghost.scale.setScalar(this.radius * pulse);
-      this.ghostMat.color.copy(this.mat.color);
     }
     this.bounceRings.forEach((r, i) => {
       const b = path.bounces[i];

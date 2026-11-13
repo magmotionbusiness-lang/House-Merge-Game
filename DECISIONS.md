@@ -522,3 +522,5 @@ The user painted three more backdrops in the house style (crane, cones, scaffold
   - Clear sky between the last open level and the cloud bank, so the last level, its landmark and the builder pin are never half under the clouds. The pin is also drawn above the clouds.
   - An already-open gate is no longer drawn: it duplicated the next district's sign right above it.
 - **Settings button:** a proper filled cogwheel, centred (icon-only buttons no longer reserve space for an empty label).
+
+**Aim guide end ring removed (playtest feedback):** the ghost ring where the building lands was removed; the dots now run all the way to the landing spot. Bounce rings and the red stop sign stay.
