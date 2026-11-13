@@ -3024,7 +3024,7 @@ body:has(.screen.title) #splash {
   height: 54px;
   transform: translate(-50%, -100%);
   margin-top: -34px;
-  z-index: 3;
+  z-index: 5;
   pointer-events: none;
 }
 .cmap-avatar img {
@@ -3247,7 +3247,7 @@ body:has(.screen.title) #splash {
   border-radius: 24px;
   box-shadow: 0 7px 0 var(--hud-ink), 0 20px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 4px color-mix(in srgb, var(--accent) 35%, #fff 65%);
   transform-origin: 50% -200px;
-  animation: card-drop 0.9s cubic-bezier(0.25, 1.2, 0.4, 1);
+  will-change: transform;
 }
 @keyframes card-drop {
   0% {
@@ -3646,9 +3646,7 @@ body:has(.screen.title) #splash {
   animation-duration: 0.01s;
   animation-iteration-count: 1;
 }
-.calm .lvcard {
-  animation: fadein 0.25s ease-out;
-}
+
 .calm .score-box.gain {
   animation: none;
 }
@@ -3657,8 +3655,107 @@ body:has(.screen.title) #splash {
   .cm-q {
     animation: none;
   }
-  .lvcard {
-    animation: fadein 0.25s ease-out;
-  }
 }
 /* Large text: `.large-text .screens` already scales the map and its cards. */
+
+/* Icon-only buttons (Settings cog): centred icon, a little larger. */
+.btn.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+.btn.icon-only svg {
+  width: 26px;
+  height: 26px;
+  margin: 0;
+}
+
+/* Collection: theme tabs and every version of a building. */
+.book-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  margin: 2px -4px 4px;
+  scrollbar-width: none;
+}
+.book-tabs::-webkit-scrollbar {
+  display: none;
+}
+.book-tab {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 74px;
+  padding: 4px 2px 5px;
+  border-radius: 12px;
+  border: 2px solid #d8c9ad;
+  background: #fffaf0;
+  font: 800 11px/1.05 'Barlow Condensed', var(--display);
+  color: #6b4f33;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.book-tab img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+.book-tab.on {
+  border-color: var(--hud-ink);
+  background: color-mix(in srgb, var(--accent) 28%, #fff 72%);
+  color: #3d2614;
+  box-shadow: 0 3px 0 var(--hud-ink);
+  transform: translateY(-1px);
+}
+.bc-theme {
+  margin: -6px 0 6px;
+  font: 800 14px/1 'Barlow Condensed', var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a6a4a;
+}
+.bc-versions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin: 4px 0 8px;
+}
+.bc-version {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  border: 2px solid #d8c9ad;
+  background: #fffaf0;
+  padding: 2px;
+}
+.bc-version img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.bc-version.on {
+  border-color: var(--hud-ink);
+  background: color-mix(in srgb, var(--accent) 28%, #fff 72%);
+  box-shadow: 0 3px 0 var(--hud-ink);
+}
+.bc-img.pop {
+  animation: bump 0.3s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+
+/* Level card contents pop in after the card lands. */
+.lv-pop {
+  animation: lv-pop 0.45s cubic-bezier(0.3, 1.7, 0.5, 1) both;
+}
+@keyframes lv-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+.lvcard-wrap.out {
+  transition: opacity 0.35s 0.1s;
+}

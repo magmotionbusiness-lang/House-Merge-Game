@@ -7,7 +7,7 @@ import { MAX_TIER } from '../core/tiers';
 import { ICONS } from './icons';
 import { thumbUrl } from './hud';
 import { CampaignMap } from './map';
-import { tierName } from '../core/themes';
+import { THEME_ORDER, THEMES, tierName, type ThemeId } from '../core/themes';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
   const e = document.createElement(tag);
@@ -18,7 +18,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: 
 
 function button(label: string, cls: string, onClick: () => void, icon?: string) {
   const b = el('button', `btn ${cls}`);
-  b.innerHTML = `${icon ?? ''}<span>${label}</span>`;
+  // Icon-only buttons get no empty label, so the icon sits dead centre.
+  b.innerHTML = label ? `${icon ?? ''}<span>${label}</span>` : (icon ?? '');
   b.onclick = () => {
     onTap?.();
     onClick();
@@ -213,7 +214,12 @@ export class Screens {
   }
 
   /** The collection book: every building, locked until built, with a fun fact. */
-  collection() {
+  /**
+   * The collection book. Tabs along the top switch between the map themes, so
+   * every version of each building can be browsed (a tier discovered in one
+   * theme counts in all of them).
+   */
+  collection(theme: ThemeId = 'site') {
     const card = el('div', 'panel collection');
     const head = el('div', 'panel-head');
     head.append(this.back(() => this.title()), el('h2', '', 'Collection'));
@@ -221,7 +227,22 @@ export class Screens {
     const reached = Math.max(5, Number(localStorage.getItem('bm.highest') ?? 0) || 0);
     const owned = (t: number) => (counts[t] ?? 0) > 0 || t <= reached;
     const total = Array.from({ length: MAX_TIER }, (_, i) => i + 1).filter(owned).length;
-    card.append(head, el('div', 'collection-count', `${total} / ${MAX_TIER} buildings discovered`));
+    const tabs = el('div', 'book-tabs');
+    for (const id of THEME_ORDER) {
+      const th = THEMES[id];
+      const tab = el('button', `book-tab ${id === theme ? 'on' : ''}`);
+      tab.style.setProperty('--accent', th.accent);
+      const ic = el('img') as HTMLImageElement;
+      ic.src = thumbUrl(6, id);
+      ic.alt = '';
+      tab.append(ic, el('span', '', th.name));
+      tab.onclick = () => {
+        onTap?.();
+        if (id !== theme) this.collection(id);
+      };
+      tabs.append(tab);
+    }
+    card.append(head, tabs, el('div', 'collection-count', `${THEMES[theme].name} · ${total} / ${MAX_TIER} discovered`));
     const grid = el('div', 'book-grid');
     for (let t = 1; t <= MAX_TIER; t++) {
       const info = tier(t);
@@ -229,30 +250,65 @@ export class Screens {
       const cell = el('button', `book-cell ${has ? '' : 'locked'}`);
       cell.style.setProperty('--c', info.color);
       const img = el('img') as HTMLImageElement;
-      img.src = thumbUrl(t, 'site');
-      img.alt = has ? info.name : 'Locked';
-      cell.append(img, el('div', 'book-name', has ? info.name : '???'), el('div', 'book-num', String(t)));
-      cell.onclick = () => (has ? this.buildingCard(t, counts[t] ?? 0) : undefined);
+      img.src = thumbUrl(t, theme);
+      img.alt = has ? tierName(t, theme) : 'Locked';
+      img.loading = 'lazy';
+      cell.append(img, el('div', 'book-name', has ? tierName(t, theme) : '???'), el('div', 'book-num', String(t)));
+      cell.onclick = () => (has ? this.buildingCard(t, counts[t] ?? 0, theme) : undefined);
       grid.append(cell);
     }
     card.append(grid);
     this.show(card);
+    // Keep the chosen tab in view.
+    requestAnimationFrame(() => tabs.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' }));
   }
 
-  private buildingCard(t: number, built: number) {
+  /** One building, big, with all of its versions across the map themes. */
+  private buildingCard(t: number, built: number, theme: ThemeId = 'site') {
     const info = tier(t);
     const card = el('div', 'panel building-card');
     const img = el('img', 'bc-img') as HTMLImageElement;
-    img.src = thumbUrl(t, 'site');
+    const name = el('h2', '', tierName(t, theme));
+    const where = el('div', 'bc-theme', THEMES[theme].name);
+    const fact = el('p', 'bc-fact', theme === 'site' ? FUN_FACTS[t - 1] : THEMES[theme].tagline);
+    const strip = el('div', 'bc-versions');
+    const show = (id: ThemeId) => {
+      theme = id;
+      img.src = thumbUrl(t, id);
+      name.textContent = tierName(t, id);
+      where.textContent = THEMES[id].name;
+      fact.textContent = id === 'site' ? FUN_FACTS[t - 1] : THEMES[id].tagline;
+      strip.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.theme === id));
+      img.classList.remove('pop');
+      void img.offsetWidth;
+      img.classList.add('pop');
+    };
+    for (const id of THEME_ORDER) {
+      const v = el('button', 'bc-version');
+      v.dataset.theme = id;
+      v.style.setProperty('--accent', THEMES[id].accent);
+      const vi = el('img') as HTMLImageElement;
+      vi.src = thumbUrl(t, id);
+      vi.alt = tierName(t, id);
+      v.append(vi);
+      v.onclick = () => {
+        onTap?.();
+        show(id);
+      };
+      strip.append(v);
+    }
     card.append(
       el('div', 'eyebrow', `Tier ${t} · ${ERA_NAME[info.era]}`),
       img,
-      el('h2', '', info.name),
-      el('p', 'bc-fact', FUN_FACTS[t - 1]),
+      name,
+      where,
+      strip,
+      fact,
       el('div', 'bc-built', built ? `Built ${built} time${built === 1 ? '' : 's'}` : 'Dealt by the launcher'),
-      this.back(() => this.collection()),
+      this.back(() => this.collection(theme)),
     );
     this.show(card);
+    show(theme);
   }
 
   /**

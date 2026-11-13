@@ -501,3 +501,24 @@ The user painted three more backdrops in the house style (crane, cones, scaffold
 - Backdrop motion (the "something creative"): wind-blown sand streams and grains sweeping across, heat haze shimmering over the dunes, and a falcon slowly circling high above the oasis.
 
 **Campaign:** districts 6-8 open at 230 / 280 / 330 stars. The bot's target win rate keeps falling past district 5, but by 2% a district instead of 6%, so the curve flattens out instead of becoming punishing. Districts 1-5 were not regenerated; their tuned limits are untouched.
+
+## Playtest fixes: aim guide, card drop, collection versions, map clouds, settings cog
+
+- **Aim guide predicts the real shot.** The aim line used to be a straight dotted line that stopped at the first building; scaffolds were ignored. `predictShot` (physics/world.ts) now plays the shot out in a throwaway Rapier world with the same rails and scaffolds, the table's buildings held still, and the same launch speed, damping and restitution. It reports:
+  - the exact path, including glancing bounces off scaffold corners and rails
+  - whether a scaffold stops it dead, either head-on or with no room to slip through the gap to the rail
+  - where it comes to rest, and the first building it touches
+
+  It re-runs only when the aim, the power or the table changes. A check against a real shot off a scaffold corner landed within about 0.05 table widths. The guide (render/aimpath.ts) draws:
+  - bold dots with a dark rim flowing along that path
+  - a ghost ring where the building will end up
+  - a pulsing ring at every bounce
+  - a red stop sign where a scaffold will stop it
+
+  It takes the merge-preview colour (rainbow for the best shots), and the merge and chain preview now uses the predicted contact point.
+- **Level card drop as physics.** The card falls from above the screen and the ribbons catch it with a damped spring and a squash. The catch sets it swinging like a pendulum, then it settles. Its contents pop in one by one after it lands, and closing yanks it back up. Calm and Reduce Motion make it a short gentle drop.
+- **Collection shows every version.** Theme tabs (each with that theme's House as its icon) switch the whole book. A building's card shows all 8 versions; tapping one swaps the big picture, name and theme. Discovering a tier counts in every theme.
+- **Map:**
+  - Clear sky between the last open level and the cloud bank, so the last level, its landmark and the builder pin are never half under the clouds. The pin is also drawn above the clouds.
+  - An already-open gate is no longer drawn: it duplicated the next district's sign right above it.
+- **Settings button:** a proper filled cogwheel, centred (icon-only buttons no longer reserve space for an empty label).

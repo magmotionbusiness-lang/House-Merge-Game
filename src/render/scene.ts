@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { FrameGlow } from './frame';
 import { AimPreview } from './preview';
+import { AimPath } from './aimpath';
+import type { ShotPath } from '../physics/world';
 import { CONFIG } from '../core/config';
 import { ERA_RING, tier } from '../core/tiers';
 import type { Theme } from '../core/themes';
@@ -840,6 +842,13 @@ export class SceneView {
   private heat = 0;
   private frame: FrameGlow | null = null;
   private preview = new AimPreview(this.scene);
+  private aimPath = new AimPath(this.scene);
+
+  /** The aim guide along the predicted path (null hides it). */
+  setAimPath(path: ShotPath | null, radius: number) {
+    if (path) this.aimPath.set(path, radius);
+    else this.aimPath.hide();
+  }
   private previewTargets: PieceView[] = [];
   private aimTint = new THREE.Color();
 
@@ -861,10 +870,11 @@ export class SceneView {
 
   private tickPreview(dt: number) {
     const level = this.preview.tick(dt, this.time);
-    const mat = this.aim.material as THREE.MeshBasicMaterial;
-    // The aim line takes the outcome's colour; the best shots cycle the rainbow.
-    if (level >= 3) mat.color.setHSL((this.time * 0.6) % 1, 0.85, 0.7);
-    else mat.color.lerp(this.aimTint, Math.min(1, dt * 12));
+    const col = this.aimPath.color;
+    // The aim guide takes the outcome's colour; the best shots cycle the rainbow.
+    if (level >= 3) col.setHSL((this.time * 0.6) % 1, 0.85, 0.7);
+    else col.lerp(this.aimTint, Math.min(1, dt * 12));
+    this.aimPath.tick(this.time);
     if (level >= 3 && this.previewTargets[0] && Math.random() < dt * 14) {
       const t = this.previewTargets[Math.floor(Math.random() * this.previewTargets.length)];
       const a = Math.random() * Math.PI * 2;

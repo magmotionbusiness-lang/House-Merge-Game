@@ -4,7 +4,7 @@ import { Rng } from '../core/rng';
 import { Combo, mergeResult } from '../core/scoring';
 import { nextSpawn } from '../core/spawn';
 import { MAX_TIER, tier } from '../core/tiers';
-import { TableWorld, type Body } from '../physics/world';
+import { TableWorld, predictShot, type Body, type ShotPath } from '../physics/world';
 import { SceneView, pieceRadius, type PieceView } from '../render/scene';
 import { modelSize } from '../models';
 import { Hud } from '../ui/hud';
@@ -1161,49 +1161,58 @@ export class Game {
       const wobble = this.aim ? Math.sin(this.time * 18) * 0.06 : 0;
       this.view.placePiece(l.view, l.x, CONFIG.launchY, wobble);
       this.view.animatePiece(l.view, dt);
-      this.view.setAim(l.x, CONFIG.launchY + l.view.radius, this.aimEnd(l));
       this.previewShot(l);
     } else {
-      this.view.setAim(0, 0, null);
+      this.view.setAimPath(null, 0);
       this.view.setPreview([], 0, '#ffffff');
     }
   }
 
+  private aimKey = '';
+  private aimAge = 0;
+  private aimResult: { path: ShotPath; pieces: Piece[] } | null = null;
+
   /**
-   * Predicts what the shot will do, for the aim preview: the first building in
-   * its path, and if it's the same tier, the merge and any chain that follows
-   * (the new building touching another of its own tier). Straight-line shots
-   * make this reliable; bounces after a merge are not predicted.
+   * Predicts what the shot will do with the real physics (see predictShot):
+   * the exact path including glancing bounces off scaffolds and rails, whether a
+   * scaffold stops it dead, and the first building it touches. If that is the
+   * same tier, the merge and any chain that follows light up (the new building
+   * touching another of its own tier). Re-run only when the aim, the power or
+   * the table changes.
    */
   private previewShot(l: Launcher) {
-    const none = () => this.view.setPreview([], 0, '#ffffff');
-    if (this.over || this.paused || this.targeting) return none();
+    const none = () => {
+      this.view.setAimPath(null, 0);
+      this.view.setPreview([], 0, '#ffffff');
+    };
+    if (this.over || this.paused || this.targeting || this.celebration) return none();
+    if (this.mode === 'sling' && !this.aim) return none();
     const r = l.view.radius;
-    let reach = Infinity;
-    if (this.mode === 'sling') {
-      if (!this.aim) return none();
-      reach = CONFIG.launchY + this.launchSpeed(this.aim.power) / CONFIG.linearDamping;
+    const power = this.aim?.power ?? this.lastPower;
+    const speed = this.launchSpeed(power);
+    const pieces = [...this.pieces.values()].filter((p) => !p.dead);
+    let stamp = 0;
+    for (const p of pieces) stamp += Math.round(p.x * 500) * 7 + Math.round(p.y * 500) * 13 + p.tier;
+    const key = `${l.x.toFixed(3)}|${speed.toFixed(2)}|${l.tier}|${pieces.length}|${stamp}`;
+    this.aimAge++;
+    if (key !== this.aimKey || !this.aimResult || this.aimAge > 20) {
+      this.aimKey = key;
+      this.aimAge = 0;
+      const obstacles = this.playMode.kind === 'level' ? (this.playMode.level.obstacles ?? []) : [];
+      const path = predictShot(l.x, CONFIG.launchY, r, tier(l.tier).mass, speed, pieces.map((p) => [p.x, p.y, p.radius]), obstacles);
+      this.aimResult = { path, pieces };
     }
-    let first: Piece | null = null;
-    let firstY = Infinity;
-    for (const p of this.pieces.values()) {
-      const dx = Math.abs(p.x - l.x);
-      const rr = r + p.radius;
-      if (dx >= rr || p.y <= CONFIG.launchY) continue;
-      const y = p.y - Math.sqrt(rr * rr - dx * dx);
-      if (y < firstY) {
-        firstY = y;
-        first = p;
-      }
+    const { path, pieces: list } = this.aimResult;
+    this.view.setAimPath(path, r);
+    const first = path.hit >= 0 ? list[path.hit] : null;
+    if (!first || first.dead || first.tier !== l.tier || first.delivering || l.tier >= MAX_TIER) {
+      this.view.setPreview([], 0, '#ffffff');
+      return;
     }
-    if (this.playMode.kind === 'level')
-      for (const [ox, oy, w, h] of this.playMode.level.obstacles ?? [])
-        if (Math.abs(ox - l.x) < w / 2 + r && oy - h / 2 - r < firstY) return none();
-    if (!first || first.tier !== l.tier || first.delivering || firstY - r > reach || l.tier >= MAX_TIER) return none();
     // Follow the chain: the new building appears between the pair and merges with a touching twin.
     const chain: Piece[] = [first];
     let t = l.tier + 1;
-    let at = { x: (first.x + l.x) / 2, y: (first.y + firstY) / 2 };
+    let at = { x: (first.x + path.end.x) / 2, y: (first.y + path.end.y) / 2 };
     while (t < MAX_TIER && chain.length < 5) {
       const rt = pieceRadius(t);
       let next: Piece | null = null;
@@ -1228,25 +1237,7 @@ export class Game {
     this.view.setPreview(chain.map((p) => p.view), level, tier(Math.min(MAX_TIER, made)).color);
   }
 
-  /** Where the aim line stops: the first piece in the straight path, the back rail, or the sling's reach. */
-  private aimEnd(l: Launcher): number | null {
-    if (this.over) return null;
-    const r = l.view.radius;
-    let end = L - r;
-    if (this.mode === 'sling') {
-      if (!this.aim) return null;
-      end = Math.min(end, CONFIG.launchY + this.launchSpeed(this.aim.power) / CONFIG.linearDamping);
-    }
-    for (const p of this.pieces.values()) {
-      const dx = Math.abs(p.x - l.x);
-      const rr = r + p.radius;
-      if (dx < rr && p.y > CONFIG.launchY) end = Math.min(end, p.y - Math.sqrt(rr * rr - dx * dx));
-    }
-    if (this.playMode.kind === 'level')
-      for (const [ox, oy, w, h] of this.playMode.level.obstacles ?? [])
-        if (Math.abs(ox - l.x) < w / 2 + r) end = Math.min(end, oy - h / 2 - r);
-    return Math.max(CONFIG.launchY + r, end) - r;
-  }
+
 
   // ------------------------------------------------------------ input
 

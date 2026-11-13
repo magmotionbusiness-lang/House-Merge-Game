@@ -23,6 +23,7 @@ const STEP = 96; // vertical distance between levels
 const HEAD_H = 190; // district sign at the bottom of each district
 const GATE_H = 250; // star gate at the top of each district (but the last)
 const CLOUD_H = 430; // cloud bank hiding everything past the last open district
+const CLOUD_GAP = 190; // clear sky between the last level (and its landmark and the builder pin) and the clouds
 const TOP_PAD = 96;
 const BOTTOM_PAD = 70;
 
@@ -129,7 +130,7 @@ export class CampaignMap {
     const { stars } = this.o;
     const all = this.o.districts;
     const districts = this.visible;
-    const heights = districts.map((d, i) => HEAD_H + d.levels.length * STEP + (i < districts.length - 1 ? GATE_H : CLOUD_H));
+    const heights = districts.map((d, i) => HEAD_H + d.levels.length * STEP + (i < districts.length - 1 ? GATE_H : CLOUD_H + CLOUD_GAP));
     const H = TOP_PAD + BOTTOM_PAD + heights.reduce((a, b) => a + b, 0);
     this.world.style.height = `${H}px`;
     let bottom = H - BOTTOM_PAD;
@@ -236,6 +237,11 @@ export class CampaignMap {
         const next = districts[di + 1];
         const nt = THEMES[themeForDistrict(next.id)];
         const nextOpen = districtOpen(all, di + 1, stars);
+        // An open gate would just repeat the next district's sign right above it.
+        if (nextOpen) {
+          bottom = top;
+          return;
+        }
         const gate = el('div', `cmap-gate ${nextOpen ? 'open' : ''}`);
         gate.style.top = `${top + 40}px`;
         gate.style.setProperty('--accent', nt.accent);
@@ -415,10 +421,11 @@ export class CampaignMap {
       this.o.tap();
       this.o.onPlay(n.level, n.district);
     };
+    let swing: CardSwing | null = null;
     const done = () => {
-      wrap.classList.add('out');
-      window.setTimeout(() => wrap.remove(), 260);
       if (this.card === wrap) this.card = null;
+      swing?.lift(() => wrap.remove());
+      wrap.classList.add('out');
     };
     close.onclick = () => {
       this.o.tap();
@@ -442,5 +449,102 @@ export class CampaignMap {
     wrap.append(card);
     this.root.append(wrap);
     this.card = wrap;
+    // Contents pop in one after another once the card has landed.
+    [st, goal, shots, play].forEach((e, i) => {
+      e.classList.add('lv-pop');
+      e.style.animationDelay = `${0.55 + i * 0.09}s`;
+      // Hand back to the element's own animation (the Play button's pulse) afterwards.
+      e.addEventListener('animationend', () => {
+        e.classList.remove('lv-pop');
+        e.style.animationDelay = '';
+      }, { once: true });
+    });
+    swing = new CardSwing(card);
+  }
+}
+
+/**
+ * The level card's fall, Candy Crush style, as a little physics simulation:
+ * it drops from above the screen, the ribbons catch it with a springy bounce
+ * and a squash, and it swings to rest like a pendulum. `lift` yanks it back up.
+ */
+class CardSwing {
+  private y = -window.innerHeight * 0.9;
+  private vy = 0;
+  private a = 0;
+  private va = 0;
+  private sq = 0;
+  private caught = false;
+  private raf = 0;
+  private last = performance.now();
+  private leaving: (() => void) | null = null;
+  private calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('calm');
+
+  constructor(private card: HTMLElement) {
+    if (this.calm) this.y = -60;
+    this.apply();
+    this.raf = requestAnimationFrame((t) => this.step(t));
+  }
+
+  lift(done: () => void) {
+    this.leaving = done;
+    this.vy = Math.min(this.vy, -200);
+    if (!this.raf) this.raf = requestAnimationFrame((t) => this.step(t));
+  }
+
+  private apply() {
+    const sx = 1 + this.sq * 0.06;
+    const sy = 1 - this.sq * 0.08;
+    this.card.style.transform = `translateY(${this.y.toFixed(1)}px) rotate(${this.a.toFixed(4)}rad) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+  }
+
+  private step(now: number) {
+    const dt = Math.min(0.033, (now - this.last) / 1000);
+    this.last = now;
+    if (this.leaving) {
+      // Pulled back up: accelerate off the top.
+      this.vy -= 5200 * dt;
+      this.y += this.vy * dt;
+      this.a *= 0.9;
+      this.apply();
+      if (this.y < -window.innerHeight) {
+        this.raf = 0;
+        this.leaving();
+        return;
+      }
+      this.raf = requestAnimationFrame((t) => this.step(t));
+      return;
+    }
+    const g = this.calm ? 2600 : 4200;
+    if (this.y < 0) {
+      // Free fall.
+      this.vy += g * dt;
+    } else {
+      // The ribbons are taut: a stiff, damped spring holds the card up.
+      if (!this.caught) {
+        this.caught = true;
+        if (!this.calm) {
+          this.va = (Math.random() < 0.5 ? -1 : 1) * 1.1; // the catch sets it swinging
+          this.sq = 1;
+        }
+      }
+      this.vy += (g - 520 * this.y - 26 * this.vy) * dt;
+    }
+    this.y += this.vy * dt;
+    // Pendulum swing about the ribbons' anchor, damped.
+    this.va += (-34 * this.a - 3.2 * this.va) * dt;
+    this.a += this.va * dt;
+    this.sq += (0 - this.sq) * Math.min(1, dt * 10);
+    this.apply();
+    const settled = this.caught && Math.abs(this.vy) < 4 && Math.abs(this.y - g / 520) < 1.5 && Math.abs(this.va) < 0.02 && Math.abs(this.a) < 0.004;
+    if (settled) {
+      this.y = g / 520;
+      this.a = 0;
+      this.sq = 0;
+      this.apply();
+      this.raf = 0;
+      return;
+    }
+    this.raf = requestAnimationFrame((t) => this.step(t));
   }
 }

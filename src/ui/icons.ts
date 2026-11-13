@@ -2,6 +2,24 @@
 const svg = (body: string) =>
   `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 
+/** A filled cogwheel with 8 square-ish teeth and a hole in the middle (even-odd fill). */
+function cog() {
+  const teeth = 8;
+  const ro = 10.4;
+  const ri = 7.7;
+  const pts: string[] = [];
+  for (let i = 0; i < teeth; i++) {
+    const a0 = (i / teeth) * Math.PI * 2;
+    const step = (Math.PI * 2) / teeth;
+    for (const [f, r] of [[0.0, ri], [0.12, ro], [0.38, ro], [0.5, ri]] as const) {
+      const a = a0 + step * f;
+      pts.push(`${(12 + Math.cos(a) * r).toFixed(2)},${(12 + Math.sin(a) * r).toFixed(2)}`);
+    }
+  }
+  const hole = 'M15.4 12a3.4 3.4 0 1 0-6.8 0a3.4 3.4 0 1 0 6.8 0z';
+  return `<path d="M${pts.join('L')}Z ${hole}" fill="currentColor" fill-rule="evenodd" stroke="none"/>`;
+}
+
 const speaker = '<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor" stroke-width="1.6"/>';
 
 export const ICONS = {
@@ -10,7 +28,7 @@ export const ICONS = {
   pause: svg('<path d="M8.5 5v14M15.5 5v14" stroke-width="3"/>'),
   play: svg('<path d="M7 4.5v15l13-7.5z" fill="currentColor"/>'),
   home: svg('<path d="M3.5 11.5L12 4l8.5 7.5"/><path d="M6 10v9.5h4.5v-5h3v5H18V10"/>'),
-  gear: svg('<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.9 1.9M16.6 16.6l1.9 1.9M5.5 18.5l1.9-1.9M16.6 7.4l1.9-1.9"/>'),
+  gear: svg(cog()),
   wreck: svg('<circle cx="9" cy="15" r="5.5" fill="currentColor"/><path d="M12.5 11L19 4.5M19 4.5h-4M19 4.5v4"/>'),
   swap: svg('<path d="M5 8h13l-3.5-3.5M19 16H6l3.5 3.5"/>'),
   upgrade: svg('<path d="M12 19V6M6.5 11.5L12 6l5.5 5.5"/><path d="M5 21h14"/>'),
