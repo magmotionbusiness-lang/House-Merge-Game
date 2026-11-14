@@ -17,6 +17,7 @@ import { booster, boosterPrice, type BoosterId } from '../core/boosters';
 import { heatFor, heatProgress } from '../core/heat';
 import { heatGlow, isThemeId, nextTheme, setTheme, THEME_MAX_TIME, THEME_MIN_TIME, THEME_ORDER, themeForDistrict, THEMES, tierName, type ThemeId } from '../core/themes';
 import { prepareBackdrop, showBackdrop } from '../render/backdrops';
+import { haptics } from '../native/haptics';
 import { modelTemplate, wireframe } from '../models';
 
 export type PlayMode =
@@ -607,6 +608,7 @@ export class Game {
     this.lastLaunch = this.time;
     this.launchedCount++;
     this.sfx.launch(this.mode === 'slide' ? 0.7 : power);
+    haptics.light();
   }
 
   private addPiece(tierId: number, x: number, y: number, vx: number, vy: number): Piece {
@@ -715,6 +717,7 @@ export class Game {
       this.hud.floatText(sp.x, sp.y, label, nt >= 10 || combo >= 3, combo);
       this.hud.bumpScore();
       this.sfx.merge(nt, combo, this.heat);
+      haptics.merge(nt, combo);
       // Escalating payoff: camera punch-in on every merge, praise words and a
       // colour burst as the chain grows.
       if (!settings.calm) this.view.punch(0.9 + Math.min(2, (combo - 1) * 0.45) + Math.min(1, nt * 0.06) + this.heat * 0.15);
@@ -838,6 +841,7 @@ export class Game {
       this.view.shake(0.012);
     }
     this.sfx.themeChange();
+    haptics.success();
     this.events.onTheme?.(id);
     this.saveRun();
   }
@@ -929,6 +933,7 @@ export class Game {
     this.hud.celebrateFinale(words[Math.floor(Math.random() * words.length)], t.accent, t.confetti);
     this.view.edgePulse(t.accent, 6);
     this.sfx.levelComplete();
+    haptics.success();
     window.setTimeout(() => this.sfx.fanfare(), 350);
     c.endAt = c.t + 2.4;
   }
@@ -1111,6 +1116,7 @@ export class Game {
     } else {
       if (!settings.calm) this.view.shake(6);
       this.sfx.gameOver();
+      haptics.fail();
     }
     this.events.onEnd({
       win,

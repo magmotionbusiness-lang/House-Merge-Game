@@ -7,6 +7,8 @@ import { MAX_TIER } from '../core/tiers';
 import { ICONS } from './icons';
 import { thumbUrl } from './hud';
 import { CampaignMap } from './map';
+import { ownsRemoveAds, storeService } from '../native/store';
+import { APP_VERSION, PRIVACY_URL, SUPPORT_URL } from '../native/links';
 import { THEME_ORDER, THEMES, tierName, type ThemeId } from '../core/themes';
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string) => {
@@ -482,7 +484,7 @@ export class Screens {
       wrap.append(head, input);
       return wrap;
     };
-    const toggle = (key: 'calm' | 'largeText') => {
+    const toggle = (key: 'calm' | 'largeText' | 'haptics') => {
       const b = el('button', `toggle ${settings[key] ? 'on' : ''}`);
       b.setAttribute('role', 'switch');
       b.setAttribute('aria-checked', String(settings[key]));
@@ -512,9 +514,41 @@ export class Screens {
       row('Aiming', 'Slide: fixed power. Sling: pull down for power.', seg),
       row('Calm effects', 'No screen shake or white flashes', toggle('calm')),
       row('Large text', 'Bigger labels and numbers', toggle('largeText')),
+      row('Vibration', 'Haptics on merges and big moments', toggle('haptics')),
       row('Privacy & ads', 'Personalised or non-personalised ads', button('Review', 'small', () => this.h.privacy())),
-      button('Done', 'big green', back),
     );
+    // Remove Ads (one-time purchase) and Restore Purchases, in the app only.
+    if (storeService.available()) {
+      const owned = ownsRemoveAds();
+      const status = el('div', 'set-sub', owned ? 'Thank you! Between-round ads are off.' : 'No more ads between rounds. Rewarded ads stay optional.');
+      const buy = button(owned ? 'Ads removed' : `Remove ads${storeService.price() ? ` · ${storeService.price()}` : ''}`, 'big orange', async () => {
+        buy.disabled = true;
+        const ok = await storeService.buyRemoveAds();
+        if (ok) this.settings(back);
+        else buy.disabled = false;
+      }, ICONS.ad);
+      if (owned) buy.disabled = true;
+      const restore = button('Restore purchases', 'small', async () => {
+        restore.disabled = true;
+        const ok = await storeService.restore();
+        status.textContent = ok ? 'Purchases restored. Between-round ads are off.' : 'No purchases found for this Apple ID.';
+        restore.disabled = false;
+        if (ok) buy.disabled = true;
+      });
+      const shop = el('div', 'set-shop');
+      shop.append(buy, status, restore);
+      card.append(shop);
+    }
+    const links = el('div', 'set-links');
+    const link = (label: string, href: string) => {
+      const a = el('a', 'set-link', label) as HTMLAnchorElement;
+      a.href = href;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      return a;
+    };
+    links.append(link('Privacy policy', PRIVACY_URL), link('Support', SUPPORT_URL), el('span', 'set-version', `v${APP_VERSION}`));
+    card.append(button('Done', 'big green', back), links);
     this.show(card);
   }
 

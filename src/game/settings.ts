@@ -9,6 +9,7 @@ export interface Settings {
   aim: AimMode;
   calm: boolean; // less screen shake and no white flashes
   largeText: boolean;
+  haptics: boolean; // vibration on merges and big moments
 }
 
 const KEY = 'bm.settings';
@@ -21,6 +22,7 @@ function load(): Settings {
     aim: store.str('bm.mode', 'slide') === 'sling' ? 'sling' : 'slide',
     calm: false,
     largeText: false,
+    haptics: true,
   };
   try {
     const saved = JSON.parse(store.str(KEY, '{}')) as Partial<Settings> & { sound?: boolean };

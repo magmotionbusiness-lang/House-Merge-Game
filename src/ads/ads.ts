@@ -9,6 +9,8 @@ import { interstitialAllowed, type RewardPlacement } from './policy';
  */
 export interface AdService {
   readonly name: string;
+  /** Native only: Google's privacy options form (Settings → Privacy & ads). */
+  privacyOptions?(): Promise<void>;
   /** Resolves true when the player earned the reward. */
   showRewarded(placement: RewardPlacement): Promise<boolean>;
   showInterstitial(): Promise<void>;
@@ -105,13 +107,16 @@ export class Ads {
   }
 
   /** Shows the consent prompt once, before the first ad of any kind. */
-  private async ensureConsent(): Promise<Consent> {
+  private async ensureConsent(): Promise<Consent | null> {
+    // The native app uses Apple's tracking prompt and Google's consent form instead (AdMobService).
+    if (this.service.privacyOptions) return null;
     return consentGiven() ?? (await askConsent());
   }
 
   /** Changes the consent choice (Settings → Privacy & ads). */
   async reviewConsent() {
-    await askConsent(true);
+    if (this.service.privacyOptions) await this.service.privacyOptions();
+    else await askConsent(true);
   }
 
   /** A rewarded ad the player chose to watch. Resolves true if the reward was earned. */
@@ -153,6 +158,7 @@ export class Ads {
   }
 }
 
-export function createAds(hooks: AdHooks) {
-  return new Ads(new MockAdService(), hooks);
+/** Real AdMob ads in the iOS app, the 3-second test ad on the web. */
+export function createAds(hooks: AdHooks, native?: AdService) {
+  return new Ads(native ?? new MockAdService(), hooks);
 }

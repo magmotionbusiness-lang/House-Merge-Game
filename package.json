@@ -1,7 +1,7 @@
 {
   "name": "blueprint-merge",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -10,9 +10,19 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "models:bake": "node scripts/bake.mjs",
-    "balance": "tsx scripts/balance.ts"
+    "balance": "tsx scripts/balance.ts",
+    "ios:sync": "npm run build && cap sync ios",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.3.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
+    "@capgo/native-purchases": "^8.9.16",
     "@dimforge/rapier2d-compat": "^0.21.0",
     "@fontsource/architects-daughter": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
@@ -20,6 +30,8 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.2",
     "@types/three": "^0.187.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",

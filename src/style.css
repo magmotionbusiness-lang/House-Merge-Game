@@ -3759,3 +3759,32 @@ body:has(.screen.title) #splash {
 .lvcard-wrap.out {
   transition: opacity 0.35s 0.1s;
 }
+
+/* Settings: shop (Remove Ads / Restore) and links. */
+.set-shop {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed #e0d2b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.set-shop .btn.big {
+  width: 100%;
+}
+.set-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  font: 700 14px/1 'Barlow Condensed', var(--display);
+}
+.set-link {
+  color: #2f5da8;
+  text-decoration: underline;
+}
+.set-version {
+  color: #a08a6a;
+}

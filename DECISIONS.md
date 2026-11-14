@@ -529,3 +529,20 @@ The user painted three more backdrops in the house style (crane, cones, scaffold
 - `stripedBox` now makes the stripes stand a hair proud of the block on every side.
 - The tent band, the courtyard parapets and the Egyptian friezes were nudged apart.
 - A one-off scan of every model (every axis-aligned box pair sharing a visible face plane) also found and fixed the same problem on the neon trims (`neonBox` rims and posts), the Arcology and Holo Skyscraper bands, the Sky Villa deck, the Step Pyramid stair and the Sphinx headdress. The remaining coplanar pairs are hidden under roofs or slabs.
+
+## Phase 10: The iPhone app
+
+- **Capacitor 8** wraps the built game (`dist/`) into an iOS app (`ios/`, Swift Package Manager, so no CocoaPods). It runs offline from the bundle. iPhone only (iPads run it in compatibility mode, so iPad screenshots aren't needed) and portrait only.
+- **`src/native/`** holds everything platform-specific behind the game's existing interfaces; the web build is unchanged:
+  - `AdMobService` implements the same `AdService` as the web mock. It runs Apple's tracking prompt, then Google's UMP consent form where required, preloads rewarded and interstitial ads, and falls back to non-personalised ads without tracking permission. With Google's public test IDs (`ids.ts`) it shows test ads.
+  - `store.ts`: a StoreKit non-consumable Remove Ads (sets the `bm.noads` flag the ad rules already honour), Restore purchases, and a silent ownership check on launch.
+  - `haptics.ts`: the Taptic Engine on native and `navigator.vibrate` on the web. Shot = light, merge = light/medium/heavy by tier and combo, level clear / new map = success, game over = error. Rate-limited, with a Vibration switch in Settings.
+  - `app.ts`: status bar, the launch screen handed over to the loading screen, and background = save and pause.
+- **Store compliance:**
+  - `PrivacyInfo.xcprivacy`.
+  - Info.plist: `NSUserTrackingUsageDescription`, `GADApplicationIdentifier`, Google's SKAdNetwork IDs, `ITSAppUsesNonExemptEncryption = NO`, arm64.
+  - Privacy policy and support pages on the site, linked from Settings along with the app version.
+  - Restore purchases, as Apple requires.
+- **Icon:** the logo's black rounded corners were flood-filled with its blue and softened, giving the full-square 1024 icon iOS needs (it applies its own mask).
+- **Build and release:** `codemagic.yaml` builds in the cloud. It runs the tests, `npm run ios:sync`, signs with an App Store Connect API key, sets the build number to the latest TestFlight build + 1, and submits to TestFlight. `npm run screenshots` renders the six store screenshots at 1320 × 2868. `docs/APP-STORE.md` is the step-by-step launch guide with all the store text and form answers.
+- **Not done here (needs the owner's accounts or a device):** enrolling in the Apple Developer Program, creating the App Store Connect app, API key, AdMob app and ad units, the IAP product and the Paid Apps agreement, and a real-device TestFlight pass.

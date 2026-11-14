@@ -1,0 +1,48 @@
+# Cloud iOS build: Codemagic builds the app on a Mac and uploads it to TestFlight.
+# One-time setup (all in the browser, see docs/APP-STORE.md):
+#   1. codemagic.io → Add application → this GitHub repo.
+#   2. Teams → Integrations → Developer Portal → add an App Store Connect API key
+#      and name it exactly "blueprint-asc" (or change `app_store_connect` below).
+#   3. Start the "ios-testflight" workflow. Every later push to the branch builds again.
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: blueprint-asc
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.blueprintmerge.game
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        APP_STORE_APPLE_ID: 0000000000 # App Store Connect → your app → App Information → Apple ID
+    triggering:
+      events: [push]
+      branch_patterns:
+        - pattern: claude/nifty-keller-mmfn82
+    scripts:
+      - name: Install
+        script: npm ci
+      - name: Test
+        script: npm test
+      - name: Build the game and copy it into the iOS app
+        script: npm run ios:sync
+      - name: Signing
+        script: xcode-project use-profiles
+      - name: Build number = latest TestFlight build + 1
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          cd ios/App && agvtool new-version -all $((LATEST + 1))
+      - name: Build the .ipa
+        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

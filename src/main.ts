@@ -14,6 +14,9 @@ import { Screens } from './ui/screens';
 import { smokeTransition } from './ui/smoke';
 import { Music } from './audio/music';
 import { createAds } from './ads/ads';
+import { isNative } from './native/platform';
+import { AdMobService } from './native/admob';
+import { initNative } from './native/app';
 import { booster } from './core/boosters';
 import { ICONS } from './ui/icons';
 import { store } from './game/storage';
@@ -76,7 +79,7 @@ async function boot() {
       if (adPaused) game?.setPaused(false);
       adPaused = false;
     },
-  });
+  }, isNative ? new AdMobService() : undefined);
   music.playHome();
   const pause = () => {
     if (!game?.isRunning || screens?.open) return;
@@ -270,6 +273,13 @@ async function boot() {
     }
   });
   window.addEventListener('pagehide', () => game?.saveRun());
+  // The iOS app: status bar, launch screen hand-off, background = save and pause.
+  initNative({
+    pause: () => {
+      game?.saveRun();
+      pause();
+    },
+  });
 
   // Add ?debug to the URL to show frame rate and render resolution.
   const debug = new URLSearchParams(location.search).has('debug');

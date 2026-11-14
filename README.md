@@ -34,6 +34,10 @@ npm run models:bake  # re-render tier thumbnails, .glb exports and docs/tier-lin
 npm run balance      # bot-play every level, report to docs/balance.csv (add -- --write to tune shot limits)
 ```
 
+## iPhone app
+
+The game ships as an iOS app via Capacitor (`ios/`, `capacitor.config.ts`). `npm run ios:sync` builds the game and copies it into the app; `codemagic.yaml` builds and uploads to TestFlight in the cloud. Native features live in `src/native/` (AdMob ads, StoreKit Remove Ads, haptics, app lifecycle). The full launch guide, store listing text and checklist are in `docs/APP-STORE.md`; store screenshots come from `npm run screenshots`.
+
 ## Deploy
 
 Vercel auto-detects Vite: build command `npm run build`, output directory `dist`. Every push deploys.
